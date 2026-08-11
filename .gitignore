@@ -1,0 +1,48 @@
+# AASRA .gitignore
+
+# Secrets — NEVER commit
+.env
+*.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+env/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+
+# Test outputs
+tests/api/responses/
+tests/api/*.json
+test_results/
+
+# DB
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
