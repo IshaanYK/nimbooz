@@ -1,0 +1,85 @@
+{
+  "run_at": "2026-08-12T02:27:44.255298",
+  "results": {
+    "MB-T1: Temp+Precip+SoilMoisture": {
+      "status": "WORKING",
+      "detail": "Response keys: array"
+    },
+    "MB-T2: Evapotranspiration": {
+      "status": "WORKING",
+      "detail": "HTTP 200"
+    },
+    "MB-T3: Humidity+Wind+Solar": {
+      "status": "FAILED",
+      "detail": "HTTP 400: {\"error_message\":\"Data corrupted at path 'queries.Index 0.codes.Index 2.code'. Cannot initialize Code from invalid Int value 117.\",\"error\":true}"
+    },
+    "MB-T4: FAO ET0 (260)": {
+      "status": "FAILED_CONFIRMED",
+      "detail": "HTTP 400: {\"error_message\":\"Could not get data for FAO Reference Evapotranspiration \",\"error\":true}"
+    },
+    "MB-T5: ERA5 Historical Nagpur": {
+      "status": "WORKING",
+      "detail": "Keys: list"
+    },
+    "CH-T1: GDD Recommendation": {
+      "status": "FAILED",
+      "detail": "HTTP 400: \"It doesn\u2019t support requests starting in the past and ending in the future. Request can be either in the past or in the future.\""
+    },
+    "CH-T2: Hydric Stress": {
+      "status": "WORKING",
+      "detail": "[{\"requestLatitude\":23.2599,\"requestLongitude\":77.4126,\"type\":\"Hydric stress\",\"crop\":null,\"date\":\"2026/07/29 00:00:00\",\"constraintCodes\":\"ResLegHighSoilMoisture;\",\"value\":\"S\",\"recommendation\":\"1\"},{\"r..."
+    },
+    "CH-T3: Spray Window": {
+      "status": "WORKING",
+      "detail": "[]"
+    },
+    "CH-T4: Planting Window": {
+      "status": "WORKING",
+      "detail": "[]"
+    },
+    "CH-T5: Disease Risk Metadata": {
+      "status": "WORKING",
+      "detail": "[{\"ModelName\": \"Anthracnose Foliar Blight\", \"ModelID\": \"AnthracnoseFoliarBlight\", \"ModelDomain\": \"Turf\", \"Description\": \"Greencast disease Type predication on both Histroical and Forecast for Antracno..."
+    },
+    "CH-T6: Forecast (/api/Forecast/ShortTermForecast)": {
+      "status": "NOT_FOUND",
+      "detail": "404"
+    },
+    "CH-T6: Forecast (/api/Forecast/DailyForecast)": {
+      "status": "NOT_FOUND",
+      "detail": "404"
+    },
+    "CH-T6: Forecast (/api/Forecast)": {
+      "status": "NOT_FOUND",
+      "detail": "404"
+    },
+    "CH-T7: Location Search (/api/LocationSearch)": {
+      "status": "NOT_FOUND",
+      "detail": "404"
+    },
+    "CH-T7: Location Search (/api/Common/LocationSearch)": {
+      "status": "NOT_FOUND",
+      "detail": "404"
+    },
+    "CH-T8: QuantisV2 (/api/QuantisV2)": {
+      "status": "NOT_FOUND",
+      "detail": "404"
+    },
+    "CH-T8: QuantisV2 (/api/QuantisV2/Metadata)": {
+      "status": "NOT_FOUND",
+      "detail": "404"
+    },
+    "CH-T8: QuantisV2 (/api/Quantis)": {
+      "status": "NOT_FOUND",
+      "detail": "404"
+    },
+    "CH-T9: Alert": {
+      "status": "FAILED",
+      "detail": "HTTP 404: Status Code: 404; Not Found                                                                                                                                                                             "
+    },
+    "CH-T10: Generic Recommendation": {
+      "status": "FAILED",
+      "detail": "HTTP 404: Status Code: 404; Not Found                                                                                                                                                                             "
+    }
+  }
+}
