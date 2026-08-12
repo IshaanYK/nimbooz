@@ -3,7 +3,7 @@
  * Connects Next.js frontend to FastAPI backend at http://localhost:8000
  */
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function fetchCurrentWeather(lat: number, lon: number, crop: string) {
   try {
@@ -64,6 +64,42 @@ export async function synthesizeSpeechBulbul(text: string, languageCode: string 
   }
 }
 
+export async function fetchGoogleTTSAudio(text: string, language: string = "hi", voiceName: string = "hi-IN-Chirp3-HD-Kore") {
+  try {
+    const res = await fetch(`${API_BASE}/chat/google-tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language, voice_name: voiceName }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Google TTS audio fetch unreachable:", err);
+    return null;
+  }
+}
+
+export async function analyzeCropLeafImage(imageFile: File, crop: string = "soybean", language: string = "hi") {
+  try {
+    const formData = new FormData();
+    formData.append("file", imageFile);
+    formData.append("crop", crop);
+    formData.append("language", language);
+
+    const res = await fetch(`${API_BASE}/chat/analyze-image`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Multimodal leaf image scanner API unreachable:", err);
+    return null;
+  }
+}
+
+
+
 export async function fetchROBICalculation(payload: {
   crop: string;
   yield_with_treatment_kg_per_ha: number;
@@ -109,6 +145,41 @@ export async function addJournalEntry(payload: any) {
     return await res.json();
   } catch (err) {
     console.warn("Backend Journal Add API unreachable:", err);
+    return null;
+  }
+}
+
+export async function saveFieldToBackend(field: any) {
+  try {
+    const res = await fetch(`${API_BASE}/fields/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: field.name,
+        lat: field.center?.[0] || 23.2599,
+        lon: field.center?.[1] || 77.4126,
+        area_ha: field.areaHa || 1.7,
+        crop: field.crop,
+        polygon: field.polygon,
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Backend field save API unreachable:", err);
+    return null;
+  }
+}
+
+export async function deleteFieldFromBackend(fieldId: string) {
+  try {
+    const res = await fetch(`${API_BASE}/fields/${fieldId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Backend field delete API unreachable:", err);
     return null;
   }
 }

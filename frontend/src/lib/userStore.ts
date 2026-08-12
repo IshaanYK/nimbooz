@@ -50,7 +50,7 @@ export const INDIAN_LANGUAGES = [
 ];
 
 export const DEFAULT_DEMO_PROFILE: FarmerProfile = {
-  fullName: "Kisan Brother",
+  fullName: "Rajesh Sharma",
   mobileNumber: "+91 98765 43210",
   language: "hi",
   state: "Madhya Pradesh",
@@ -91,7 +91,7 @@ export function getStoredProfile(): FarmerProfile {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.fullName === "Ramesh" || parsed.fullName === "Ramesh Patel") {
-        parsed.fullName = "Kisan Brother";
+        parsed.fullName = "Rajesh Sharma";
         localStorage.setItem("aasra_farmer_profile", JSON.stringify(parsed));
       }
       return { ...DEFAULT_DEMO_PROFILE, ...parsed };

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { saveProfile, DEFAULT_DEMO_PROFILE, INDIAN_LANGUAGES, FarmerProfile } from "@/lib/userStore";
-import { User, MapPin, Sprout, Settings, ArrowRight, ArrowLeft, CheckCircle2, Sparkles, Navigation, Mic, MessageSquare } from "lucide-react";
+import { User, MapPin, Sprout, Settings, ArrowRight, ArrowLeft, CheckCircle2, Navigation, Mic, Globe } from "lucide-react";
 import { RealFieldMap } from "@/components/RealFieldMap";
 
 export default function SignupPage() {
@@ -14,7 +14,7 @@ export default function SignupPage() {
   const [step, setStep] = useState<number>(1);
 
   // Form State
-  const [formData, setFormData] = useState<FarmerProfile>({ ...DEFAULT_DEMO_PROFILE });
+  const [formData, setFormData] = useState<FarmerProfile>({ ...DEFAULT_DEMO_PROFILE, fullName: "Ramesh Patel" });
   const [gpsDetected, setGpsDetected] = useState<boolean>(false);
   const [loadingGps, setLoadingGps] = useState<boolean>(false);
   const [fieldReady, setFieldReady] = useState<boolean>(false);
@@ -32,7 +32,7 @@ export default function SignupPage() {
     setFieldReady(true);
     setTimeout(() => {
       router.push("/dashboard");
-    }, 2000);
+    }, 1500);
   };
 
   const detectLocation = () => {
@@ -63,105 +63,110 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F6EF] text-[#10241F] font-sans flex flex-col justify-between p-4 sm:p-8">
-      {/* Top Header Logo */}
-      <header className="max-w-4xl mx-auto w-full flex items-center justify-between py-4">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans flex flex-col justify-between p-4 sm:p-8 relative">
+      
+      {/* Top Header */}
+      <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4 relative z-10 border-b border-slate-200 pb-4">
         <Link href="/" className="flex items-center gap-3">
-          <div className="relative h-10 w-36 bg-white p-1.5 rounded-xl border border-emerald-500/20 shadow-md">
-            <Image src="/images/aasra_logo.png" alt="AASRA" fill className="object-contain p-1" />
+          <div className="relative h-10 w-32 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+            <Image src="/images/aasra_logo.png" alt="AASRA" fill className="object-contain p-0.5" priority />
           </div>
-          <span className="text-xs font-black tracking-widest text-[#00A878] font-mono hidden sm:inline">آसरा • ONBOARDING</span>
+          <span className="text-xs font-mono font-bold tracking-wider text-[#10B981] uppercase hidden sm:inline">
+            AASRA · FARMER ONBOARDING
+          </span>
         </Link>
 
-        <span className="text-xs font-mono font-bold text-slate-500">
-          Step <strong className="text-[#00A878] text-sm">{step}</strong> of 4
-        </span>
+        <Link href="/login" className="text-xs font-extrabold text-slate-600 hover:text-[#10B981]">
+          Already registered? <span className="text-[#10B981] underline">Log In</span>
+        </Link>
       </header>
 
-      {/* Field Ready Celebration Modal */}
-      {fieldReady && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#063B2D] border border-[#20C98A]/40 text-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl animate-fade-in">
-            <div className="h-16 w-16 bg-[#00A878] rounded-full mx-auto flex items-center justify-center text-amber-300 shadow-xl animate-bounce">
-              <CheckCircle2 className="w-10 h-10" />
-            </div>
-            <h3 className="text-2xl font-black font-display text-white">Your field is ready!</h3>
-            <p className="text-xs text-emerald-200">
-              Field boundaries and live weather telemetry loaded. Redirecting to your AASRA dashboard...
-            </p>
-          </div>
+      {/* Main Form Container */}
+      <main className="max-w-4xl mx-auto w-full my-8 relative z-10">
+        
+        {/* Step Indicator Navigation Tabs */}
+        <div className="grid grid-cols-4 gap-2 mb-8 bg-white p-2 rounded-xl border border-slate-200 shadow-sm text-center">
+          {[
+            { id: 1, label: "01. ABOUT YOU", icon: User },
+            { id: 2, label: "02. LOCATION", icon: MapPin },
+            { id: 3, label: "03. FIELD MAP", icon: Sprout },
+            { id: 4, label: "04. PREFERENCES", icon: Settings },
+          ].map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setStep(s.id)}
+              className={`py-3 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                step === s.id
+                  ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <s.icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{s.label}</span>
+            </button>
+          ))}
         </div>
-      )}
 
-      {/* Main Multi-Step Form Card */}
-      <main className="max-w-3xl mx-auto w-full my-auto py-6">
-        <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#063B2D]/15 shadow-2xl space-y-8">
-          {/* Animated Progress Bar Header */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs font-mono font-black text-slate-500">
-              <span className={step === 1 ? "text-[#00A878]" : ""}>01. ABOUT YOU</span>
-              <span className={step === 2 ? "text-[#00A878]" : ""}>02. LOCATION</span>
-              <span className={step === 3 ? "text-[#00A878]" : ""}>03. FIELD & MAP</span>
-              <span className={step === 4 ? "text-[#00A878]" : ""}>04. PREFERENCES</span>
-            </div>
-
-            <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
-              <motion.div
-                className="h-full bg-[#00A878] rounded-full"
-                animate={{ width: `${(step / 4) * 100}%` }}
-                transition={{ duration: 0.4 }}
-              />
-            </div>
-          </div>
-
-          {/* Form Step Body with AnimatePresence */}
+        {/* Form Wizard Cards */}
+        <div className="bg-white border border-slate-200 shadow-md rounded-2xl p-6 sm:p-10 space-y-6">
           <AnimatePresence mode="wait">
+            
+            {/* STEP 1: ABOUT YOU */}
             {step === 1 && (
               <motion.div
                 key="step1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 text-[#00A878] text-xs font-mono font-bold">
-                    <User className="h-4 w-4" /> STEP 01
-                  </div>
-                  <h2 className="text-2xl font-black font-display text-[#10241F]">Tell us about yourself</h2>
-                  <p className="text-xs text-slate-600">Your information helps AASRA customize farm advice for your region.</p>
+                <div>
+                  <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                    STEP 01 / FARMER PROFILE
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
+                    Tell us about yourself
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                    Your information helps AASRA customize farm advice and crop warnings for your region.
+                  </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Full Name</label>
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Full Name / नाम
+                    </label>
                     <input
                       type="text"
-                      placeholder="e.g. Ramesh Patel"
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878]"
+                      placeholder="e.g. Ramesh Patel"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100 outline-none"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Mobile Number (OTP Verification)</label>
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Mobile Number (OTP Verification)
+                    </label>
                     <input
                       type="tel"
-                      placeholder="+91 98765 43210"
                       value={formData.mobileNumber}
                       onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
-                      className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878]"
+                      placeholder="+91 98765 43210"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100 outline-none"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Preferred Language</label>
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Preferred Language / भाषा
+                    </label>
                     <select
                       value={formData.language}
                       onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                      className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878] cursor-pointer font-bold"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100 outline-none cursor-pointer"
                     >
                       {INDIAN_LANGUAGES.map((lang) => (
                         <option key={lang.code} value={lang.code}>
@@ -171,241 +176,262 @@ export default function SignupPage() {
                     </select>
                   </div>
                 </div>
+
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={handleNext}
+                    className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Continue to Step 2</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
               </motion.div>
             )}
 
+            {/* STEP 2: LOCATION */}
             {step === 2 && (
               <motion.div
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 text-[#00A878] text-xs font-mono font-bold">
-                    <MapPin className="h-4 w-4" /> STEP 02
-                  </div>
-                  <h2 className="text-2xl font-black font-display text-[#10241F]">Your Farm Location</h2>
-                  <p className="text-xs text-slate-600">AASRA uses hyper-local weather telemetry for micro-climate forecasting.</p>
+                <div>
+                  <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                    STEP 02 / FARM LOCATION
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
+                    Where is your farm located?
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                    AASRA pulls real-time weather telemetry from Open-Meteo for your village coordinates.
+                  </p>
                 </div>
 
-                <div className="space-y-4">
-                  {/* GPS Auto Detect Button */}
+                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="font-extrabold text-sm text-slate-900 block">Use Phone Hardware GPS</span>
+                    <span className="text-xs text-slate-500 font-mono">Automatically sets exact Lat/Lon coordinates</span>
+                  </div>
                   <button
-                    type="button"
                     onClick={detectLocation}
                     disabled={loadingGps}
-                    className="w-full py-3 px-4 rounded-xl bg-[#DDF7EC] border border-[#00A878]/30 text-[#063B2D] font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#00A878] hover:text-white transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs flex items-center gap-2 cursor-pointer"
                   >
-                    <Navigation className="h-4 w-4 text-[#00A878]" />
-                    <span>{loadingGps ? "Detecting GPS Coordinates..." : gpsDetected ? "✓ GPS Coordinates Locked (23.25°N, 77.41°E)" : "Auto-Detect My GPS Location"}</span>
+                    <Navigation className="h-4 w-4" />
+                    <span>{loadingGps ? "Locating..." : gpsDetected ? "GPS Locked" : "Fetch Location"}</span>
                   </button>
+                </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700">State</label>
-                      <input
-                        type="text"
-                        value={formData.state}
-                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                        className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878]"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700">District</label>
-                      <input
-                        type="text"
-                        value={formData.district}
-                        onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                        className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878]"
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      State / राज्य
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                    />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Village</label>
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      District / जिला
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.district}
+                      onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Village / गाँव
+                    </label>
                     <input
                       type="text"
                       value={formData.village}
                       onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                      className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878]"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
                     />
                   </div>
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <button
+                    onClick={handleBack}
+                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back</span>
+                  </button>
+
+                  <button
+                    onClick={handleNext}
+                    className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Continue to Step 3</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
                 </div>
               </motion.div>
             )}
 
+            {/* STEP 3: FIELD MAP & CROP */}
             {step === 3 && (
               <motion.div
                 key="step3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 text-[#00A878] text-xs font-mono font-bold">
-                    <Sprout className="h-4 w-4" /> STEP 03
-                  </div>
-                  <h2 className="text-2xl font-black font-display text-[#10241F]">Field Setup & Interactive Map</h2>
-                  <p className="text-xs text-slate-600">Draw your field boundary on the live satellite map below.</p>
+                <div>
+                  <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                    STEP 03 / CROP & FIELD BOUNDARY
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
+                    Primary Crop & Field Area
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                    AASRA calculates night heat stress degradation specific to your crop variety.
+                  </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700">Field Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Bhopal Soybean Field"
-                        value={formData.fieldName}
-                        onChange={(e) => setFormData({ ...formData, fieldName: e.target.value })}
-                        className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878]"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700">Primary Crop</label>
-                      <select
-                        value={formData.primaryCrop}
-                        onChange={(e) => setFormData({ ...formData, primaryCrop: e.target.value })}
-                        className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878] cursor-pointer font-bold"
-                      >
-                        <option value="soybean">Soybean (सोयाबीन)</option>
-                        <option value="cotton">Cotton (कपास)</option>
-                        <option value="wheat">Wheat (गेहूं)</option>
-                        <option value="rice">Rice (धान)</option>
-                        <option value="sugarcane">Sugarcane (गन्ना)</option>
-                      </select>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Primary Crop / मुख्य फसल
+                    </label>
+                    <select
+                      value={formData.primaryCrop}
+                      onChange={(e) => setFormData({ ...formData, primaryCrop: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none cursor-pointer"
+                    >
+                      <option value="soybean">Soybean (सोयाबीन)</option>
+                      <option value="rice">Rice / Paddy (धान)</option>
+                      <option value="cotton">Cotton (कपास)</option>
+                      <option value="wheat">Wheat (गेहूँ)</option>
+                      <option value="maize">Maize (मक्का)</option>
+                    </select>
                   </div>
 
-                  {/* Real Leaflet Map with Drawing Tool */}
-                  <div className="space-y-2 pt-2">
-                    <label className="text-xs font-bold text-slate-700">Interactive Map & Polygon Draw</label>
-                    <RealFieldMap
-                      initialLat={formData.gpsLocation?.lat || 23.2599}
-                      initialLon={formData.gpsLocation?.lon || 77.4126}
-                      crop={formData.primaryCrop}
-                      fieldName={formData.fieldName || "Bhopal Field"}
-                      fieldAreaHa={formData.fieldAreaHa || 4.2}
-                      allowDrawing={true}
-                      onPolygonComplete={(points, area) => {
-                        setFormData((prev) => ({ ...prev, fieldAreaHa: area }));
-                      }}
-                      onLocationSelect={(lat, lon) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          gpsLocation: { lat, lon },
-                        }));
-                      }}
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Field Area (Acres)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.fieldAreaAcres || 4.2}
+                      onChange={(e) => setFormData({ ...formData, fieldAreaAcres: parseFloat(e.target.value) || 4.2 })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Sowing Date / बुआई तिथि
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.sowingDate || "2026-06-15"}
+                      onChange={(e) => setFormData({ ...formData, sowingDate: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <button
+                    onClick={handleBack}
+                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back</span>
+                  </button>
+
+                  <button
+                    onClick={handleNext}
+                    className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Continue to Step 4</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
                 </div>
               </motion.div>
             )}
 
+            {/* STEP 4: PREFERENCES & COMPLETE */}
             {step === 4 && (
               <motion.div
                 key="step4"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 text-[#00A878] text-xs font-mono font-bold">
-                    <Settings className="h-4 w-4" /> STEP 04
-                  </div>
-                  <h2 className="text-2xl font-black font-display text-[#10241F]">Interaction Preferences</h2>
-                  <p className="text-xs text-slate-600">Choose how you want AASRA to communicate recommendations.</p>
+                <div>
+                  <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                    STEP 04 / FINAL CONFIRMATION
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
+                    Review & Setup Farm Overwatch
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                    Confirm details to initialize your personalized AASRA AI Assistant.
+                  </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Communication Mode</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { mode: "Voice + Text", icon: Mic },
-                        { mode: "Voice Only", icon: Mic },
-                        { mode: "Text Only", icon: MessageSquare },
-                      ].map((item) => (
-                        <button
-                          key={item.mode}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, preferredCommunication: item.mode })}
-                          className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                            formData.preferredCommunication === item.mode
-                              ? "bg-[#00A878] text-white border-[#00A878] shadow-md"
-                              : "bg-[#F7F6EF] text-slate-700 border-slate-300 hover:bg-slate-200"
-                          }`}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.mode}</span>
-                        </button>
-                      ))}
-                    </div>
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
+                  <div className="flex justify-between border-b border-slate-200 pb-2">
+                    <span className="text-slate-500">Farmer Name:</span>
+                    <span className="font-bold text-slate-900">{formData.fullName}</span>
                   </div>
+                  <div className="flex justify-between border-b border-slate-200 pb-2">
+                    <span className="text-slate-500">Location:</span>
+                    <span className="font-bold text-slate-900">{formData.village}, {formData.district}, {formData.state}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-200 pb-2">
+                    <span className="text-slate-500">Primary Crop:</span>
+                    <span className="font-bold text-emerald-700">{formData.primaryCrop?.toUpperCase()} ({formData.fieldAreaAcres} Acres)</span>
+                  </div>
+                </div>
 
-                  <div className="space-y-1.5 pt-2">
-                    <label className="text-xs font-bold text-slate-700">Notification Preference</label>
-                    <select
-                      value={formData.notificationPreference}
-                      onChange={(e) => setFormData({ ...formData, notificationPreference: e.target.value })}
-                      className="w-full p-3.5 rounded-xl bg-[#F7F6EF] border border-slate-300 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#00A878] cursor-pointer"
-                    >
-                      <option value="Important alerts">Important thermal risk alerts only</option>
-                      <option value="Daily summary">Daily morning farm summary</option>
-                      <option value="Weekly digest">Weekly field digest</option>
-                    </select>
-                  </div>
+                <div className="flex justify-between pt-4">
+                  <button
+                    onClick={handleBack}
+                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back</span>
+                  </button>
+
+                  <button
+                    onClick={handleFinish}
+                    className="px-8 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>{fieldReady ? "Initializing Overwatch..." : "Complete Setup & Launch Dashboard"}</span>
+                  </button>
                 </div>
               </motion.div>
             )}
+
           </AnimatePresence>
-
-          {/* Stepper Navigation Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t border-slate-200">
-            {step > 1 ? (
-              <button
-                type="button"
-                onClick={handleBack}
-                className="py-3 px-5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <ArrowLeft className="h-4 w-4" /> Back
-              </button>
-            ) : <div />}
-
-            {step < 4 ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                className="py-3 px-6 rounded-xl bg-[#00A878] hover:bg-[#063B2D] text-white font-black text-xs flex items-center gap-2 transition-all shadow-md cursor-pointer hover:scale-105"
-              >
-                <span>Continue to Step {step + 1}</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleFinish}
-                className="py-3.5 px-7 rounded-xl bg-[#063B2D] hover:bg-[#00A878] text-white font-black text-xs flex items-center gap-2 transition-all shadow-xl cursor-pointer hover:scale-105"
-              >
-                <CheckCircle2 className="h-4.5 w-4.5 text-amber-300" />
-                <span>Start using AASRA</span>
-              </button>
-            )}
-          </div>
         </div>
+
       </main>
 
       {/* Footer */}
-      <footer className="text-center text-xs text-slate-400 font-mono py-4">
-        Already have an account? <Link href="/login" className="text-[#00A878] font-bold hover:underline">Log in</Link>
+      <footer className="max-w-5xl mx-auto w-full text-center py-4 text-xs text-slate-500 font-mono">
+        © 2026 AASRA — Syngenta Biologicals Yield Overwatch Platform
       </footer>
     </div>
   );

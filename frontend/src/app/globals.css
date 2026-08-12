@@ -1,117 +1,177 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @layer base {
   :root {
-    --color-deep-forest: #063B2D;
-    --color-emerald: #00A878;
-    --color-fresh-green: #20C98A;
-    --color-soft-sage: #DDF7EC;
-    --color-warm-cream: #F7F6EF;
-    --color-dark-ink: #10241F;
-    --color-warm-amber: #F4B942;
-    --color-risk-red: #E85D5D;
-    --color-risk-orange: #F29E38;
+    --bg-main: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-slate-900: #FFFFFF;
+    --bg-slate-950: #F8FAFC;
+
+    --color-slate-dark: #0F172A;
+    --color-slate-body: #334155;
+    --color-slate-muted: #64748B;
+    
+    --color-emerald-primary: #059669;
+    --color-emerald-bright: #10B981;
+    --color-sky-primary: #0284C7;
+    --color-blue-bright: #2563EB;
+    --color-amber-accent: #D97706;
+
+    --border-light: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --border-accent: rgba(5, 150, 105, 0.3);
+    
+    --radius-card: 20px;
+    --radius-pill: 9999px;
+
+    --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-accent: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
   }
 
   body {
-    background-color: var(--color-warm-cream);
-    color: var(--color-dark-ink);
-    font-family: 'Plus Jakarta Sans', 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--color-slate-dark);
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.012em;
+    letter-spacing: -0.01em;
     overflow-x: hidden;
+    min-height: 100vh;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    letter-spacing: -0.028em;
+    font-family: var(--font-display);
+    color: var(--color-slate-dark);
+    letter-spacing: -0.025em;
+    font-weight: 700;
   }
 }
 
-/* Custom Design Utility Tokens */
-.bg-deep-forest { background-color: #063B2D; }
-.text-deep-forest { color: #063B2D; }
+/* Modern Clean Stripe Typography Classes */
+.font-display { font-family: var(--font-display); }
+.font-accent { font-family: var(--font-accent); }
+.font-body { font-family: var(--font-body); }
 
-.bg-emerald-brand { background-color: #00A878; }
-.text-emerald-brand { color: #00A878; }
-.border-emerald-brand { border-color: #00A878; }
-
-.bg-fresh-green { background-color: #20C98A; }
-.text-fresh-green { color: #20C98A; }
-
-.bg-soft-sage { background-color: #DDF7EC; }
-.text-soft-sage { color: #DDF7EC; }
-.border-soft-sage { border-color: #DDF7EC; }
-
-.bg-warm-cream { background-color: #F7F6EF; }
-.text-warm-cream { color: #F7F6EF; }
-
-.bg-dark-ink { background-color: #10241F; }
-.text-dark-ink { color: #10241F; }
-
-.bg-warm-amber { background-color: #F4B942; }
-.text-warm-amber { color: #F4B942; }
-
-.bg-risk-red { background-color: #E85D5D; }
-.text-risk-red { color: #E85D5D; }
-
-.bg-risk-orange { background-color: #F29E38; }
-.text-risk-orange { color: #F29E38; }
-
-/* Custom Glass & Elevated Surfaces */
-.glass-panel-dark {
-  background: rgba(6, 59, 45, 0.85);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(32, 201, 138, 0.2);
+/* Theme Containers - Stripe Light Mode Standard */
+.theme-warm-dusk, .theme-warm-sunset, .theme-warm-organic {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
 }
 
-.glass-panel-light {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 168, 120, 0.15);
-  box-shadow: 0 20px 40px -15px rgba(16, 36, 31, 0.05);
+/* Stripe Glass Panels & Cards (Light Mode) */
+.glass-warm-panel {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.04) !important;
+  color: #0F172A !important;
+  transition: all 0.3s ease;
 }
 
-.card-aasra {
-  background: #ffffff;
-  border: 1px solid rgba(6, 59, 45, 0.08);
-  border-radius: 20px;
-  box-shadow: 0 12px 30px -10px rgba(16, 36, 31, 0.04);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.card-aasra:hover {
-  border-color: rgba(0, 168, 120, 0.3);
+.glass-warm-panel:hover {
+  border-color: #059669 !important;
+  box-shadow: 0 20px 40px -10px rgba(5, 150, 105, 0.12), 0 8px 20px -4px rgba(15, 23, 42, 0.06) !important;
   transform: translateY(-2px);
-  box-shadow: 0 20px 40px -10px rgba(6, 59, 45, 0.08);
 }
 
-/* Animations */
-@keyframes micPulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 168, 120, 0.4); }
-  70% { transform: scale(1.06); box-shadow: 0 0 0 20px rgba(0, 168, 120, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 168, 120, 0); }
+.glass-warm-card {
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 18px !important;
+  color: #0F172A !important;
+  transition: all 0.25s ease;
 }
 
-.animate-mic-pulse {
-  animation: micPulse 2.2s infinite ease-in-out;
+.glass-warm-card:hover {
+  background: #FFFFFF !important;
+  border-color: #059669 !important;
+  box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.1) !important;
 }
 
-@keyframes lineDraw {
-  0% { stroke-dashoffset: 1000; }
-  100% { stroke-dashoffset: 0; }
+/* Stripe Primary & Secondary Buttons */
+.btn-warm-gold {
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-pill) !important;
+  box-shadow: 0 8px 20px -4px rgba(5, 150, 105, 0.35) !important;
+  transition: all 0.25s ease !important;
+}
+
+.btn-warm-gold:hover {
+  transform: translateY(-1.5px) !important;
+  box-shadow: 0 12px 25px -4px rgba(5, 150, 105, 0.5) !important;
+}
+
+.btn-warm-glass {
+  background: #FFFFFF !important;
+  border: 1px solid #CBD5E1 !important;
+  border-radius: var(--radius-pill) !important;
+  color: #0F172A !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.03) !important;
+  transition: all 0.25s ease !important;
+}
+
+.btn-warm-glass:hover {
+  background: #F1F5F9 !important;
+  border-color: #059669 !important;
+  color: #059669 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Custom Leaflet Map High-Contrast Styling (Light Mode) */
+.leaflet-popup-content-wrapper {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1px solid #CBD5E1 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.15) !important;
+  font-family: var(--font-body) !important;
+  font-size: 13px !important;
+}
+
+.leaflet-popup-content b {
+  color: #059669 !important;
+  font-family: var(--font-display) !important;
+}
+
+.leaflet-popup-tip {
+  background: #FFFFFF !important;
+}
+
+.leaflet-tooltip {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1px solid #059669 !important;
+  border-radius: 10px !important;
+  font-family: var(--font-accent) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1) !important;
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+}
+
+.leaflet-control-zoom a {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1px solid #CBD5E1 !important;
+  border-radius: 8px !important;
+  font-weight: bold !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #F1F5F9 !important;
+  color: #059669 !important;
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #F7F6EF;
-}
-::-webkit-scrollbar-thumb {
-  background: #00A878;
-  border-radius: 4px;
-}
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: #F8FAFC; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #059669; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

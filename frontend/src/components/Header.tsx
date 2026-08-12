@@ -59,11 +59,11 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-[#063B2D]/95 border-b border-[#20C98A]/30 px-4 sm:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl text-white font-sans">
-      {/* Brand Logo with Official Image */}
+    <header className="sticky top-0 z-50 backdrop-blur-md bg-white/95 border-b border-slate-200 px-4 sm:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm text-slate-900 font-sans">
+      {/* Brand Logo */}
       <div className="flex items-center gap-3">
         <Link href="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
-          <div className="relative h-9 w-36 sm:w-44 flex items-center justify-start bg-white p-1.5 rounded-xl shadow-md">
+          <div className="relative h-9 w-36 sm:w-44 flex items-center justify-start bg-slate-50 p-1 rounded-xl border border-slate-200 shadow-sm">
             <Image
               src="/images/aasra_logo.png"
               alt="AASRA"
@@ -77,29 +77,29 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Live vs Demo Mode Toggle Pill */}
         <button
           onClick={() => setIsDemoMode(!isDemoMode)}
-          className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+          className={`px-3 py-1 rounded-full text-[10px] font-accent font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
             isDemoMode
-              ? "bg-slate-800 text-amber-300 border-amber-500/40"
-              : "bg-emerald-950 text-emerald-300 border-emerald-500/50 shadow-sm"
+              ? "bg-amber-50 text-amber-800 border-amber-300"
+              : "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-sm"
           }`}
           title="Click to toggle between LIVE API mode and DEMO dataset mode"
         >
-          <span className={`w-2 h-2 rounded-full ${isDemoMode ? "bg-amber-400" : "bg-emerald-400 animate-ping"}`} />
+          <span className={`w-2 h-2 rounded-full ${isDemoMode ? "bg-amber-500" : "bg-emerald-500 animate-ping"}`} />
           <span>{isDemoMode ? "DEMO MODE" : "LIVE API MODE"}</span>
         </button>
 
         {loggedIn && profile?.fullName ? (
           <Link
             href="/onboarding"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00A878]/30 border border-[#20C98A]/40 text-emerald-200 text-xs font-bold hover:bg-[#00A878]/50 transition-all"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-all font-accent"
           >
-            <User className="h-3.5 w-3.5 text-amber-300" />
+            <User className="h-3.5 w-3.5 text-emerald-600" />
             <span>{profile.fullName}</span>
           </Link>
         ) : (
           <Link
             href="/signup"
-            className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#00A878] text-white font-black text-xs hover:bg-[#20C98A] transition-all shadow-md cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 transition-all shadow-sm cursor-pointer font-accent"
           >
             <UserPlus className="h-3.5 w-3.5" />
             <span>Sign Up</span>
@@ -108,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Center Nav Links */}
-      <nav className="flex items-center gap-1 bg-[#10241F] p-1 rounded-2xl border border-white/10 overflow-x-auto max-w-full no-scrollbar">
+      <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 overflow-x-auto max-w-full no-scrollbar font-accent">
         {navLinks.map((link) => {
           const Icon = link.icon;
           const isActive = pathname === link.href;
@@ -118,11 +118,11 @@ export const Header: React.FC<HeaderProps> = ({
               href={link.href}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shrink-0 ${
                 isActive
-                  ? "bg-[#00A878] text-white shadow-md font-black"
-                  : "text-slate-300 hover:text-white hover:bg-white/10"
+                  ? "bg-emerald-600 text-white shadow-sm font-extrabold"
+                  : "text-slate-700 hover:text-slate-900 hover:bg-white"
               }`}
             >
-              <Icon className={`h-3.5 w-3.5 ${isActive ? "text-amber-300" : "text-[#20C98A]"}`} />
+              <Icon className={`h-3.5 w-3.5 ${isActive ? "text-white" : "text-emerald-600"}`} />
               {link.label}
             </Link>
           );
@@ -130,17 +130,17 @@ export const Header: React.FC<HeaderProps> = ({
       </nav>
 
       {/* Right Controls */}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2 text-xs font-accent">
         {/* Language Selector */}
-        <div className="flex items-center gap-1 bg-[#10241F] border border-white/10 rounded-xl px-2.5 py-1 text-xs">
-          <Globe className="h-3.5 w-3.5 text-[#20C98A]" />
+        <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 text-xs">
+          <Globe className="h-3.5 w-3.5 text-emerald-600" />
           <select
             value={language}
             onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
-            className="bg-transparent text-emerald-200 font-bold focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer pr-1"
           >
             {INDIAN_LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code} className="bg-slate-900 text-white">
+              <option key={l.code} value={l.code} className="bg-white text-slate-900">
                 {l.native} ({l.name})
               </option>
             ))}
@@ -150,10 +150,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Technical Admin Diagnostics Link */}
         <Link
           href="/admin/api-status"
-          className="p-2 rounded-xl bg-[#10241F] hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors"
+          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 transition-colors"
           title="Admin API Status & Telemetry"
         >
-          <Activity className="h-4 w-4 text-[#20C98A]" />
+          <Activity className="h-4 w-4 text-emerald-600" />
         </Link>
       </div>
     </header>

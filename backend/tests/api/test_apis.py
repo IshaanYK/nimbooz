@@ -12,6 +12,7 @@ import httpx
 import json
 import os
 import sys
+import pytest
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
@@ -51,6 +52,7 @@ def safe_truncate(data, n=200):
 # METEOBLUE TESTS
 # ─────────────────────────────────────────────
 
+@pytest.mark.asyncio
 async def test_meteoblue():
     print("\n" + "="*60)
     print("METEOBLUE DATASET API TESTS")
@@ -248,6 +250,7 @@ async def test_meteoblue():
 # CE HUB TESTS
 # ─────────────────────────────────────────────
 
+@pytest.mark.asyncio
 async def test_cehub():
     print("\n" + "="*60)
     print("CE HUB API TESTS")

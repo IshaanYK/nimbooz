@@ -12,7 +12,7 @@ export const InterventionJournal: React.FC = () => {
   const [entries, setEntries] = useState<any[]>([
     {
       id: "entry-001",
-      farmer_name: profile.fullName || "Kisan Brother",
+      farmer_name: profile.fullName || "Rajesh Sharma",
       field_name: profile.fieldName || "Bhopal Soybean Field",
       crop: profile.primaryCrop || "soybean",
       application_date: "2026-07-10",

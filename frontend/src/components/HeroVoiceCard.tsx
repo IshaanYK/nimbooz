@@ -4,136 +4,151 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Mic, ArrowRight, Sparkles, Volume2, ShieldCheck, HeartHandshake, Play, Activity } from "lucide-react";
+import { Mic, ArrowRight, Sparkles, Heart, Sun, Flame, Leaf, Globe, Activity, Compass, ShieldCheck } from "lucide-react";
 
 export const HeroVoiceCard: React.FC = () => {
   const [isListening, setIsListening] = useState(true);
 
   return (
-    <section className="relative w-full min-h-[640px] flex flex-col justify-center items-center overflow-hidden bg-[#063B2D] text-white py-20 px-4 sm:px-6">
-      {/* Background Cinematic Agricultural Image with Dark Forest Gradient */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/aasra_hero_farm.png"
-          alt="Lush green agricultural farm at sunrise"
-          fill
-          priority
-          className="object-cover object-center brightness-75 scale-105"
-        />
-        {/* Dark-to-transparent forest-green gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#063B2D]/95 via-[#063B2D]/85 to-[#063B2D]" />
+    <section className="relative w-full min-h-[720px] flex flex-col justify-center items-center overflow-hidden bg-slate-50 text-slate-900 py-20 px-4 sm:px-8 border-b border-slate-200">
+      {/* Subtle Background Graphic & Soft Gradient */}
+      <div className="absolute inset-0 z-0 opacity-40">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(5,150,105,0.08),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(2,132,199,0.08),transparent_50%)]" />
       </div>
 
-      <div className="relative z-10 max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        {/* Left Column: Hero Copy & Actions */}
+      <div className="relative z-10 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        {/* Left Column: Stripe Style Clean Headline & Actions */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
-          className="lg:col-span-7 space-y-6 text-center lg:text-left"
+          className="lg:col-span-7 space-y-8 text-center lg:text-left"
         >
-          {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00A878]/30 border border-[#20C98A]/40 text-[#20C98A] text-xs font-black tracking-widest uppercase font-mono shadow-lg">
-            <span className="w-2 h-2 rounded-full bg-[#20C98A] animate-ping" />
-            <span>AASRA · AI FOR EVERY FIELD</span>
-          </div>
+          {/* Eyebrow Pill */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-accent font-bold tracking-wider uppercase shadow-sm"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
+            <span>AASRA PLATFORM · AI CROP ADVISORY</span>
+          </motion.div>
 
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-6xl font-black font-display tracking-tight text-white leading-[1.1]">
+          {/* Clean Modern Headline */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-display tracking-tight text-slate-900 leading-[1.08]">
             Ask your field. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#20C98A] via-[#00A878] to-amber-300">
-              Act with confidence.
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600">
+              Grow with science.
             </span> <br />
-            Prove the impact.
+            Measure return.
           </h1>
 
           {/* Subheading */}
-          <p className="text-base sm:text-lg text-slate-200 font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
-            AASRA listens to farmers, understands field conditions, gives practical guidance in their language, and helps measure whether the intervention created real value.
+          <p className="text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0 font-body">
+            AASRA speaks your native language, analyzes live satellite weather telemetry, and protects crop yields against abiotic heat stress.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
             <Link
               href="/assistant"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#00A878] hover:bg-[#20C98A] text-white font-black text-sm transition-all shadow-xl shadow-[#00A878]/30 flex items-center justify-center gap-3 cursor-pointer hover:scale-105 active:scale-95"
+              className="w-full sm:w-auto px-8 py-4 btn-warm-gold text-white font-bold text-sm transition-all shadow-xl flex items-center justify-center gap-3 cursor-pointer font-accent hover:scale-105"
             >
-              <Mic className="h-5 w-5 text-amber-300 animate-pulse" />
-              <span>Talk to AASRA</span>
-              <ArrowRight className="h-4 w-4" />
+              <Mic className="h-5 w-5 text-white animate-pulse" />
+              <span>TALK TO AASRA VOICE AI</span>
+              <ArrowRight className="h-4 w-4 text-white" />
             </Link>
 
             <Link
-              href="/impact-story"
-              className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-black text-sm transition-all flex items-center justify-center gap-2 backdrop-blur-md cursor-pointer hover:scale-105 active:scale-95"
+              href="/dashboard"
+              className="w-full sm:w-auto px-8 py-4 btn-warm-glass text-slate-900 font-bold text-sm transition-all flex items-center justify-center gap-2 font-accent hover:scale-105"
             >
-              <Sparkles className="h-4 w-4 text-[#20C98A]" />
-              <span>Explore Impact</span>
+              <Sparkles className="h-4.5 w-4.5 text-emerald-600" />
+              <span>EXPLORE FARM OVERWATCH</span>
             </Link>
+          </div>
+
+          {/* Indicators */}
+          <div className="pt-4 flex items-center justify-center lg:justify-start gap-6 font-accent text-xs text-slate-500">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-slate-900 font-display">01</span>
+              <div className="w-10 h-[1px] bg-slate-300" />
+              <span>04</span>
+            </div>
+
+            <div className="flex items-center gap-2 font-bold text-emerald-700">
+              <Leaf className="h-4 w-4 text-emerald-600" />
+              <span>SOYBEAN & WHEAT BIOLOGICAL TELEMETRY</span>
+            </div>
           </div>
         </motion.div>
 
-        {/* Right Column: Floating Voice Interaction Card */}
+        {/* Right Column: Clean White Glass Card */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+          transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
           className="lg:col-span-5 flex justify-center"
         >
-          <div className="relative w-full max-w-md glass-panel-dark p-6 sm:p-7 rounded-3xl border border-[#20C98A]/40 shadow-2xl space-y-6">
+          <div className="relative w-full max-w-md bg-white p-7 sm:p-8 space-y-6 shadow-xl rounded-3xl border border-slate-200">
             {/* Top Bar */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-[#00A878] flex items-center justify-center text-amber-300 font-bold shadow-md">
-                  <Mic className="h-4 w-4" />
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 font-bold shadow-sm">
+                  <Mic className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-white text-sm font-display">Ask AASRA</h3>
-                  <span className="text-[10px] text-emerald-300 font-mono">Hindi Dialect Voice AI</span>
+                  <h3 className="font-bold text-slate-900 text-base font-display">Voice Assistant</h3>
+                  <span className="text-xs text-slate-500 font-accent">12 Indian Languages</span>
                 </div>
               </div>
 
-              <span className="px-2.5 py-1 rounded-full bg-[#20C98A]/20 text-[#20C98A] text-[10px] font-mono font-bold border border-[#20C98A]/30">
-                SARVAM AI SPEECH
+              <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-accent font-bold border border-emerald-200">
+                ACTIVE AI VOICE
               </span>
             </div>
 
             {/* Hindi Question Quote Box */}
-            <div className="bg-[#10241F]/80 p-4.5 rounded-2xl border border-white/10 text-xs text-emerald-100 font-semibold leading-relaxed relative">
-              <span className="text-2xl text-[#20C98A] absolute top-2 left-3 font-serif">“</span>
-              <p className="pl-4 pt-1">
-                मेरी सोयाबीन की फसल के लिए अगले कुछ दिनों में क्या सावधानी रखनी चाहिए?
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-sm text-slate-800 font-body leading-relaxed relative">
+              <p className="font-medium">
+                “मेरी सोयाबीन की फसल के लिए अगले कुछ दिनों में क्या सावधानी रखनी चाहिए?”
               </p>
-              <span className="text-[11px] text-slate-400 block mt-2 pt-2 border-t border-white/10 font-normal">
-                (Translation: What precautions should I take for my soybean crop in the coming days?)
+              <span className="text-xs text-slate-500 block mt-2.5 pt-2 border-t border-slate-200 font-accent">
+                (Translation: What precautions for my soybean crop in coming days?)
               </span>
             </div>
 
-            {/* Listening Indicator with Waveform */}
-            <div className="flex flex-col items-center justify-center gap-3 py-2">
+            {/* Stat Indicators */}
+            <div className="grid grid-cols-3 gap-2.5 text-center font-accent">
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <div className="text-base font-bold text-emerald-700">R2</div>
+                <div className="text-[10px] text-slate-500 uppercase mt-0.5">Flowering</div>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <div className="text-base font-bold text-amber-600">78%</div>
+                <div className="text-[10px] text-slate-500 uppercase mt-0.5">Heat Risk</div>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <div className="text-base font-bold text-sky-600">+0.60</div>
+                <div className="text-[10px] text-slate-500 uppercase mt-0.5">q/ac Gain</div>
+              </div>
+            </div>
+
+            {/* Listening Waveform Animation */}
+            <div className="flex flex-col items-center justify-center gap-3 pt-2">
               <div className="relative flex items-center justify-center">
-                {/* Animated Pulsing Sound Rings */}
-                <div className="absolute h-20 w-20 rounded-full bg-[#00A878]/30 animate-ping" />
-                <div className="absolute h-16 w-16 rounded-full bg-[#20C98A]/40 animate-pulse" />
+                <div className="absolute h-16 w-16 rounded-full bg-emerald-400/25 animate-ping" />
                 <button
                   onClick={() => setIsListening(!isListening)}
-                  className="relative z-10 h-14 w-14 rounded-full bg-[#00A878] hover:bg-[#20C98A] text-white flex items-center justify-center shadow-xl border-2 border-white/60 transition-transform cursor-pointer hover:scale-110 active:scale-95"
+                  className="relative z-10 h-14 w-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-xl border-2 border-white cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                 >
-                  <Mic className="h-7 w-7 text-amber-300" />
+                  <Mic className="h-6 w-6 text-white" />
                 </button>
               </div>
-
-              {/* Soundwave Bars */}
-              <div className="flex items-end gap-1.5 h-7">
-                <div className="w-1.5 bg-[#20C98A] rounded-full equalizer-bar-1" />
-                <div className="w-1.5 bg-[#20C98A] rounded-full equalizer-bar-2" />
-                <div className="w-1.5 bg-amber-300 rounded-full equalizer-bar-3" />
-                <div className="w-1.5 bg-[#20C98A] rounded-full equalizer-bar-4" />
-                <div className="w-1.5 bg-[#20C98A] rounded-full equalizer-bar-1" style={{ animationDelay: "0.3s" }} />
-              </div>
-
-              <span className="text-xs font-mono font-bold text-emerald-300">
-                [ AASRA is listening in Hindi... ]
+              <span className="text-xs font-accent font-bold text-emerald-700">
+                [ Listening in Hindi... ]
               </span>
             </div>
           </div>

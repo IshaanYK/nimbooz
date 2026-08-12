@@ -5,24 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
+import { getTranslation } from "@/lib/translations";
 import { isUserLoggedIn, getStoredProfile, logoutUser, INDIAN_LANGUAGES } from "@/lib/userStore";
 import { Footer } from "@/components/Footer";
 import {
-  Globe,
-  User,
-  LogOut,
-  Menu,
-  X,
-  Sparkles,
-  LayoutDashboard,
-  MapPin,
-  BookOpen,
-  TrendingUp,
-  ChevronDown,
-  Home,
-  Mic,
-  Activity,
-  Sliders,
+  Globe, User, LogOut, Menu, X, Sparkles, LayoutDashboard, MapPin, BookOpen, TrendingUp, ChevronDown, Mic, Sliders
 } from "lucide-react";
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -48,286 +35,234 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     router.push("/");
   };
 
+  const displayName = profile.fullName && profile.fullName !== "Kisan Brother" ? profile.fullName : "Ramesh Patel";
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F6EF] text-[#10241F] selection:bg-[#00A878] selection:text-white font-sans">
-      {/* Top Header Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-[#063B2D]/95 backdrop-blur-md border-b border-[#20C98A]/20 text-white shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] selection:bg-[#10B981] selection:text-white font-sans">
+      {/* Top Stripe Pure White Navigation Header Bar */}
+      <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm text-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          
           {/* Logo Brand */}
-          <Link href={loggedIn ? "/dashboard" : "/"} className="flex items-center gap-3 group cursor-pointer">
-            <div className="relative h-9 w-32 bg-white/95 p-1.5 rounded-xl border border-[#20C98A]/30 shadow-md group-hover:scale-105 transition-transform">
-              <Image src="/images/aasra_logo.png" alt="AASRA Logo" fill className="object-contain p-1" priority />
+          <Link href={loggedIn ? "/dashboard" : "/"} className="flex items-center gap-2.5 group cursor-pointer shrink-0">
+            <div className="relative h-8 w-28 bg-slate-50 p-1 rounded-xl border border-slate-200 shadow-xs group-hover:scale-105 transition-transform">
+              <Image src="/images/aasra_logo.png" alt="AASRA Logo" fill className="object-contain p-0.5" priority />
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="text-xs font-black tracking-widest text-[#20C98A] uppercase font-mono">आसरा</span>
-              <span className="text-[10px] text-emerald-200 font-extrabold tracking-wider font-mono">ASK. ACT. PROVE.</span>
+              <span className="text-xs font-black tracking-widest text-[#10B981] uppercase font-mono">आसरा · AASRA</span>
+              <span className="text-[9px] text-slate-500 font-bold tracking-wider">ASK. ACT. PROVE.</span>
             </div>
           </Link>
 
-          {/* PUBLIC NAVIGATION */}
-          {!loggedIn && (
-            <nav className="hidden md:flex items-center gap-7 text-xs font-bold text-slate-200">
-              <Link href="/product" className={`hover:text-[#20C98A] transition-colors ${pathname === "/product" ? "text-[#20C98A] font-black" : ""}`}>
-                Product
-              </Link>
-              <Link href="/how-it-works" className={`hover:text-[#20C98A] transition-colors ${pathname === "/how-it-works" ? "text-[#20C98A] font-black" : ""}`}>
-                How it Works
-              </Link>
-              <Link href="/impact-story" className={`hover:text-[#20C98A] transition-colors ${pathname === "/impact-story" ? "text-[#20C98A] font-black" : ""}`}>
-                Impact
-              </Link>
-              <Link href="/#for-farmers" className="hover:text-[#20C98A] transition-colors">
-                For Farmers
-              </Link>
-              <Link href="/#about" className="hover:text-[#20C98A] transition-colors">
-                About
-              </Link>
-            </nav>
-          )}
-
-          {/* AUTHENTICATED NAVIGATION */}
+          {/* AUTHENTICATED STRIPE NAVIGATION TABS (Single-Line, High Contrast, 0 Emojis) */}
           {loggedIn && (
-            <nav className="hidden md:flex items-center gap-2 text-xs font-bold text-slate-200">
-              <Link
-                href="/dashboard"
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl transition-all ${
-                  pathname === "/dashboard" ? "bg-[#00A878] text-white font-black shadow-md" : "hover:text-[#20C98A] hover:bg-white/5"
-                }`}
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                <span>Dashboard</span>
-              </Link>
-
+            <nav className="hidden md:flex items-center gap-1 text-xs font-bold text-slate-700">
+              
               <Link
                 href="/fields"
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl transition-all ${
-                  pathname.startsWith("/fields") ? "bg-[#00A878] text-white font-black shadow-md" : "hover:text-[#20C98A] hover:bg-white/5"
+                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/fields" || pathname === "/dashboard"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                    : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <MapPin className="h-4 w-4" />
-                <span>My Fields</span>
+                <MapPin className="h-4 w-4 text-[#10B981]" />
+                <span>{language === "hi" ? "मेरा खेत व नक्शा" : "My Farm"}</span>
               </Link>
 
               <Link
                 href="/assistant"
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl transition-all ${
-                  pathname === "/assistant" || pathname === "/advisory" ? "bg-[#00A878] text-white font-black shadow-md" : "hover:text-[#20C98A] hover:bg-white/5"
+                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/assistant" || pathname === "/advisory"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                    : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <Mic className="h-4 w-4 text-amber-300" />
-                <span>Ask AASRA</span>
-              </Link>
-
-              <Link
-                href="/journal"
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl transition-all ${
-                  pathname === "/journal" ? "bg-[#00A878] text-white font-black shadow-md" : "hover:text-[#20C98A] hover:bg-white/5"
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                <span>Journal</span>
+                <Mic className="h-4 w-4 text-amber-500" />
+                <span>{language === "hi" ? "आसरा से पूछें" : "Ask AASRA AI"}</span>
               </Link>
 
               <Link
                 href="/impact"
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl transition-all ${
-                  pathname === "/impact" || pathname === "/robi" ? "bg-[#00A878] text-white font-black shadow-md" : "hover:text-[#20C98A] hover:bg-white/5"
+                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/impact" || pathname === "/robi"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                    : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <TrendingUp className="h-4 w-4 text-emerald-300" />
-                <span>Impact</span>
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                <span>{language === "hi" ? "कमाई व बचत" : "Income & Savings"}</span>
               </Link>
 
               <Link
                 href="/what-if"
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl transition-all ${
-                  pathname === "/what-if" ? "bg-[#00A878] text-white font-black shadow-md" : "hover:text-[#20C98A] hover:bg-white/5"
+                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/what-if"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                    : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <Sliders className="h-4 w-4 text-amber-300" />
-                <span>What-If</span>
+                <Sliders className="h-4 w-4 text-blue-600" />
+                <span>{language === "hi" ? "परिणाम सिमुलेटर" : "What-If Simulator"}</span>
               </Link>
+
             </nav>
           )}
 
-          {/* Right Action Controls: Language & Auth CTA */}
+          {/* Right Action Controls: Language Dropdown & Profile Badge */}
           <div className="flex items-center gap-3">
+            
             {/* Language Switcher Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-800 flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <Globe className="h-3.5 w-3.5 text-[#20C98A]" />
-                <span className="uppercase">{language}</span>
-                <ChevronDown className="h-3 w-3 text-slate-300" />
+                <Globe className="h-3.5 w-3.5 text-[#10B981]" />
+                <span className="uppercase font-mono">{language}</span>
+                <ChevronDown className="h-3 w-3 text-slate-500" />
               </button>
 
               {langDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-slate-900 border border-emerald-500/30 rounded-2xl shadow-2xl p-1.5 z-50 text-xs font-medium space-y-1">
-                  {INDIAN_LANGUAGES.slice(0, 6).map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        setLanguage(lang.code as any);
-                        setLangDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors flex items-center justify-between ${
-                        language === lang.code ? "bg-[#00A878] text-white font-bold" : "text-slate-300 hover:bg-white/10"
-                      }`}
-                    >
-                      <span>{lang.name}</span>
-                      <span className="text-[10px] text-emerald-300">{lang.native}</span>
-                    </button>
-                  ))}
+                <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 z-50 text-xs font-medium">
+                  <div className="text-[10px] font-mono text-[#10B981] uppercase tracking-wider px-2 py-1 mb-1 border-b border-slate-100">
+                    🌐 Select Language / भाषा चुनें
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 max-h-72 overflow-y-auto pr-1">
+                    {INDIAN_LANGUAGES.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          setLanguage(lang.code as any);
+                          setLangDropdownOpen(false);
+                        }}
+                        className={`text-left px-2.5 py-2 rounded-xl transition-all flex flex-col gap-0.5 ${
+                          language === lang.code
+                            ? "bg-[#10B981] text-white font-bold shadow-md"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="font-bold text-[11px]">{lang.native}</span>
+                        <span className="text-[9px] opacity-70">{lang.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Public CTA Buttons */}
-            {!loggedIn ? (
-              <div className="hidden sm:flex items-center gap-2">
-                <Link
-                  href="/login"
-                  className="px-4 py-2 rounded-xl text-xs font-black text-white hover:text-[#20C98A] transition-colors"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/signup"
-                  className="px-5 py-2 rounded-xl bg-[#00A878] hover:bg-[#20C98A] text-white font-black text-xs shadow-md transition-all hover:scale-105"
-                >
-                  Try AASRA
-                </Link>
-              </div>
-            ) : (
-              /* Authenticated Profile Menu */
+            {/* Authenticated Profile Menu (No Kisan Brother!) */}
+            {loggedIn && (
               <div className="relative">
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#00A878]/30 hover:bg-[#00A878]/50 border border-[#20C98A]/40 text-xs font-black text-white flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-900 flex items-center gap-2 transition-all cursor-pointer"
                 >
-                  <div className="h-6 w-6 rounded-full bg-[#00A878] flex items-center justify-center text-white text-[10px] font-bold">
-                    {profile.fullName ? profile.fullName.charAt(0) : "K"}
+                  <div className="h-6 w-6 rounded-full bg-[#10B981] flex items-center justify-center text-white text-[10px] font-black">
+                    {displayName.charAt(0)}
                   </div>
-                  <span className="hidden sm:inline max-w-[100px] truncate">{profile.fullName || "Farmer"}</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-emerald-300" />
+                  <span className="hidden sm:inline font-bold">{displayName}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
                 </button>
 
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-slate-900 border border-[#20C98A]/30 rounded-2xl shadow-2xl p-2 z-50 text-xs space-y-1">
-                    <div className="px-3 py-2 border-b border-white/10 mb-1">
-                      <span className="font-bold text-white block">{profile.fullName}</span>
-                      <span className="text-[10px] text-slate-400 block">{profile.village}, {profile.district}</span>
-                      <span className="text-[10px] text-[#20C98A] font-mono block mt-0.5">{profile.primaryCrop?.toUpperCase()} • {profile.fieldAreaAcres || 4.2} ha</span>
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 z-50 text-xs space-y-1">
+                    <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                      <span className="font-bold text-slate-900 block">{displayName}</span>
+                      <span className="text-[10px] text-slate-500 block">Field Manager · Bhopal</span>
                     </div>
 
                     <Link
                       href="/signup"
                       onClick={() => setProfileDropdownOpen(false)}
-                      className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 flex items-center gap-2 transition-colors"
+                      className="w-full text-left px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors"
                     >
-                      <User className="h-4 w-4 text-[#20C98A]" /> Edit Farm Profile
+                      <User className="h-4 w-4 text-[#10B981]" /> Edit Profile
                     </Link>
 
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-3 py-2 rounded-xl text-rose-300 hover:bg-rose-500/20 flex items-center gap-2 transition-colors cursor-pointer font-bold"
+                      className="w-full text-left px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer font-bold"
                     >
-                      <LogOut className="h-4 w-4 text-rose-400" /> Logout
+                      <LogOut className="h-4 w-4 text-rose-500" /> Logout
                     </button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Mobile Hamburger Menu */}
+            {/* Mobile Menu Trigger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl bg-white/10 text-white"
+              className="md:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100"
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
+
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#063B2D] border-t border-[#20C98A]/20 p-4 space-y-3 font-bold text-sm">
-            {!loggedIn ? (
-              <>
-                <Link href="/product" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">Product</Link>
-                <Link href="/how-it-works" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">How it Works</Link>
-                <Link href="/impact-story" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">Impact</Link>
-                <div className="pt-2 flex flex-col gap-2">
-                  <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full py-2.5 rounded-xl text-center bg-white/10 text-white">Login</Link>
-                  <Link href="/signup" onClick={() => setMobileMenuOpen(false)} className="w-full py-2.5 rounded-xl text-center bg-[#00A878] text-white">Try AASRA</Link>
-                </div>
-              </>
-            ) : (
-              <>
-                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">Dashboard</Link>
-                <Link href="/fields" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">My Fields</Link>
-                <Link href="/assistant" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">Ask AASRA</Link>
-                <Link href="/journal" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">Journal</Link>
-                <Link href="/impact" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">Impact</Link>
-                <Link href="/what-if" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-200 hover:text-[#20C98A]">What-If Simulator</Link>
-                <button onClick={handleLogout} className="w-full text-left py-2 text-rose-300 font-bold">Logout</button>
-              </>
-            )}
+          <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-1.5 text-xs font-bold shadow-xl divide-y divide-slate-100">
+            <div className="space-y-1 pb-2">
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
+              >
+                <LayoutDashboard className="h-4 w-4 text-[#10B981]" />
+                <span>{language === "hi" ? "ओवरवॉच डैशबोर्ड" : "Dashboard Overview"}</span>
+              </Link>
+              <Link
+                href="/fields"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
+              >
+                <MapPin className="h-4 w-4 text-[#10B981]" />
+                <span>{language === "hi" ? "मेरा खेत व नक्शा" : "My Farm & Map"}</span>
+              </Link>
+              <Link
+                href="/assistant"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
+              >
+                <Mic className="h-4 w-4 text-amber-500" />
+                <span>{language === "hi" ? "आसरा से पूछें" : "Ask AASRA Voice & Leaf AI"}</span>
+              </Link>
+              <Link
+                href="/impact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
+              >
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                <span>{language === "hi" ? "कमाई व बचत" : "ROBI Yield & Savings"}</span>
+              </Link>
+              <Link
+                href="/what-if"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
+              >
+                <Sliders className="h-4 w-4 text-blue-600" />
+                <span>{language === "hi" ? "परिणाम सिमुलेटर" : "What-If Simulator"}</span>
+              </Link>
+              <Link
+                href="/journal"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
+              >
+                <BookOpen className="h-4 w-4 text-purple-600" />
+                <span>{language === "hi" ? "हस्तक्षेप डायरी" : "Intervention Journal"}</span>
+              </Link>
+            </div>
           </div>
         )}
       </header>
 
-      {/* Main App Page Content */}
+      {/* Main Content Area */}
       <main className="flex-1">{children}</main>
 
-      {/* FOOTER */}
       <Footer />
-
-      {/* MOBILE BOTTOM NAVIGATION BAR (for Authenticated Users) */}
-      {loggedIn && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#063B2D]/95 backdrop-blur-lg border-t border-[#20C98A]/30 py-2 px-3 flex justify-around items-center text-[11px] font-bold text-slate-300 shadow-2xl">
-          <Link
-            href="/dashboard"
-            className={`flex flex-col items-center gap-1 ${pathname === "/dashboard" ? "text-[#20C98A] font-extrabold" : "hover:text-white"}`}
-          >
-            <Home className="h-5 w-5" />
-            <span>Home</span>
-          </Link>
-
-          <Link
-            href="/fields"
-            className={`flex flex-col items-center gap-1 ${pathname.startsWith("/fields") ? "text-[#20C98A] font-extrabold" : "hover:text-white"}`}
-          >
-            <MapPin className="h-5 w-5" />
-            <span>Fields</span>
-          </Link>
-
-          <Link
-            href="/assistant"
-            className="flex flex-col items-center gap-1 text-white bg-[#00A878] p-2.5 rounded-full -mt-6 shadow-xl border-2 border-white cursor-pointer hover:scale-110 transition-transform"
-          >
-            <Mic className="h-5 w-5 text-amber-300" />
-          </Link>
-
-          <Link
-            href="/journal"
-            className={`flex flex-col items-center gap-1 ${pathname === "/journal" ? "text-[#20C98A] font-extrabold" : "hover:text-white"}`}
-          >
-            <BookOpen className="h-5 w-5" />
-            <span>Journal</span>
-          </Link>
-
-          <Link
-            href="/impact"
-            className={`flex flex-col items-center gap-1 ${pathname === "/impact" || pathname === "/robi" ? "text-[#20C98A] font-extrabold" : "hover:text-white"}`}
-          >
-            <TrendingUp className="h-5 w-5" />
-            <span>Impact</span>
-          </Link>
-        </div>
-      )}
     </div>
   );
 };
