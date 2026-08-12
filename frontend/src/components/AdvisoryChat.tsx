@@ -45,12 +45,13 @@ const LANG_TO_BCP47: Record<string, string> = {
 };
 
 export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
-  currentField = "Bhopal Soybean Field",
+  currentField = "Primary Soybean Field",
   crop = "soybean",
 }) => {
   const { language } = useLanguage();
   const { weather, refetch: refetchWeather } = useWeather();
   const t = getTranslation(language);
+  const locationLabel = weather.locationName || currentField || "your field";
 
   const bcp47 = LANG_TO_BCP47[language] || "hi-IN";
   const langObj = INDIAN_LANGUAGES.find((l) => l.code === language);
@@ -209,8 +210,16 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         followUps = visionRes?.follow_up_questions || followUps;
         providerUsed = visionRes?.provider || "Google Gemini 2.0 Flash Vision";
       } else {
-        // Chat API Call
-        const res = await sendChatMessage(queryText, weather.lat, weather.lon, crop, language);
+        // Chat API Call — pass real location + night temp context
+        const res = await sendChatMessage(
+          queryText,
+          weather.lat,
+          weather.lon,
+          crop,
+          language,
+          weather.locationName || locationLabel,
+          weather.temperature
+        );
         replyText = res?.reply || res?.response || (
           language === "hi"
             ? `आपके सवाल (${queryText}) का विश्लेषण किया गया। रात का तापमान ${weather.temperature}°C और नमी ${weather.soilMoistureEst}% है। गर्मी तनाव के लिए 250ml/एकड़ Syngenta Biostimulant का उपयोग करें।`

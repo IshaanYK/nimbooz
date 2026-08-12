@@ -35,7 +35,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     router.push("/");
   };
 
-  const displayName = profile.fullName && profile.fullName !== "Kisan Brother" ? profile.fullName : "Ramesh Patel";
+  const displayName = profile.fullName && profile.fullName !== "Kisan Brother" ? profile.fullName : "Field Manager";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] selection:bg-[#10B981] selection:text-white font-sans">
@@ -68,6 +68,18 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               >
                 <MapPin className="h-4 w-4 text-[#10B981]" />
                 <span>{language === "hi" ? "मेरा खेत व नक्शा" : "My Farm"}</span>
+              </Link>
+
+              <Link
+                href="/weather"
+                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/weather"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                    : "hover:text-[#10B981] hover:bg-slate-100"
+                }`}
+              >
+                <Globe className="h-4 w-4 text-sky-500" />
+                <span>{language === "hi" ? "मौसम व टेलीमेट्री" : "Weather & Radar"}</span>
               </Link>
 
               <Link
@@ -169,7 +181,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 z-50 text-xs space-y-1">
                     <div className="px-3 py-2 border-b border-slate-100 mb-1">
                       <span className="font-bold text-slate-900 block">{displayName}</span>
-                      <span className="text-[10px] text-slate-500 block">Field Manager · Bhopal</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        {profile.village || profile.district ? `${profile.village || profile.district}, ${profile.state || ""}` : "Field Manager"}
+                      </span>
                     </div>
 
                     <Link
@@ -221,6 +235,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               >
                 <MapPin className="h-4 w-4 text-[#10B981]" />
                 <span>{language === "hi" ? "मेरा खेत व नक्शा" : "My Farm & Map"}</span>
+              </Link>
+              <Link
+                href="/weather"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
+              >
+                <Globe className="h-4 w-4 text-sky-500" />
+                <span>{language === "hi" ? "मौसम व टेलीमेट्री" : "Weather Telemetry"}</span>
               </Link>
               <Link
                 href="/assistant"

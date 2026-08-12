@@ -101,13 +101,13 @@ export default function DashboardPage() {
                     <TrendingUp className="h-5 w-5" />
                   </div>
                   <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
-                    ROBI 215%
+                    PS-07
                   </span>
                 </div>
-                <h4 className="font-extrabold text-sm text-slate-900">+0.60 q/acre Extra</h4>
-                <p className="text-xs text-slate-500">₹2,760 net profit per acre</p>
+                <h4 className="font-extrabold text-sm text-slate-900">ROBI Yield Attribution</h4>
+                <p className="text-xs text-slate-500">Calculate your biostimulant return</p>
                 <Link href="/impact" className="text-xs font-bold text-emerald-600 flex items-center gap-1 hover:underline pt-1">
-                  View ROBI Proof <ArrowRight className="h-3.5 w-3.5" />
+                  Calculate ROBI <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
 

@@ -27,12 +27,12 @@ export default function FieldDetailPage() {
                 {params?.id || "BHOPAL-01"}
               </span>
               <span className="text-xs font-mono text-slate-300">
-                {profile.village || "Patel Nagar"}, {profile.district || "Bhopal"}
+                {profile.village && profile.district ? `${profile.village}, ${profile.district}` : profile.district || "Field Location"}
               </span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black font-display text-white">
-              {profile.fieldName || "Bhopal Soybean Field 01"}
+              {profile.fieldName || "Primary Soybean Field 01"}
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-300 font-mono">

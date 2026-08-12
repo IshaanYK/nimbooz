@@ -21,7 +21,7 @@ export const ExportProofCardModal: React.FC<ExportProofCardModalProps> = ({
   isOpen,
   onClose,
   farmerName = "Rajesh Sharma",
-  fieldName = "Bhopal Soybean Field 01",
+  fieldName = "Primary Soybean Field",
   crop = "Soybean (JS-335)",
   expectedYield = 8.5,
   actualYield = 9.2,

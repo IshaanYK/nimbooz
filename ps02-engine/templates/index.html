@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANNAM.AI — Plant Health Intelligence Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0fdf4;
+            --panel: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --accent: #16a34a;
+            --accent-dark: #15803d;
+            --accent-light: #dcfce7;
+            --border: #e5e7eb;
+            --border-green: #bbf7d0;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --success: #059669;
+            --blue: #2563eb;
+            --blue-light: #eff6ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(#dcfce7 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .top-bar {
+            background: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%);
+            padding: 1.5rem 2rem;
+            color: white;
+            text-align: center;
+        }
+        .top-bar h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+        .top-bar p { opacity: 0.9; font-size: 0.95rem; margin-top: 0.25rem; }
+
+        .container { max-width: 1300px; margin: 0 auto; padding: 1.5rem; }
+
+        /* Grid Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .panel h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            background: #fafafa;
+            transition: border-color 0.2s;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: white;
+        }
+
+        /* Region Info Card */
+        .region-card {
+            background: var(--accent-light);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.82rem;
+        }
+        .region-card .tag {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin: 0.15rem 0.15rem 0.15rem 0;
+        }
+        .region-card .tag.warning { background: var(--warning); }
+        .region-card .info-row { margin-top: 0.4rem; color: var(--accent-dark); }
+
+        /* Buttons */
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #15803d, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Loader */
+        .loader {
+            display: none;
+            width: 28px; height: 28px;
+            border: 3px solid var(--border-green);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0.75rem auto 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .badge.live { background: #dcfce7; color: #15803d; }
+        .badge.mock { background: #fef3c7; color: #92400e; }
+
+        /* Alert Box */
+        .alert-card {
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .alert-card.critical { background: var(--danger-light); border-left: 4px solid var(--danger); }
+        .alert-card.high { background: #fff7ed; border-left: 4px solid #ea580c; }
+        .alert-card.moderate { background: var(--warning-light); border-left: 4px solid var(--warning); }
+        .alert-card.clear { background: var(--accent-light); border-left: 4px solid var(--success); }
+        .alert-card h3 { font-size: 1rem; margin-bottom: 0.35rem; }
+        .alert-card p { font-size: 0.88rem; color: var(--muted); }
+
+        /* Sensor Factor Cards */
+        .factors-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+        .factor-card {
+            border-radius: 8px;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
+        }
+        .factor-card h4 { font-size: 0.85rem; margin-bottom: 0.3rem; }
+        .factor-card .reading { color: var(--muted); font-size: 0.78rem; }
+        .factor-card .score { font-weight: 700; font-size: 1.1rem; margin-top: 0.3rem; }
+        .factor-card.stressed { border-color: var(--danger); background: var(--danger-light); }
+        .factor-card.healthy { border-color: var(--success); background: #ecfdf5; }
+
+        /* Product Cards */
+        .products-section h3 { font-size: 0.95rem; margin-bottom: 0.75rem; }
+        .product-card {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1.5px solid var(--border-green);
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #f0fdf4, white);
+            transition: all 0.2s;
+        }
+        .product-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(22,163,74,0.1); }
+        .product-icon {
+            width: 44px; height: 44px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .product-card .p-info { flex: 1; }
+        .product-card .p-name { font-weight: 700; font-size: 0.92rem; color: var(--accent-dark); }
+        .product-card .p-cat { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .product-card .p-detail { font-size: 0.82rem; color: var(--text); margin-top: 0.3rem; }
+        .product-card .p-dosage {
+            display: inline-block;
+            background: var(--accent-light);
+            color: var(--accent-dark);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.3rem;
+        }
+        .product-card .p-trigger {
+            font-size: 0.78rem;
+            color: var(--warning);
+            margin-top: 0.25rem;
+            font-style: italic;
+        }
+        .priority-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+        .priority-badge.p1 { background: #fef2f2; color: #dc2626; }
+        .priority-badge.p2 { background: #fff7ed; color: #ea580c; }
+        .priority-badge.p3 { background: #fffbeb; color: #d97706; }
+
+        /* Timeline */
+        .timeline-section h3 { font-size: 0.95rem; margin-bottom: 0.75rem; }
+        .timeline {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+        .day-card {
+            min-width: 85px;
+            padding: 0.6rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+            font-size: 0.72rem;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .day-card .day-label { font-weight: 700; font-size: 0.78rem; margin-bottom: 0.25rem; }
+        .day-card .day-stress { font-weight: 700; font-size: 1rem; margin: 0.2rem 0; }
+        .day-card .day-type { font-size: 0.68rem; color: var(--muted); }
+        .day-card.safe { border-color: var(--success); background: #ecfdf5; }
+        .day-card.warning { border-color: var(--warning); background: #fffbeb; }
+        .day-card.danger { border-color: var(--danger); background: var(--danger-light); }
+        .day-card.spray-ok::after {
+            content: '💧';
+            display: block;
+            font-size: 0.7rem;
+            margin-top: 0.2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .factors-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <h1>🌾 ANNAM.AI — Plant Health Intelligence Engine</h1>
+        <p>PS-02: Pre-Emptive Biological Intervention via Multi-Modal Sensor Fusion</p>
+    </div>
+
+    <div class="container">
+        <div class="main-grid">
+
+            <!-- LEFT: Controls -->
+            <div>
+                <div class="panel" style="margin-bottom: 1rem;">
+                    <h2>🗺️ Region & Crop</h2>
+
+                    <div class="form-group">
+                        <label>Agro-Climatic Region</label>
+                        <select id="region" onchange="onRegionChange()">
+                            <option value="punjab">Punjab (Indo-Gangetic Plain)</option>
+                            <option value="jammu">Jammu & Kashmir (Northern Hills)</option>
+                            <option value="gujarat_saurashtra">Gujarat Saurashtra (Semi-Arid)</option>
+                            <option value="maharashtra_vidarbha">Maharashtra Vidarbha (Deccan)</option>
+                            <option value="andhra_telangana">Andhra/Telangana (Southern Plateau)</option>
+                        </select>
+                    </div>
+
+                    <div id="regionCard" class="region-card" style="display:none;"></div>
+
+                    <div class="form-group">
+                        <label>Crop</label>
+                        <select id="crop_type">
+                            <option value="rice">🌾 Rice (Paddy)</option>
+                            <option value="wheat">🌾 Wheat</option>
+                            <option value="cotton_bt">🌿 Bt Cotton</option>
+                            <option value="soybean">🫘 Soybean</option>
+                            <option value="groundnut">🥜 Groundnut</option>
+                            <option value="maize">🌽 Maize</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary" id="runBtn" onclick="runPipeline()">
+                        ▶ Run 14-Day Analysis
+                    </button>
+                    <div class="loader" id="loader"></div>
+                </div>
+
+                <!-- Product Catalog -->
+                <div class="panel" id="productCatalogPanel" style="display:none;">
+                    <h2>💊 Syngenta Product Recommendations</h2>
+                    <div id="productCards"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Results -->
+            <div>
+                <div id="dataSourceBadge" style="display:none; margin-bottom:0.75rem; text-align:center;"></div>
+
+                <!-- Alert Card -->
+                <div id="alertCard" style="display:none;"></div>
+
+                <!-- Sensor Factor Cards -->
+                <div id="factorsSection" style="display:none;">
+                    <div class="panel" style="margin-bottom: 1rem;">
+                        <h2>📡 Multi-Modal Sensor Analysis</h2>
+                        <div class="factors-grid" id="factorsGrid"></div>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div id="timelineSection" style="display:none;">
+                    <div class="panel">
+                        <h2>📅 14-Day Forecast Timeline</h2>
+                        <div class="timeline" id="timeline"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Region metadata cache
+        let regionData = {};
+
+        // Load regions on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/get_regions');
+                regionData = await res.json();
+                onRegionChange();
+            } catch(e) {
+                console.error('Failed to load regions:', e);
+            }
+        });
+
+        function onRegionChange() {
+            const regionKey = document.getElementById('region').value;
+            const info = regionData[regionKey];
+            const card = document.getElementById('regionCard');
+            const cropSelect = document.getElementById('crop_type');
+
+            if (!info) { card.style.display = 'none'; return; }
+
+            // Update region card
+            const stressTags = (info.dominant_stresses || []).map(s => `<span class="tag warning">${s}</span>`).join('');
+            const cropTags = (info.crops || []).map(c => `<span class="tag">${c}</span>`).join('');
+
+            card.innerHTML = `
+                <div><strong>📍 ${info.name}</strong> (${info.lat}°N, ${info.lon}°E)</div>
+                <div class="info-row">🌱 Soil: ${info.soil_type}</div>
+                <div style="margin-top:0.3rem;">Crops: ${cropTags}</div>
+                <div style="margin-top:0.3rem;">Risks: ${stressTags}</div>
+            `;
+            card.style.display = 'block';
+
+            // Update crop dropdown
+            const cropMap = {
+                'Rice': 'rice', 'Wheat': 'wheat', 'Cotton': 'cotton_bt', 'Bt Cotton': 'cotton_bt',
+                'Soybean': 'soybean', 'Groundnut': 'groundnut', 'Maize': 'maize',
+                'Apple': 'apple', 'Chilli': 'chilli', 'Castor': 'castor',
+                'Saffron': 'saffron', 'Pigeon Pea': 'pigeon_pea'
+            };
+            const emojiMap = {
+                rice: '🌾', wheat: '🌾', cotton_bt: '🌿', soybean: '🫘',
+                groundnut: '🥜', maize: '🌽', apple: '🍎', chilli: '🌶️',
+                castor: '🌻', saffron: '🌸', pigeon_pea: '🫘'
+            };
+
+            cropSelect.innerHTML = '';
+            (info.crops || []).forEach(cropName => {
+                const val = cropMap[cropName] || cropName.toLowerCase().replace(' ', '_');
+                const emoji = emojiMap[val] || '🌱';
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = `${emoji} ${cropName}`;
+                cropSelect.appendChild(opt);
+            });
+        }
+
+        async function runPipeline() {
+            const btn = document.getElementById('runBtn');
+            const loader = document.getElementById('loader');
+
+            btn.disabled = true;
+            loader.style.display = 'block';
+
+            const payload = {
+                region: document.getElementById('region').value,
+                crop_type: document.getElementById('crop_type').value
+            };
+
+            try {
+                const response = await fetch('/run_pipeline', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                renderResults(data);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                loader.style.display = 'none';
+            }
+        }
+
+        function renderResults(data) {
+            // Data Source Badge
+            const badge = document.getElementById('dataSourceBadge');
+            badge.style.display = 'block';
+            if (data.data_source && data.data_source.includes('LIVE')) {
+                badge.innerHTML = '<span class="badge live">🟢 LIVE DATA — Meteoblue + CE Hub APIs</span>';
+            } else {
+                badge.innerHTML = '<span class="badge mock">🟡 MOCK DATA — Simulated forecast</span>';
+            }
+
+            // Alert Card
+            const alertDiv = document.getElementById('alertCard');
+            const alert = data.alert;
+            if (alert) {
+                alertDiv.style.display = 'block';
+                alertDiv.innerHTML = `
+                    <div class="alert-card ${alert.severity}">
+                        <h3>${alert.title}</h3>
+                        <p>${alert.summary}</p>
+                        ${alert.dominant_stress ? `<p style="margin-top:0.3rem;font-weight:600;">Dominant Stress: ${alert.dominant_stress} (${Math.round((alert.probability || 0) * 100)}% probability)</p>` : ''}
+                        ${alert.stress_description ? `<p style="margin-top:0.25rem;font-size:0.85rem;">${alert.stress_description}</p>` : ''}
+                        ${alert.spray_advice ? `<p style="margin-top:0.35rem;font-size:0.85rem;color:#16a34a;font-weight:500;">💧 ${alert.spray_advice}</p>` : ''}
+                    </div>
+                `;
+            }
+
+            // Sensor Factor Cards
+            const factorsSection = document.getElementById('factorsSection');
+            const factorsGrid = document.getElementById('factorsGrid');
+            if (alert && alert.details && alert.details.length > 0) {
+                factorsSection.style.display = 'block';
+                factorsGrid.innerHTML = alert.details.map(d => `
+                    <div class="factor-card ${d.status.includes('⚠') ? 'stressed' : 'healthy'}">
+                        <h4>${d.factor}</h4>
+                        <div class="reading">${d.readings}</div>
+                        ${d.threshold_info ? `<div style="font-size: 0.7rem; color: #7f8ea3; margin-top: 0.2rem; font-style: italic;">${d.threshold_info}</div>` : ''}
+                        <div class="score">${d.status}</div>
+                    </div>
+                `).join('');
+            } else {
+                factorsSection.style.display = 'none';
+            }
+
+            // Product Cards
+            const productPanel = document.getElementById('productCatalogPanel');
+            const productCards = document.getElementById('productCards');
+            if (alert && alert.product_cards && alert.product_cards.length > 0) {
+                productPanel.style.display = 'block';
+                productCards.innerHTML = alert.product_cards.map(p => {
+                    const priorityClass = p.priority <= 1 ? 'p1' : p.priority <= 2 ? 'p2' : 'p3';
+                    const icon = p.category === 'Biocontrol' ? '🛡️' : '🧪';
+                    return `
+                        <div class="product-card">
+                            <div class="product-icon">${icon}</div>
+                            <div class="p-info">
+                                <div class="p-name">${p.product_name} <span class="priority-badge ${priorityClass}">P${p.priority}</span></div>
+                                <div class="p-cat">${p.category}</div>
+                                <div class="p-detail">${p.rationale}</div>
+                                <span class="p-dosage">${p.dosage}</span>
+                                ${p.timing ? `<div class="p-detail" style="margin-top:0.2rem;">⏰ ${p.timing}</div>` : ''}
+                                ${p.trigger_description ? `<div class="p-trigger">Triggered by: ${p.trigger_description}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                productPanel.style.display = 'none';
+            }
+
+            // Timeline
+            const timelineSection = document.getElementById('timelineSection');
+            const timeline = document.getElementById('timeline');
+            if (data.forecast && data.forecast.length > 0) {
+                timelineSection.style.display = 'block';
+                timeline.innerHTML = data.forecast.map(day => {
+                    const prob = day.overall_stress_probability ?? day.stress_probability ?? 0;
+                    const pct = Math.round(prob * 100);
+                    let cardClass = 'safe';
+                    if (pct > 60) cardClass = 'danger';
+                    else if (pct > 30) cardClass = 'warning';
+
+                    const sprayClass = day.safe_to_spray ? 'spray-ok' : '';
+                    const dominant = day.dominant_stress_type ? day.dominant_stress_type.replace('_', ' ') : '';
+
+                    return `
+                        <div class="day-card ${cardClass} ${sprayClass}">
+                            <div class="day-label">${day.date}</div>
+                            <div class="day-stress">${pct}%</div>
+                            <div class="day-type">${dominant || 'Normal'}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+    </script>
+</body>
+</html>

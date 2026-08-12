@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { saveProfile, DEFAULT_DEMO_PROFILE, INDIAN_LANGUAGES, FarmerProfile } from "@/lib/userStore";
+import { reverseGeocode } from "@/context/WeatherContext";
 import { User, MapPin, Sprout, Settings, ArrowRight, ArrowLeft, CheckCircle2, Navigation, Mic, Globe } from "lucide-react";
 import { RealFieldMap } from "@/components/RealFieldMap";
 
@@ -14,7 +15,7 @@ export default function SignupPage() {
   const [step, setStep] = useState<number>(1);
 
   // Form State
-  const [formData, setFormData] = useState<FarmerProfile>({ ...DEFAULT_DEMO_PROFILE, fullName: "Ramesh Patel" });
+  const [formData, setFormData] = useState<FarmerProfile>({ ...DEFAULT_DEMO_PROFILE, fullName: "" });
   const [gpsDetected, setGpsDetected] = useState<boolean>(false);
   const [loadingGps, setLoadingGps] = useState<boolean>(false);
   const [fieldReady, setFieldReady] = useState<boolean>(false);
@@ -39,13 +40,18 @@ export default function SignupPage() {
     setLoadingGps(true);
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const geo = await reverseGeocode(lat, lon);
+
           setFormData((prev) => ({
             ...prev,
-            gpsLocation: { lat: pos.coords.latitude, lon: pos.coords.longitude },
-            state: "Madhya Pradesh",
-            district: "Bhopal",
-            village: "Patel Nagar",
+            gpsLocation: { lat, lon },
+            state: geo.state || prev.state || "State",
+            district: geo.district || prev.district || "Field District",
+            village: geo.village || prev.village || "Local Village",
+            fieldName: `${geo.district || "My"} Farm Plot`,
           }));
           setLoadingGps(false);
           setGpsDetected(true);

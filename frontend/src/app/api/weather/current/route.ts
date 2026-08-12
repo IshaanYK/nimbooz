@@ -1,58 +1,349 @@
+/**
+ * AASRA /api/weather/current — Vercel-compatible serverless route
+ * Calls Meteoblue Dataset API (NEMSGLOBAL) + CE Hub GDD + Hydric Stress
+ * then runs AASRA Agriculture Engine to compute stress scores.
+ *
+ * API keys stored as server-side env vars — never exposed to browser.
+ * Graceful fallback to demo data if keys are absent or API fails.
+ */
 import { NextRequest, NextResponse } from "next/server";
+import { assessFieldStress, calcCumulativeGDD, CROP_THRESHOLDS } from "@/lib/agricultureEngine";
 
+// ─── Helpers ─────────────────────────────────────────────
+function todayStr(): string {
+  return new Date().toISOString().split("T")[0];
+}
+function daysAgoStr(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().split("T")[0];
+}
+function daysAheadStr(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split("T")[0];
+}
+
+// ─── Meteoblue Dataset API ─────────────────────────────────
+async function fetchMeteoblue(lat: number, lon: number): Promise<{
+  records: Array<{
+    date: string;
+    temperature_max: number;
+    temperature_min: number;
+    temperature_mean: number;
+    rainfall: number;
+    evapotranspiration: number;
+    soil_moisture: number;
+  }>;
+  is_demo: boolean;
+}> {
+  const apiKey = process.env.METEOBLUE_API_KEY;
+  if (!apiKey) {
+    console.warn("[AASRA] METEOBLUE_API_KEY not set — using demo data");
+    return { records: getDemoWeatherRecords(), is_demo: true };
+  }
+
+  const startDate = daysAgoStr(7);
+  const endDate = todayStr();
+  // Note: Meteoblue coordinates are [longitude, latitude] — CRITICAL
+  const body = {
+    units: { temperature: "C", velocity: "m/s", length: "metric", energy: "watts" },
+    geometry: {
+      type: "MultiPoint",
+      coordinates: [[lon, lat]],
+      locationNames: [`${lat.toFixed(4)},${lon.toFixed(4)}`],
+    },
+    format: "json",
+    timeIntervals: [`${startDate}T+00:00/${endDate}T+00:00`],
+    timeIntervalsAlignment: "none",
+    queries: [
+      {
+        domain: "NEMSGLOBAL",
+        gapFillDomain: null,
+        timeResolution: "daily",
+        codes: [
+          { code: 11, level: "2 m above gnd", aggregation: "max" },  // temp max
+          { code: 11, level: "2 m above gnd", aggregation: "min" },  // temp min
+          { code: 11, level: "2 m above gnd", aggregation: "mean" }, // temp mean
+          { code: 61, level: "sfc", aggregation: "sum" },            // precipitation
+          { code: 144, level: "0-10 cm down", aggregation: "mean" }, // soil moisture
+          { code: 261, level: "sfc", aggregation: "sum" },           // ET
+        ],
+      },
+    ],
+  };
+
+  try {
+    const res = await fetch(
+      `https://my.meteoblue.com/dataset/query?apikey=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(20000),
+      }
+    );
+
+    if (!res.ok) {
+      console.warn(`[AASRA] Meteoblue HTTP ${res.status} — falling back to demo`);
+      return { records: getDemoWeatherRecords(), is_demo: true };
+    }
+
+    const data = await res.json();
+    // Parse Meteoblue response structure
+    // data[0] = first query result; its geometry = one location
+    const q = data?.[0];
+    if (!q) return { records: getDemoWeatherRecords(), is_demo: true };
+
+    const timeSteps: string[] = q.timeIntervals ?? [];
+    // codes order: max, min, mean, rain, soil, et
+    const maxArr: number[] = q.codes?.[0]?.dataPerTimeInterval?.[0]?.data ?? [];
+    const minArr: number[] = q.codes?.[1]?.dataPerTimeInterval?.[0]?.data ?? [];
+    const meanArr: number[] = q.codes?.[2]?.dataPerTimeInterval?.[0]?.data ?? [];
+    const rainArr: number[] = q.codes?.[3]?.dataPerTimeInterval?.[0]?.data ?? [];
+    const smArr: number[] = q.codes?.[4]?.dataPerTimeInterval?.[0]?.data ?? [];
+    const etArr: number[] = q.codes?.[5]?.dataPerTimeInterval?.[0]?.data ?? [];
+
+    if (maxArr.length === 0) {
+      console.warn("[AASRA] Meteoblue returned empty data arrays — using demo");
+      return { records: getDemoWeatherRecords(), is_demo: true };
+    }
+
+    const records = timeSteps.map((ts, i) => ({
+      date: ts.split("T")[0] ?? ts,
+      temperature_max: maxArr[i] ?? 30,
+      temperature_min: minArr[i] ?? 20,
+      temperature_mean: meanArr[i] ?? 25,
+      rainfall: rainArr[i] ?? 0,
+      evapotranspiration: etArr[i] ?? 4,
+      soil_moisture: smArr[i] ?? 0.25,
+    }));
+
+    return { records, is_demo: false };
+  } catch (err) {
+    console.warn("[AASRA] Meteoblue fetch error — using demo:", err);
+    return { records: getDemoWeatherRecords(), is_demo: true };
+  }
+}
+
+// ─── CE Hub GDD ────────────────────────────────────────────
+async function fetchCEHubGDD(lat: number, lon: number): Promise<{
+  data: Array<{ date: string; value: number }>;
+  is_demo: boolean;
+}> {
+  const apiKey = process.env.CEHUB_API_KEY;
+  if (!apiKey) return { data: getDemoGDD(), is_demo: true };
+
+  const startDate = daysAgoStr(14);
+  const endDate = daysAgoStr(2); // CE Hub: cannot span past-to-future
+
+  try {
+    const params = new URLSearchParams({
+      latitude: String(lat),
+      longitude: String(lon),
+      startDate,
+      endDate,
+      baseLimit: "10.0",
+      maxLimit: "35.0",
+      useEnhancedFormula: "true",
+    });
+
+    const res = await fetch(
+      `https://services.cehub.syngenta-ais.com/api/AgronomicsDecisionRecommendation/GDDRecommendation?${params}`,
+      {
+        headers: { ApiKey: apiKey, Accept: "application/json" },
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (!res.ok) {
+      console.warn(`[AASRA] CE Hub GDD HTTP ${res.status}`);
+      return { data: getDemoGDD(), is_demo: true };
+    }
+
+    const raw: Array<{ date: string; value: number; accumlatedValue: number }> = await res.json();
+    const data = (raw ?? []).slice(-7).map((r) => ({
+      date: r.date?.split(" ")?.[0] ?? r.date,
+      value: r.value ?? 0,
+    }));
+
+    return { data, is_demo: false };
+  } catch (err) {
+    console.warn("[AASRA] CE Hub GDD error:", err);
+    return { data: getDemoGDD(), is_demo: true };
+  }
+}
+
+// ─── CE Hub Hydric Stress ──────────────────────────────────
+async function fetchCEHubHydric(lat: number, lon: number): Promise<{
+  data: Array<{ date: string; status: string; index?: number }>;
+  is_demo: boolean;
+}> {
+  const apiKey = process.env.CEHUB_API_KEY;
+  if (!apiKey) return { data: getDemoHydric(), is_demo: true };
+
+  const startDate = daysAgoStr(14);
+  const endDate = daysAgoStr(2);
+
+  try {
+    const params = new URLSearchParams({
+      latitude: String(lat),
+      longitude: String(lon),
+      startDate,
+      endDate,
+      waterAvailabilty: "50", // Note: API has intentional typo
+    });
+
+    const res = await fetch(
+      `https://services.cehub.syngenta-ais.com/api/AgronomicsDecisionRecommendation/HydricStressRecommendation?${params}`,
+      {
+        headers: { ApiKey: apiKey, Accept: "application/json" },
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (!res.ok) {
+      console.warn(`[AASRA] CE Hub Hydric HTTP ${res.status}`);
+      return { data: getDemoHydric(), is_demo: true };
+    }
+
+    const raw: Array<{ date?: string; constraint?: string; soilWaterIndex?: number }> = await res.json();
+    const data = (raw ?? []).slice(-5).map((r) => ({
+      date: r.date?.split(" ")?.[0] ?? "",
+      status: r.constraint ?? "Normal",
+      index: r.soilWaterIndex,
+    }));
+
+    return { data, is_demo: false };
+  } catch (err) {
+    console.warn("[AASRA] CE Hub Hydric error:", err);
+    return { data: getDemoHydric(), is_demo: true };
+  }
+}
+
+// ─── Demo fallback data ────────────────────────────────────
+function getDemoWeatherRecords() {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return {
+      date: d.toISOString().split("T")[0],
+      temperature_max: 32 + (i % 3) * 0.8,
+      temperature_min: 23 + (i % 2) * 0.5,
+      temperature_mean: 27.5,
+      rainfall: i === 3 ? 8.2 : i === 5 ? 3.1 : 0,
+      evapotranspiration: 4.2 + (i % 2) * 0.3,
+      soil_moisture: 0.24 + (i % 3) * 0.02,
+    };
+  });
+}
+
+function getDemoGDD() {
+  return Array.from({ length: 5 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (4 - i));
+    return { date: d.toISOString().split("T")[0], value: 17 + i * 0.5 };
+  });
+}
+
+function getDemoHydric() {
+  return Array.from({ length: 3 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (2 - i));
+    return { date: d.toISOString().split("T")[0], status: "Normal", index: 0.65 };
+  });
+}
+
+// ─── Main Route Handler ────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const lat = parseFloat(searchParams.get("lat") || "23.2599");
   const lon = parseFloat(searchParams.get("lon") || "77.4126");
   const crop = searchParams.get("crop") || "soybean";
 
-  const records = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const dateStr = d.toISOString().split("T")[0];
-    return {
-      date: dateStr,
-      temperature_max: 34.2 + (i % 3) * 0.5,
-      temperature_min: 26.5 + (i % 2) * 0.4,
-      temperature_mean: 29.8,
-      rainfall: i === 4 ? 12.5 : 0.0,
-      evapotranspiration: 4.8,
-      soil_moisture: 0.28,
-    };
-  });
+  // Validate crop is supported
+  const cropKey = crop.toLowerCase().split(" ")[0]; // "Rice / Paddy" → "rice"
+  const cropThresholds = CROP_THRESHOLDS[cropKey] ?? CROP_THRESHOLDS.soybean;
+  const normalizedCrop = Object.keys(CROP_THRESHOLDS).find(k =>
+    crop.toLowerCase().includes(k)
+  ) ?? "soybean";
+
+  // Fetch all data sources in parallel
+  const [meteoblueResult, gddResult, hydricResult] = await Promise.all([
+    fetchMeteoblue(lat, lon),
+    fetchCEHubGDD(lat, lon),
+    fetchCEHubHydric(lat, lon),
+  ]);
+
+  const { records, is_demo: isWeatherDemo } = meteoblueResult;
+  const { data: gddData, is_demo: isGddDemo } = gddResult;
+  const { data: hydricData, is_demo: isHydricDemo } = hydricResult;
+  const isAnyDemo = isWeatherDemo || isGddDemo;
+
+  // Use the latest day's data for stress calculations
+  const latest = records[records.length - 1] ?? {
+    temperature_max: 32,
+    temperature_min: 23,
+    temperature_mean: 27.5,
+    rainfall: 0,
+    evapotranspiration: 4.2,
+    soil_moisture: 0.25,
+  };
+
+  const cumulRainfall = records.reduce((s, r) => s + (r.rainfall ?? 0), 0);
+  const cumulET = records.reduce((s, r) => s + (r.evapotranspiration ?? 0), 0);
+  const avgSoilMoisture = records.length > 0
+    ? (records.reduce((s, r) => s + (r.soil_moisture ?? 0), 0) / records.length) * 100
+    : 25;
+  const avgTemp = latest.temperature_mean ?? 27.5;
+
+  // Run agriculture engine
+  const stressAssessment = assessFieldStress(
+    normalizedCrop,
+    latest.temperature_max,
+    latest.temperature_min,
+    cumulRainfall,
+    cumulET,
+    avgSoilMoisture,
+    avgTemp,
+    records,
+    isAnyDemo
+  );
+
+  // Cumulative GDD from CE Hub if available
+  const cehubCumulGDD = gddData.reduce((s, r) => s + r.value, 0);
+  const engineCumulGDD = calcCumulativeGDD(records, normalizedCrop);
 
   return NextResponse.json({
+    location: { lat, lon },
+    crop: normalizedCrop,
+    crop_label: cropThresholds.name,
     weather: {
-      location: { lat, lon, domain: "NEMSGLOBAL" },
       records,
+      location: { lat, lon, domain: isWeatherDemo ? "DEMO" : "NEMSGLOBAL" },
+      is_demo: isWeatherDemo,
+      source: isWeatherDemo ? "demo" : "meteoblue",
     },
-    stress_assessment: {
-      crop,
-      stress_level: "HIGH",
-      night_heat_stress: {
-        active: true,
-        threshold_c: 25,
-        avg_night_temp: 26.5,
-        consecutive_days: 4,
-        description: "Night temperature > 25°C threshold during flowering stage causes pod abortion",
-      },
-      recommended_intervention: {
-        product: "Syngenta Quantis / StressBuster Biological",
-        dosage: "250 ml/acre",
-        expected_yield_recovery_pct: 75,
-        action: "Apply biostimulant via foliar spray within 48 hours to preserve 120-180 kg/acre yield",
-      },
+    latest_conditions: {
+      temperature_max: latest.temperature_max,
+      temperature_min: latest.temperature_min,
+      temperature_mean: latest.temperature_mean,
+      rainfall_7d_mm: Math.round(cumulRainfall * 10) / 10,
+      soil_moisture_pct: Math.round(avgSoilMoisture * 10) / 10,
     },
-    cumulative_gdd_7d: 138.6,
-    hydric_stress_latest: [
-      { date: "2026-08-10", index: 0.72, status: "Moderate Deficit" },
-      { date: "2026-08-11", index: 0.78, status: "Severe Deficit" },
-      { date: "2026-08-12", index: 0.81, status: "Critical Heat/Hydric Stress" },
-    ],
-    cehub_gdd_latest: [
-      { date: "2026-08-10", gdd: 19.8 },
-      { date: "2026-08-11", gdd: 20.1 },
-      { date: "2026-08-12", gdd: 19.5 },
-    ],
+    stress_assessment: stressAssessment,
+    cumulative_gdd_7d: {
+      engine_calculated: Math.round(engineCumulGDD * 10) / 10,
+      cehub_reported: Math.round(cehubCumulGDD * 10) / 10,
+      source: isGddDemo ? "demo" : "cehub",
+    },
+    hydric_stress_latest: hydricData.slice(-3),
+    cehub_gdd_latest: gddData.slice(-3),
+    is_demo: isAnyDemo,
+    data_sources: {
+      meteoblue: isWeatherDemo ? "demo" : "live",
+      cehub_gdd: isGddDemo ? "demo" : "live",
+      cehub_hydric: isHydricDemo ? "demo" : "live",
+    },
   });
 }

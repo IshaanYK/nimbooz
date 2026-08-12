@@ -13,7 +13,7 @@ export const InterventionJournal: React.FC = () => {
     {
       id: "entry-001",
       farmer_name: profile.fullName || "Rajesh Sharma",
-      field_name: profile.fieldName || "Bhopal Soybean Field",
+      field_name: profile.fieldName || "Primary Soybean Field",
       crop: profile.primaryCrop || "soybean",
       application_date: "2026-07-10",
       product_name: "Syngenta Stress Buster",

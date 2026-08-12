@@ -5,7 +5,7 @@ let journalEntriesMemory = [
     id: "j-101",
     date: "2026-08-10",
     farmer: "Ramesh Patel",
-    field_name: "Bhopal North Field",
+    field_name: "Primary Field Plot",
     crop: "Soybean",
     product: "Syngenta Quantis / StressBuster",
     trigger: "Night Temp > 25.5°C threshold",

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
 import { DataBadge } from "@/components/DataBadge";
 import { useLanguage } from "@/context/LanguageContext";
+import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
 import {
   ArrowRight, ShieldCheck, MapPin, Mic, TrendingUp, Sliders, Sun, Zap, CheckCircle2, Sparkles
@@ -13,6 +14,7 @@ import {
 
 export default function LandingPage() {
   const { language } = useLanguage();
+  const { weather } = useWeather();
   const t = getTranslation(language);
 
   return (
@@ -90,7 +92,7 @@ export default function LandingPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent p-5 flex flex-col justify-end text-white">
                       <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full w-max border border-emerald-500/30">
-                        Soybean R2 Stage · Bhopal
+                        Soybean R2 Stage · {weather.locationName || "Local Region"}
                       </span>
                       <h3 className="text-lg font-bold text-white mt-1">Night Temp &gt; 25°C Scorch Threshold</h3>
                       <p className="text-xs text-slate-200 font-mono">Syngenta Stress Buster restores 75% yield potential</p>

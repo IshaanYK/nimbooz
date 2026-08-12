@@ -1,6 +1,6 @@
 /**
  * AASRA API Client
- * Connects Next.js frontend to FastAPI backend at http://localhost:8000
+ * Routes to Next.js API routes (/api) on Vercel, or FastAPI backend on local dev.
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -18,12 +18,20 @@ export async function fetchCurrentWeather(lat: number, lon: number, crop: string
   }
 }
 
-export async function sendChatMessage(message: string, lat: number, lon: number, crop: string, language: string) {
+export async function sendChatMessage(
+  message: string,
+  lat: number,
+  lon: number,
+  crop: string,
+  language: string,
+  location?: string,
+  night_temp?: number | null
+) {
   try {
     const res = await fetch(`${API_BASE}/chat/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, lat, lon, crop, language }),
+      body: JSON.stringify({ message, lat, lon, crop, language, location, night_temp }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();

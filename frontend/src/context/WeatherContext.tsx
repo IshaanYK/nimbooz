@@ -22,7 +22,10 @@ export interface WeatherData {
   isNightHeatStress: boolean;   // night temp > 25°C = stress
   heatStressPercent: number;    // 0-100 risk %
   soilMoistureEst: number;      // estimated 0-100%
-  locationName: string;         // reverse-geocoded city
+  locationName: string;         // reverse-geocoded city/district
+  village?: string;
+  district?: string;
+  state?: string;
   lastUpdated: string;
   isLoading: boolean;
   hasError: boolean;
@@ -67,11 +70,52 @@ const DEFAULT_WEATHER: WeatherData = {
   isNightHeatStress: true,
   heatStressPercent: 78,
   soilMoistureEst: 42,
-  locationName: "Bhopal, MP",
+  locationName: "Auto-Detecting Location...",
+  village: "Local Plot",
+  district: "Field Region",
+  state: "State",
   lastUpdated: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
   isLoading: false,
   hasError: false,
 };
+
+export async function reverseGeocode(lat: number, lon: number): Promise<{ locationName: string; village: string; district: string; state: string }> {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
+      headers: { "User-Agent": "AASRA-Agri-App/1.0" },
+      cache: "force-cache"
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      const village = addr.village || addr.suburb || addr.neighbourhood || addr.town || addr.hamlet || addr.county || "";
+      const district = addr.state_district || addr.county || addr.city || addr.district || addr.town || "";
+      const state = addr.state || "";
+      
+      const parts = [village, district, state].filter(Boolean);
+      const locationName = parts.length > 0 ? parts.join(", ") : `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`;
+      return { locationName, village, district, state };
+    }
+  } catch (e) {
+    console.warn("Nominatim reverse geocode error, attempting fallback", e);
+  }
+
+  try {
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+    if (res.ok) {
+      const data = await res.json();
+      const village = data.locality || data.city || "";
+      const district = data.principalSubdivision || "";
+      const state = data.countryName || "";
+      const locationName = [village, district].filter(Boolean).join(", ") || `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`;
+      return { locationName, village, district, state };
+    }
+  } catch (e) {
+    console.warn("Fallback reverse geocode error", e);
+  }
+
+  return { locationName: `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`, village: "", district: "", state: "" };
+}
 
 const WeatherContext = createContext<WeatherContextType>({
   weather: DEFAULT_WEATHER,
@@ -83,29 +127,25 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const fetchWeather = useCallback(async (lat: number, lon: number) => {
     try {
+      // Reverse geocode location dynamically
+      const geo = await reverseGeocode(lat, lon);
+
       // Open-Meteo free API — no key needed, globally available
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m&timezone=Asia%2FKolkata&forecast_days=1`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m&timezone=auto&forecast_days=1`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("Open-Meteo fetch failed");
       const data = await res.json();
       const c = data.current;
 
-      // Calculate night heat stress (night temp proxy = current temp − 2°C offset)
+      // Calculate night heat stress (night temp proxy = current temp − 1.5°C offset)
       const nightTemp = c.temperature_2m - 1.5;
       const isNightStress = nightTemp > 25.0;
-      // Stress % based on how far above 25°C threshold
       const stressPercent = isNightStress
         ? Math.min(99, Math.round(50 + (nightTemp - 25.0) * 14))
         : Math.max(10, Math.round(30 - (25.0 - nightTemp) * 5));
 
-      // Soil moisture estimate from precipitation + humidity
       const soilEst = Math.min(95, Math.max(15, Math.round(c.relative_humidity_2m * 0.55 + c.precipitation * 2)));
-
-      // Reverse geocode using Open-Meteo's timezone as city hint
-      const tz = data.timezone || "Asia/Kolkata";
-      const cityHint = tz.replace("Asia/", "").replace("_", " ");
-
-      const wmoData = WMO_DESCRIPTIONS[c.weather_code] || { desc: "Unknown", emoji: "🌡️" };
+      const wmoData = WMO_DESCRIPTIONS[c.weather_code] || { desc: "Clear", emoji: "☀️" };
 
       setWeather({
         lat,
@@ -121,7 +161,10 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isNightHeatStress: isNightStress,
         heatStressPercent: stressPercent,
         soilMoistureEst: soilEst,
-        locationName: cityHint,
+        locationName: geo.locationName,
+        village: geo.village,
+        district: geo.district,
+        state: geo.state,
         lastUpdated: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
         isLoading: false,
         hasError: false,
@@ -142,7 +185,6 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
           fetchWeather(pos.coords.latitude, pos.coords.longitude);
         },
         () => {
-          // Permission denied or unavailable — use Bhopal default
           fetchWeather(DEFAULT_WEATHER.lat, DEFAULT_WEATHER.lon);
         },
         { timeout: 8000, maximumAge: 300000 }
@@ -154,7 +196,6 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     getLocationAndFetch();
-    // Refresh every 10 minutes
     const interval = setInterval(getLocationAndFetch, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, [getLocationAndFetch]);
@@ -167,3 +208,4 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
 };
 
 export const useWeather = () => useContext(WeatherContext);
+

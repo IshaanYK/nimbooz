@@ -1,7 +1,6 @@
-"use client";
-
 import React, { useEffect, useRef, useState } from "react";
 import { fetchCurrentWeather } from "@/lib/api";
+import { reverseGeocode } from "@/context/WeatherContext";
 import {
   MapPin,
   Sun,
@@ -39,7 +38,7 @@ export const LiveWeatherMap: React.FC<LiveWeatherMapProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const [currentLat, setCurrentLat] = useState(lat || 23.2599);
   const [currentLon, setCurrentLon] = useState(lon || 77.4126);
-  const [cityName, setCityName] = useState("Bhopal Region");
+  const [cityName, setCityName] = useState("Field Region");
   const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedFarm, setSelectedFarm] = useState<any>(null);
 
@@ -225,12 +224,13 @@ export const LiveWeatherMap: React.FC<LiveWeatherMapProps> = ({
 
   const handleUseGps = () => {
     if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition((pos) => {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
         const newLat = pos.coords.latitude;
         const newLon = pos.coords.longitude;
         setCurrentLat(newLat);
         setCurrentLon(newLon);
-        setCityName("My GPS Location");
+        const geo = await reverseGeocode(newLat, newLon);
+        setCityName(geo.locationName);
         if (onLocationSelect) onLocationSelect(newLat, newLon);
       });
     }

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 let fieldsMemory = [
   {
-    id: "f-bhopal-1",
-    name: "Bhopal Soybean Field",
+    id: "f-primary-1",
+    name: "Primary Farm Plot",
     lat: 23.2599,
     lon: 77.4126,
     area_ha: 1.7,

@@ -48,6 +48,16 @@ export const StressMetrics: React.FC<StressMetricsProps> = ({
     return "HIGH";
   };
 
+  // Compute dynamic spray window: next 2 days from today
+  const today = new Date();
+  const day1 = new Date(today);
+  day1.setDate(today.getDate() + 1);
+  const day2 = new Date(today);
+  day2.setDate(today.getDate() + 2);
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const sprayWindowLabel = `${dayNames[day1.getDay()]} & ${dayNames[day2.getDay()]} (${monthNames[day1.getMonth()]} ${day1.getDate()}–${day2.getDate()})`;
+
   return (
     <div className="space-y-4">
       {/* Primary Intelligence Alert Banner */}
@@ -198,7 +208,7 @@ export const StressMetrics: React.FC<StressMetricsProps> = ({
           <div className="space-y-2 text-xs">
             <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
               <div>
-                <span className="font-bold text-white block">Bhopal Field — Kharif Season</span>
+                <span className="font-bold text-white block">Field Telemetry — Kharif Season</span>
                 <p className="text-[11px] text-slate-300 mt-0.5">Constraint: <code className="text-emerald-300 font-mono font-bold">ResLegHighSoilMoisture</code></p>
               </div>
               <span className="text-xs font-bold text-emerald-400 font-mono">Normal</span>
@@ -221,7 +231,7 @@ export const StressMetrics: React.FC<StressMetricsProps> = ({
             <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
               <div>
                 <span className="text-slate-300 font-medium">Optimal Spray Window:</span>
-                <p className="text-white font-bold mt-0.5">Thursday & Friday (Aug 13–14)</p>
+                <p className="text-white font-bold mt-0.5">{sprayWindowLabel}</p>
               </div>
               <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold border border-emerald-500/30">FAVORABLE</span>
             </div>
