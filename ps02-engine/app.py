@@ -3,13 +3,12 @@ from data_ingestion import DataIngestionEngine
 from plant_categorization import PlantCategorizationMatrix
 from ensemble_model import HybridEnsembleModel
 from alert_engine import GeminiAlertEngine
-from product_advisor import SyngentaProductAdvisor
+from product_matrix import get_recommendations_for_day
 
 app = Flask(__name__)
 
 # Global instances
 categorization = PlantCategorizationMatrix()
-product_advisor = SyngentaProductAdvisor()
 
 @app.route('/')
 def index():
@@ -56,42 +55,31 @@ def run_pipeline():
     model = HybridEnsembleModel(crop_profile)
     analysis_results = []
     product_recommendations = []
+    has_critical_alert = False
     
     for i, day_data in enumerate(forecast):
         result = model.evaluate_day(day_data, full_forecast=forecast, day_index=i)
         analysis_results.append(result)
         
-        # 5. Product Advisor — flatten sensor data for rule evaluation
-        flat = {
-            "spei": day_data.get("weather_layer", {}).get("SPEI", 0),
-            "tmax": day_data.get("weather_layer", {}).get("TMax", 30),
-            "humidity": day_data.get("weather_layer", {}).get("RH_percent", 55),
-            "wind_speed": day_data.get("weather_layer", {}).get("Wind_kmh", 8),
-            "precipitation": day_data.get("weather_layer", {}).get("Precipitation_mm", 0),
-            "delta_t": day_data.get("weather_layer", {}).get("Delta_T", 5),
-            "soil_moisture": day_data.get("soil_layer", {}).get("Soil_Moisture_Pct", 35),
-            "ndvi": day_data.get("satellite_layer", {}).get("NDVI", 0.6),
-            "ndwi": day_data.get("satellite_layer", {}).get("NDWI", 0.3),
-            "vci": day_data.get("satellite_layer", {}).get("VCI", 60),
-            "any_stress": result.get("is_stressed", False),
-            "ndvi_declining": day_data.get("satellite_layer", {}).get("NDVI", 0.6) < 0.45,
-        }
-        raw_recs = product_advisor.evaluate_conditions(flat, crop_profile, region_info)
-        if raw_recs:
-            # Reshape for alert engine consumption
+        # 5. Product Matrix — evaluate stress scores for categorized recommendations
+        scores = result.get("stress_breakdown", {})
+        matrix_recs, day_is_critical = get_recommendations_for_day(scores)
+        
+        if day_is_critical:
+            has_critical_alert = True
+            
+        if matrix_recs:
             shaped = []
-            for rec in raw_recs:
-                prod = rec.get("product", {})
-                dosage_str = f"{prod.get('dosage_ml_per_acre', prod.get('dosage_g_per_acre', 'N/A'))} {'ml' if 'dosage_ml_per_acre' in prod else 'g'}/acre"
+            for rec in matrix_recs:
                 shaped.append({
-                    "product_key": rec.get("rule_id", ""),
-                    "product_name": prod.get("brand_name", "Unknown"),
-                    "category": prod.get("category", "Biostimulant"),
-                    "dosage": dosage_str,
+                    "product_key": rec.get("product_name", "").replace(" ", "_").lower(),
+                    "product_name": rec.get("product_name", "Unknown"),
+                    "category": rec.get("category", "Biostimulant"),
+                    "dosage": "As per label",
                     "timing_advice": rec.get("timing_advice", ""),
                     "rationale": rec.get("rationale", ""),
-                    "priority": rec.get("priority", 3),
-                    "trigger_description": rec.get("stress_type", "").replace("_", " ").title(),
+                    "priority": 1 if rec.get("severity") == "Critical" else (2 if rec.get("severity") == "High" else 3),
+                    "trigger_description": rec.get("trigger_stress", "").replace("_score", "").replace("_stress", "").title(),
                 })
             product_recommendations.append((day_data["day"], shaped))
     
@@ -106,6 +94,7 @@ def run_pipeline():
         "crop_profile": crop_profile,
         "forecast": analysis_results,
         "alert": alert,
+        "has_critical_alert": has_critical_alert,
         "product_recommendations": [
             {"day": day_idx, "products": recs} 
             for day_idx, recs in product_recommendations[:5]  # Top 5 days

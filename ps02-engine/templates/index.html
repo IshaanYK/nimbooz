@@ -443,6 +443,16 @@
         }
 
         function renderResults(data) {
+            if (data.has_critical_alert) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'CRITICAL WEATHER EVENT DETECTED',
+                    text: 'The analysis has detected extreme climate stress (e.g., severe heat or drought) within the next 14 days. Please review the recommended emergency interventions immediately.',
+                    confirmButtonColor: '#dc2626',
+                    confirmButtonText: 'View Emergency Recommendations'
+                });
+            }
+
             // Data Source Badge
             const badge = document.getElementById('dataSourceBadge');
             badge.style.display = 'block';
