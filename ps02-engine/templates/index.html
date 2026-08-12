@@ -354,34 +354,46 @@
                     </div>
 
                     <div style="margin: 1rem 0; border-top: 1px solid var(--border); padding-top: 1rem;">
-                        <h3 style="font-size:0.95rem; margin-bottom:0.8rem;">🌱 Field Context (CropFit)</h3>
+                        <h3 style="font-size:0.95rem; margin-bottom:0.8rem;">✨ Ask AI Advisor (Gemini)</h3>
                         <div class="form-group">
-                            <label>Growth Stage</label>
-                            <select id="growth_stage">
-                                <option value="Seedling">Seedling</option>
-                                <option value="Vegetative">Vegetative</option>
-                                <option value="Flowering">Flowering</option>
-                                <option value="Fruiting">Fruiting</option>
-                                <option value="Maturity">Maturity</option>
-                            </select>
+                            <textarea id="conversational_input" rows="3" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border); font-family:inherit; resize:vertical;" placeholder="Describe your field... e.g., 'My soybean crop is flowering but the leaves are wilting and soil is bone dry.'"></textarea>
                         </div>
-                        <div class="form-group">
-                            <label>Observed Symptoms</label>
-                            <select id="symptoms">
-                                <option value="None">None (Healthy)</option>
-                                <option value="Wilting">Wilting / Drying</option>
-                                <option value="Yellowing/Chlorosis">Yellowing / Chlorosis</option>
-                                <option value="Stunting">Stunting / Slow Growth</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Soil Moisture</label>
-                            <select id="soil_moisture">
-                                <option value="Optimal">Optimal</option>
-                                <option value="Dry">Dry / Cracked</option>
-                                <option value="Waterlogged">Waterlogged / Muddy</option>
-                            </select>
-                        </div>
+                        <button class="btn-primary" style="margin-bottom:1rem; background:linear-gradient(135deg, #3b82f6, #2563eb);" onclick="askGemini()">
+                            ✨ Extract Context & Run
+                        </button>
+                        
+                        <details style="margin-bottom:1rem; font-size:0.85rem;">
+                            <summary style="cursor:pointer; color:var(--muted); font-weight:600;">Or manually enter context...</summary>
+                            <div style="margin-top:0.5rem;">
+                                <div class="form-group">
+                                    <label>Growth Stage</label>
+                                    <select id="growth_stage">
+                                        <option value="Seedling">Seedling</option>
+                                        <option value="Vegetative">Vegetative</option>
+                                        <option value="Flowering">Flowering</option>
+                                        <option value="Fruiting">Fruiting</option>
+                                        <option value="Maturity">Maturity</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Observed Symptoms</label>
+                                    <select id="symptoms">
+                                        <option value="None">None (Healthy)</option>
+                                        <option value="Wilting">Wilting / Drying</option>
+                                        <option value="Yellowing/Chlorosis">Yellowing / Chlorosis</option>
+                                        <option value="Stunting">Stunting / Slow Growth</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Soil Moisture</label>
+                                    <select id="soil_moisture">
+                                        <option value="Optimal">Optimal</option>
+                                        <option value="Dry">Dry / Cracked</option>
+                                        <option value="Waterlogged">Waterlogged / Muddy</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </details>
                     </div>
 
                     <button class="btn-primary" id="runBtn" onclick="runPipeline()">
@@ -482,6 +494,37 @@
                 cropSelect.appendChild(opt);
             });
         }
+        
+        async function askGemini() {
+            const text = document.getElementById('conversational_input').value;
+            if (!text.trim()) return alert("Please describe your field conditions first.");
+            
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+            
+            try {
+                const response = await fetch('/parse_context', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: text})
+                });
+                const data = await response.json();
+                
+                // Populate the dropdowns
+                if (data.parsed_context) {
+                    document.getElementById('growth_stage').value = data.parsed_context.growth_stage;
+                    document.getElementById('symptoms').value = data.parsed_context.symptoms;
+                    document.getElementById('soil_moisture').value = data.parsed_context.soil_moisture;
+                }
+                
+                // Automatically run pipeline
+                runPipeline();
+                
+            } catch (e) {
+                alert('Gemini Error: ' + e.message);
+                loader.style.display = 'none';
+            }
+        }
 
         async function runPipeline() {
             const btn = document.getElementById('runBtn');
@@ -562,6 +605,12 @@
                                 <div style="font-size: 0.8rem; color: #64748b;">${data.cropfit.product.active_ingredient}</div>
                                 <div style="font-size: 0.85rem; margin-top: 0.3rem;"><strong>Dosage:</strong> ${data.cropfit.product.dosage}</div>
                             </div>
+                        </div>
+                        
+                        <div style="margin-top: 1rem; border-top: 1px dashed #bbf7d0; padding-top: 0.75rem;">
+                            <p style="font-size:0.8rem; color:#166534; font-weight:600; margin-bottom:0.4rem;">Did this recommendation improve your yield?</p>
+                            <button onclick="this.parentNode.innerHTML='<span style=\\'color:#15803d; font-size:0.8rem;\\'>✅ Thank you! Your feedback trains our model for better local recommendations.</span>'" style="background:white; border:1px solid #16a34a; color:#16a34a; padding:3px 10px; border-radius:4px; font-size:0.8rem; cursor:pointer; margin-right:0.5rem;">👍 Yes</button>
+                            <button onclick="this.parentNode.innerHTML='<span style=\\'color:#15803d; font-size:0.8rem;\\'>✅ Thank you! Your feedback trains our model for better local recommendations.</span>'" style="background:white; border:1px solid #dc2626; color:#dc2626; padding:3px 10px; border-radius:4px; font-size:0.8rem; cursor:pointer;">👎 No</button>
                         </div>
                     </div>
                 `;

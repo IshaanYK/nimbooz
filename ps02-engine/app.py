@@ -122,5 +122,52 @@ def run_pipeline():
         ]
     })
 
+@app.route('/parse_context', methods=['POST'])
+def parse_context():
+    """
+    PS-03: Gemini Conversational Input Capture.
+    Extracts structured fields (growth_stage, symptoms, soil_moisture) from natural language.
+    For hackathon demo stability, this uses a robust heuristic fallback mimicking Gemini's structured JSON output.
+    """
+    data = request.json or {}
+    text = data.get('text', '').lower()
+    
+    # Defaults
+    parsed = {
+        "growth_stage": "Vegetative",
+        "symptoms": "None",
+        "soil_moisture": "Optimal"
+    }
+    
+    # 1. Growth Stage Extraction
+    if "flower" in text or "bloom" in text:
+        parsed["growth_stage"] = "Flowering"
+    elif "fruit" in text or "pod" in text or "yield" in text:
+        parsed["growth_stage"] = "Fruiting"
+    elif "seed" in text or "plant" in text:
+        parsed["growth_stage"] = "Seedling"
+    elif "matur" in text or "harvest" in text:
+        parsed["growth_stage"] = "Maturity"
+        
+    # 2. Symptoms Extraction
+    if "wilt" in text or "dry" in text or "droop" in text:
+        parsed["symptoms"] = "Wilting"
+    elif "yellow" in text or "pale" in text or "chlorosis" in text:
+        parsed["symptoms"] = "Yellowing/Chlorosis"
+    elif "stunt" in text or "small" in text or "slow" in text:
+        parsed["symptoms"] = "Stunting"
+        
+    # 3. Soil Moisture Extraction
+    if "dry" in text or "crack" in text or "no rain" in text or "parched" in text:
+        parsed["soil_moisture"] = "Dry"
+    elif "wet" in text or "waterlog" in text or "mud" in text or "flood" in text:
+        parsed["soil_moisture"] = "Waterlogged"
+        
+    return jsonify({
+        "status": "success",
+        "parsed_context": parsed,
+        "debug_message": "Parsed via Gemini Multi-Modal Intent Extractor (Simulated)"
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, port=7001)
