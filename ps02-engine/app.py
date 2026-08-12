@@ -30,9 +30,13 @@ def get_regions():
         }
     return jsonify(regions)
 
-@app.route('/run_pipeline', methods=['POST'])
+@app.route('/run_pipeline', methods=['GET', 'POST'])
 def run_pipeline():
-    data = request.json
+    if request.method == 'POST':
+        data = request.json or {}
+    else:
+        data = {}
+    
     crop_type = data.get('crop_type', 'soybean')
     region_key = data.get('region', 'punjab')
     
@@ -109,4 +113,4 @@ def run_pipeline():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, port=7000)
+    app.run(debug=True, port=7001)

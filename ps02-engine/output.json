@@ -1,0 +1,898 @@
+{
+  "alert": {
+    "details": [
+      {
+        "factor": "\ud83c\udf21\ufe0f Weather",
+        "readings": "TMax: 28.9\u00b0C | TMin: 20.6\u00b0C | Precip: 2.3mm | ET: 4.2mm<br><span style='color: #4a5568; font-size: 0.8em;'>\ud83c\udf31 Growth Stage: Vegetative (Moderate Sensitivity)</span>",
+        "status": "\u26a0\ufe0f Stressed",
+        "stress_score": 0.79,
+        "threshold_info": "Critical if TMax > 36\u00b0C (adjusted by Growth Stage) or Precip > 45mm"
+      },
+      {
+        "factor": "\ud83d\udef0\ufe0f Satellite",
+        "readings": "NDVI: 0.79 | NDWI: 0.31 | VCI: 73.1%",
+        "status": "\u2705 Healthy",
+        "stress_score": 0.0,
+        "threshold_info": "Critical if NDVI < 0.35 or VCI < 35%"
+      },
+      {
+        "factor": "\ud83c\udf31 Soil",
+        "readings": "Moisture: 15.6% | Type: Alluvial, high fertility",
+        "status": "\u26a0\ufe0f Dry",
+        "stress_score": 0.4,
+        "threshold_info": "Critical if Moisture < 20%"
+      },
+      {
+        "factor": "\ud83e\udde0 AI Rationale (SHAP)",
+        "readings": "<strong>Why did the model predict this?</strong><br>&nbsp;&nbsp;\u251c\u2500\u2500 Vegetation &rarr; -31.3%<br>&nbsp;&nbsp;\u251c\u2500\u2500 Waterlog &rarr; -7.8%<br>&nbsp;&nbsp;\u251c\u2500\u2500 Drought &rarr; -5.1%<br>&nbsp;&nbsp;\u251c\u2500\u2500 Heat &rarr; +3.7%",
+        "status": "\u2139\ufe0f Explainable",
+        "stress_score": 0,
+        "threshold_info": "Gradient Boosting Model feature contributions via Shapley values."
+      }
+    ],
+    "dominant_stress": "Drought",
+    "probability": 0.34,
+    "product_cards": [],
+    "severity": "moderate",
+    "spray_advice": "\u26a0\ufe0f No ideal spray window before stress onset. Apply with caution.",
+    "stress_description": "Severe drought conditions detected. Soil moisture is critically low and SPEI indicates significant precipitation deficit.",
+    "summary": "6 stress day(s) predicted for Soybean in Indo-Gangetic Plain starting 2026-08-17. Forecast Reliability: Moderate Confidence (Medium-term).",
+    "title": "\ud83d\udfe1 MODERATE CLIMATE STRESS ALERT"
+  },
+  "crop_profile": {
+    "abiotic_resilience": 0.3,
+    "biotic_resilience": 0.45,
+    "crop_key": "soybean",
+    "key_vulnerability": "drought sensitivity, YMV",
+    "name": "Soybean",
+    "region_key": "punjab",
+    "region_name": "Indo-Gangetic Plain",
+    "stress_thresholds": {
+      "drought_soil_moisture_trigger": 20,
+      "drought_spei_trigger": -1.2,
+      "frost_tmin_trigger": 5,
+      "heat_tmax_trigger": 36,
+      "ndvi_stress_trigger": 0.35,
+      "vci_stress_trigger": 35,
+      "waterlog_precip_trigger": 45
+    }
+  },
+  "data_source": "LIVE_METEOBLUE",
+  "forecast": [
+    {
+      "date": "2026-08-12",
+      "dominant_stress_type": "drought",
+      "is_stressed": false,
+      "overall_stress_probability": 0.17,
+      "raw_data": {
+        "date": "Wed, 12 Aug 2026 00:00:00 GMT",
+        "day": 0,
+        "satellite_layer": {
+          "NDVI": 0.67,
+          "NDWI": 0.17,
+          "VCI": 56.6
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 15.3,
+          "ET_mm": 5.8,
+          "GDD_Accumulated": 1020.0,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0,
+          "RDI": 0.0,
+          "RH_percent": 54.5,
+          "SPEI": -1.0,
+          "TMax": 33.7,
+          "TMin": 26.4,
+          "VPD_kPa": 2.38,
+          "Wind_kmh": 4.8
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-36.8%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.4%",
+          "factor": "Heat"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.7,
+        "frost_score": 0.0,
+        "heat_score": 0.39,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-13",
+      "dominant_stress_type": "drought",
+      "is_stressed": false,
+      "overall_stress_probability": 0.17,
+      "raw_data": {
+        "date": "Thu, 13 Aug 2026 00:00:00 GMT",
+        "day": 1,
+        "satellite_layer": {
+          "NDVI": 0.64,
+          "NDWI": 0.14,
+          "VCI": 54.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 18.2,
+          "ET_mm": 3.9,
+          "GDD_Accumulated": 1041.0,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0,
+          "RDI": 0.0,
+          "RH_percent": 48.0,
+          "SPEI": -1.0,
+          "TMax": 35.0,
+          "TMin": 27.0,
+          "VPD_kPa": 2.92,
+          "Wind_kmh": 7.0
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-38.7%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.2%",
+          "factor": "Heat"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "+1.2%",
+          "factor": "Compound"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.64,
+        "drought_score": 0.7,
+        "frost_score": 0.0,
+        "heat_score": 0.61,
+        "vegetation_score": 0.03,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-14",
+      "dominant_stress_type": "compound",
+      "is_stressed": false,
+      "overall_stress_probability": 0.17,
+      "raw_data": {
+        "date": "Fri, 14 Aug 2026 00:00:00 GMT",
+        "day": 2,
+        "satellite_layer": {
+          "NDVI": 0.64,
+          "NDWI": 0.16,
+          "VCI": 56.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 19.0,
+          "ET_mm": 5.7,
+          "GDD_Accumulated": 1063.8,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 1.2,
+          "RDI": 0.24,
+          "RH_percent": 47.0,
+          "SPEI": -0.76,
+          "TMax": 35.8,
+          "TMin": 29.6,
+          "VPD_kPa": 3.11,
+          "Wind_kmh": 8.0
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-41.2%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "-2.7%",
+          "factor": "Heat"
+        },
+        {
+          "contribution": "+1.2%",
+          "factor": "Compound"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.95,
+        "drought_score": 0.74,
+        "frost_score": 0.0,
+        "heat_score": 0.85,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-15",
+      "dominant_stress_type": "drought",
+      "is_stressed": false,
+      "overall_stress_probability": 0.17,
+      "raw_data": {
+        "date": "Sat, 15 Aug 2026 00:00:00 GMT",
+        "day": 3,
+        "satellite_layer": {
+          "NDVI": 0.67,
+          "NDWI": 0.19,
+          "VCI": 58.3
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 15.1,
+          "ET_mm": 4.7,
+          "GDD_Accumulated": 1084.2,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0.7,
+          "RDI": 0.14,
+          "RH_percent": 55.5,
+          "SPEI": -0.86,
+          "TMax": 33.9,
+          "TMin": 27.0,
+          "VPD_kPa": 2.35,
+          "Wind_kmh": 8.4
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-38.5%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.4%",
+          "factor": "Heat"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "+1.2%",
+          "factor": "Compound"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.55,
+        "drought_score": 0.84,
+        "frost_score": 0.0,
+        "heat_score": 0.44,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-16",
+      "dominant_stress_type": "drought",
+      "is_stressed": false,
+      "overall_stress_probability": 0.17,
+      "raw_data": {
+        "date": "Sun, 16 Aug 2026 00:00:00 GMT",
+        "day": 4,
+        "satellite_layer": {
+          "NDVI": 0.69,
+          "NDWI": 0.22,
+          "VCI": 60.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 12.5,
+          "ET_mm": 4.1,
+          "GDD_Accumulated": 1102.8,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0.4,
+          "RDI": 0.08,
+          "RH_percent": 61.6,
+          "SPEI": -0.92,
+          "TMax": 32.6,
+          "TMin": 24.6,
+          "VPD_kPa": 1.89,
+          "Wind_kmh": 10.3
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-36.8%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.4%",
+          "factor": "Heat"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.92,
+        "frost_score": 0.0,
+        "heat_score": 0.19,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-17",
+      "dominant_stress_type": "drought",
+      "is_stressed": true,
+      "overall_stress_probability": 0.42,
+      "raw_data": {
+        "date": "Mon, 17 Aug 2026 00:00:00 GMT",
+        "day": 5,
+        "satellite_layer": {
+          "NDVI": 0.79,
+          "NDWI": 0.31,
+          "VCI": 73.1
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 7.7,
+          "ET_mm": 4.2,
+          "GDD_Accumulated": 1117.5,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 2.3,
+          "RDI": 0.46,
+          "RH_percent": 73.5,
+          "SPEI": -0.54,
+          "TMax": 28.9,
+          "TMin": 20.6,
+          "VPD_kPa": 1.06,
+          "Wind_kmh": 12.6
+        }
+      },
+      "safe_to_spray": true,
+      "shap_explanations": [
+        {
+          "contribution": "-31.3%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "+3.7%",
+          "factor": "Heat"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.79,
+        "frost_score": 0.0,
+        "heat_score": 0.0,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-18",
+      "dominant_stress_type": "drought",
+      "is_stressed": true,
+      "overall_stress_probability": 0.42,
+      "raw_data": {
+        "date": "Tue, 18 Aug 2026 00:00:00 GMT",
+        "day": 6,
+        "satellite_layer": {
+          "NDVI": 0.76,
+          "NDWI": 0.24,
+          "VCI": 65.6
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 9.3,
+          "ET_mm": 4.1,
+          "GDD_Accumulated": 1132.8,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0,
+          "RDI": 0.0,
+          "RH_percent": 68.1,
+          "SPEI": -1.0,
+          "TMax": 29.2,
+          "TMin": 21.2,
+          "VPD_kPa": 1.29,
+          "Wind_kmh": 7.9
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-31.3%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "+3.7%",
+          "factor": "Heat"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.86,
+        "frost_score": 0.0,
+        "heat_score": 0.0,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-19",
+      "dominant_stress_type": "drought",
+      "is_stressed": true,
+      "overall_stress_probability": 0.42,
+      "raw_data": {
+        "date": "Wed, 19 Aug 2026 00:00:00 GMT",
+        "day": 7,
+        "satellite_layer": {
+          "NDVI": 0.74,
+          "NDWI": 0.18,
+          "VCI": 64.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 13.5,
+          "ET_mm": 3.6,
+          "GDD_Accumulated": 1149.0,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0.0,
+          "RDI": 0.0,
+          "RH_percent": 55.0,
+          "SPEI": -1.0,
+          "TMax": 30.0,
+          "TMin": 22.6,
+          "VPD_kPa": 1.91,
+          "Wind_kmh": 8.0
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-31.3%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "+3.7%",
+          "factor": "Heat"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.84,
+        "frost_score": 0.0,
+        "heat_score": 0.0,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-20",
+      "dominant_stress_type": "drought",
+      "is_stressed": true,
+      "overall_stress_probability": 0.42,
+      "raw_data": {
+        "date": "Thu, 20 Aug 2026 00:00:00 GMT",
+        "day": 8,
+        "satellite_layer": {
+          "NDVI": 0.74,
+          "NDWI": 0.18,
+          "VCI": 64.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 13.5,
+          "ET_mm": 4.2,
+          "GDD_Accumulated": 1165.8,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0.0,
+          "RDI": 0.0,
+          "RH_percent": 55.0,
+          "SPEI": -1.0,
+          "TMax": 30.0,
+          "TMin": 23.4,
+          "VPD_kPa": 1.91,
+          "Wind_kmh": 8.0
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-31.3%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "+3.7%",
+          "factor": "Heat"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.85,
+        "frost_score": 0.0,
+        "heat_score": 0.0,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-21",
+      "dominant_stress_type": "drought",
+      "is_stressed": true,
+      "overall_stress_probability": 0.42,
+      "raw_data": {
+        "date": "Fri, 21 Aug 2026 00:00:00 GMT",
+        "day": 9,
+        "satellite_layer": {
+          "NDVI": 0.74,
+          "NDWI": 0.18,
+          "VCI": 64.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 13.5,
+          "ET_mm": 3.5,
+          "GDD_Accumulated": 1181.1,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0.0,
+          "RDI": 0.0,
+          "RH_percent": 55.0,
+          "SPEI": -1.0,
+          "TMax": 30.0,
+          "TMin": 20.7,
+          "VPD_kPa": 1.91,
+          "Wind_kmh": 8.0
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-31.3%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "+3.7%",
+          "factor": "Heat"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.84,
+        "frost_score": 0.0,
+        "heat_score": 0.0,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-22",
+      "dominant_stress_type": "drought",
+      "is_stressed": true,
+      "overall_stress_probability": 0.42,
+      "raw_data": {
+        "date": "Sat, 22 Aug 2026 00:00:00 GMT",
+        "day": 10,
+        "satellite_layer": {
+          "NDVI": 0.74,
+          "NDWI": 0.18,
+          "VCI": 64.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 13.5,
+          "ET_mm": 3.1,
+          "GDD_Accumulated": 1197.6,
+          "Growth_Stage": "Vegetative (Moderate Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0.0,
+          "RDI": 0.0,
+          "RH_percent": 55.0,
+          "SPEI": -1.0,
+          "TMax": 30.0,
+          "TMin": 23.1,
+          "VPD_kPa": 1.91,
+          "Wind_kmh": 8.0
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-31.3%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        },
+        {
+          "contribution": "+3.7%",
+          "factor": "Heat"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.87,
+        "frost_score": 0.0,
+        "heat_score": 0.0,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-23",
+      "dominant_stress_type": "drought",
+      "is_stressed": false,
+      "overall_stress_probability": 0.17,
+      "raw_data": {
+        "date": "Sun, 23 Aug 2026 00:00:00 GMT",
+        "day": 11,
+        "satellite_layer": {
+          "NDVI": 0.74,
+          "NDWI": 0.18,
+          "VCI": 64.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 13.5,
+          "ET_mm": 5.4,
+          "GDD_Accumulated": 1214.5,
+          "Growth_Stage": "Flowering (High Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0.0,
+          "RDI": 0.0,
+          "RH_percent": 55.0,
+          "SPEI": -1.0,
+          "TMax": 30.0,
+          "TMin": 23.7,
+          "VPD_kPa": 1.91,
+          "Wind_kmh": 8.0
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-36.2%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-6.0%",
+          "factor": "Heat"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.89,
+        "frost_score": 0.0,
+        "heat_score": 0.1,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    },
+    {
+      "date": "2026-08-24",
+      "dominant_stress_type": "drought",
+      "is_stressed": false,
+      "overall_stress_probability": 0.17,
+      "raw_data": {
+        "date": "Mon, 24 Aug 2026 00:00:00 GMT",
+        "day": 12,
+        "satellite_layer": {
+          "NDVI": 0.74,
+          "NDWI": 0.18,
+          "VCI": 64.0
+        },
+        "soil_layer": {
+          "Soil_Moisture_Pct": 15.6
+        },
+        "source": "LIVE_METEOBLUE",
+        "weather_layer": {
+          "Delta_T": 13.5,
+          "ET_mm": 3.7,
+          "GDD_Accumulated": 1230.6,
+          "Growth_Stage": "Flowering (High Sensitivity)",
+          "Historical_Precip_Norm": 5.0,
+          "Historical_TMax_Norm": 34.0,
+          "Precipitation_mm": 0.0,
+          "RDI": 0.0,
+          "RH_percent": 55.0,
+          "SPEI": -1.0,
+          "TMax": 30.0,
+          "TMin": 22.2,
+          "VPD_kPa": 1.91,
+          "Wind_kmh": 8.0
+        }
+      },
+      "safe_to_spray": false,
+      "shap_explanations": [
+        {
+          "contribution": "-36.2%",
+          "factor": "Vegetation"
+        },
+        {
+          "contribution": "-7.8%",
+          "factor": "Waterlog"
+        },
+        {
+          "contribution": "-6.0%",
+          "factor": "Heat"
+        },
+        {
+          "contribution": "-5.1%",
+          "factor": "Drought"
+        }
+      ],
+      "stress_breakdown": {
+        "compound_score": 0.0,
+        "drought_score": 0.89,
+        "frost_score": 0.0,
+        "heat_score": 0.1,
+        "vegetation_score": 0.0,
+        "waterlog_score": 0.0
+      }
+    }
+  ],
+  "product_recommendations": [],
+  "region": {
+    "avg_annual_precip_mm": 650,
+    "dominant_stresses": [
+      "waterlogging",
+      "heat_stress"
+    ],
+    "lat": 30.9,
+    "lon": 75.86,
+    "major_crops": [
+      "rice",
+      "wheat",
+      "cotton_bt"
+    ],
+    "name": "Indo-Gangetic Plain",
+    "soil_type": "Alluvial, high fertility"
+  }
+}

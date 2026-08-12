@@ -76,6 +76,19 @@ class GeminiAlertEngine:
                 "threshold_info": f"Critical if Moisture < {thresh.get('drought_soil_moisture_trigger', 15)}%"
             }
             details.append(soil_detail)
+        # Explainability factor (SHAP)
+        shap_explanations = target_day.get("shap_explanations", [])
+        if shap_explanations:
+            shap_html = "<br>".join([f"&nbsp;&nbsp;├── {s['factor']} &rarr; {s['contribution']}" for s in shap_explanations])
+            shap_detail = {
+                "factor": "🧠 AI Rationale (SHAP)",
+                "readings": f"<strong>Why did the model predict this?</strong><br>{shap_html}",
+                "stress_score": 0,
+                "status": "ℹ️ Explainable",
+                "threshold_info": "Gradient Boosting Model feature contributions via Shapley values."
+            }
+            details.append(shap_detail)
+
 
         if not stress_days:
             return {

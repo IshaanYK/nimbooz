@@ -52,6 +52,11 @@ class PlantCategorizationMatrix:
             "abiotic_resilience": 0.35,
             "biotic_resilience": 0.4,
             "key_vulnerability": "drought at flowering stage",
+            "phenology": {
+                "t_base": 10,  # Base temp for Rice GDD
+                "gdd_flowering": 1200,
+                "crop_Kc": 1.15  # High water demand
+            },
             "base_stress_thresholds": {
                 "heat_tmax_trigger": 38,
                 "frost_tmin_trigger": 4,
@@ -72,6 +77,11 @@ class PlantCategorizationMatrix:
             "abiotic_resilience": 0.5,
             "biotic_resilience": 0.35,
             "key_vulnerability": "terminal heat stress",
+            "phenology": {
+                "t_base": 5,  # Base temp for Wheat GDD
+                "gdd_flowering": 900,
+                "crop_Kc": 1.05
+            },
             "base_stress_thresholds": {
                 "heat_tmax_trigger": 35,
                 "frost_tmin_trigger": 2,
@@ -87,6 +97,11 @@ class PlantCategorizationMatrix:
             "abiotic_resilience": 0.65,
             "biotic_resilience": 0.7,
             "key_vulnerability": "pink bollworm, whitefly",
+            "phenology": {
+                "t_base": 15,  # Base temp for Cotton GDD
+                "gdd_flowering": 1500,
+                "crop_Kc": 1.10
+            },
             "base_stress_thresholds": {
                 "heat_tmax_trigger": 38,
                 "frost_tmin_trigger": 5,
