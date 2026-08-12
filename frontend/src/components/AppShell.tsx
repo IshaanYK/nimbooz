@@ -205,6 +205,24 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               </div>
             )}
 
+            {/* Unauthenticated Login & Sign Up Buttons */}
+            {!loggedIn && (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-[#10B981] hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
+                >
+                  {language === "hi" ? "लॉग इन" : "Login"}
+                </Link>
+                <Link
+                  href="/signup"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#10B981] hover:bg-emerald-600 shadow-xs transition-all cursor-pointer"
+                >
+                  {language === "hi" ? "शुरू करें" : "Get Started"}
+                </Link>
+              </div>
+            )}
+
             {/* Mobile Menu Trigger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -277,6 +295,24 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 <span>{language === "hi" ? "हस्तक्षेप डायरी" : "Intervention Journal"}</span>
               </Link>
             </div>
+            {!loggedIn && (
+              <div className="pt-2 flex items-center gap-2">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 border border-slate-200"
+                >
+                  {language === "hi" ? "लॉग इन" : "Login"}
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-white bg-[#10B981] hover:bg-emerald-600 shadow-xs"
+                >
+                  {language === "hi" ? "शुरू करें" : "Get Started"}
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </header>
