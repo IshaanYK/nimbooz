@@ -63,7 +63,8 @@ def run_pipeline():
         
         # 5. Product Matrix — evaluate stress scores for categorized recommendations
         scores = result.get("stress_breakdown", {})
-        matrix_recs, day_is_critical = get_recommendations_for_day(scores)
+        weather_data = day_data.get("weather_layer", {})
+        matrix_recs, day_is_critical = get_recommendations_for_day(scores, weather_data)
         
         if day_is_critical:
             has_critical_alert = True
@@ -75,13 +76,21 @@ def run_pipeline():
                     "product_key": rec.get("product_name", "").replace(" ", "_").lower(),
                     "product_name": rec.get("product_name", "Unknown"),
                     "category": rec.get("category", "Biostimulant"),
-                    "dosage": "As per label",
+                    "active_ingredient": rec.get("active_ingredient", ""),
+                    "dosage": rec.get("dosage", "As per label"),
+                    "application_method": rec.get("application_method", "Foliar Spray"),
+                    "water_usage": rec.get("water_usage", ""),
                     "timing_advice": rec.get("timing_advice", ""),
+                    "timing_window": rec.get("timing_window", ""),
                     "rationale": rec.get("rationale", ""),
+                    "severity": rec.get("severity", "Moderate"),
                     "priority": 1 if rec.get("severity") == "Critical" else (2 if rec.get("severity") == "High" else 3),
                     "trigger_description": rec.get("trigger_stress", "").replace("_score", "").replace("_stress", "").title(),
                 })
             product_recommendations.append((day_data["day"], shaped))
+            result["products"] = shaped
+        else:
+            result["products"] = []
     
     # 6. Alert Generation — region-aware, multi-factor
     alert = GeminiAlertEngine.generate_alert(

@@ -268,6 +268,44 @@
             font-size: 0.7rem;
             margin-top: 0.2rem;
         }
+        .day-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); cursor: pointer; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .modal-close {
+            position: absolute;
+            top: 1rem; right: 1rem;
+            background: none; border: none;
+            font-size: 1.5rem; cursor: pointer;
+            color: var(--muted);
+        }
+        .modal-header h2 { margin-bottom: 0.5rem; }
+        .modal-section { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+        .day-detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem; }
+        .day-detail-card { background: var(--bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); }
+        .day-detail-label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+        .day-detail-val { font-size: 1.2rem; font-weight: 700; margin-top: 0.2rem; }
+
 
         /* Responsive */
         @media (max-width: 900px) {
@@ -526,7 +564,7 @@
             const timeline = document.getElementById('timeline');
             if (data.forecast && data.forecast.length > 0) {
                 timelineSection.style.display = 'block';
-                timeline.innerHTML = data.forecast.map(day => {
+                timeline.innerHTML = data.forecast.map((day, dayIndex) => {
                     const prob = day.overall_stress_probability ?? day.stress_probability ?? 0;
                     const pct = Math.round(prob * 100);
                     let cardClass = 'safe';
@@ -537,15 +575,96 @@
                     const dominant = day.dominant_stress_type ? day.dominant_stress_type.replace('_', ' ') : '';
 
                     return `
-                        <div class="day-card ${cardClass} ${sprayClass}">
+                        <div class="day-card ${cardClass} ${sprayClass}" data-idx="${dayIndex}">
                             <div class="day-label">${day.date}</div>
                             <div class="day-stress">${pct}%</div>
                             <div class="day-type">${dominant || 'Normal'}</div>
                         </div>
                     `;
                 }).join('');
+
+                document.querySelectorAll('.day-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const idx = card.getAttribute('data-idx');
+                        showDayModal(data.forecast[idx]);
+                    });
+                });
             }
         }
+
+        function showDayModal(day) {
+            const raw = day.raw_data && day.raw_data.weather_layer ? day.raw_data.weather_layer : {};
+            document.getElementById('modalDate').textContent = `Forecast: ${day.date}`;
+            document.getElementById('modalDominant').textContent = day.dominant_stress_type ? `Highest Risk: ${day.dominant_stress_type.replace('_', ' ').toUpperCase()}` : 'No Major Stress Detected';
+            
+            document.getElementById('modalTemp').textContent = raw.TMax !== undefined ? `${raw.TMax.toFixed(1)}°C` : '--';
+            document.getElementById('modalPrecip').textContent = raw.Precip !== undefined ? `${raw.Precip.toFixed(1)} mm` : '--';
+            document.getElementById('modalHumidity').textContent = raw.RH_percent !== undefined ? `${raw.RH_percent.toFixed(0)}%` : '--';
+            document.getElementById('modalWind').textContent = raw.Wind_Speed !== undefined ? `${raw.Wind_Speed.toFixed(1)} km/h` : '--';
+
+            const productsSection = document.getElementById('modalProductsSection');
+            const productsList = document.getElementById('modalProductsList');
+            
+            if (day.products && day.products.length > 0) {
+                productsSection.style.display = 'block';
+                productsList.innerHTML = day.products.map(p => `
+                    <div class="product-card" style="margin-bottom:0.75rem; background:#f8fafc; border-color:#e2e8f0; display:flex;">
+                        <div class="product-icon" style="font-size:1.5rem; margin-right:1rem;">🧪</div>
+                        <div class="p-info" style="flex:1;">
+                            <div class="p-name">${p.product_name} <span style="font-size:0.7rem; background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:12px; margin-left:4px;">${p.category}</span></div>
+                            <div class="p-cat" style="font-size:0.8rem; margin-top:2px;"><strong>Active:</strong> ${p.active_ingredient}</div>
+                            <div class="p-detail" style="margin-top:6px;">${p.rationale}</div>
+                            <div style="margin-top:8px; font-size:0.85rem; display:flex; gap:1rem; flex-wrap:wrap;">
+                                <span><strong>Dosage:</strong> ${p.dosage}</span>
+                                <span><strong>Water:</strong> ${p.water_usage}</span>
+                            </div>
+                            <div style="margin-top:6px; font-size:0.85rem; color:#047857; font-weight:500;">
+                                ⏰ <strong>Timing:</strong> ${p.timing_advice}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                productsSection.style.display = 'none';
+            }
+
+            document.getElementById('dayModal').style.display = 'flex';
+        }
     </script>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="dayModal" onclick="if(event.target===this) this.style.display='none'">
+        <div class="modal-content">
+            <button class="modal-close" onclick="document.getElementById('dayModal').style.display='none'">&times;</button>
+            <div class="modal-header">
+                <h2 id="modalDate">Day Details</h2>
+                <div id="modalDominant" style="font-weight:600; color:var(--danger)"></div>
+            </div>
+            
+            <div class="day-detail-grid">
+                <div class="day-detail-card">
+                    <div class="day-detail-label">🌡️ Max Temp</div>
+                    <div class="day-detail-val" id="modalTemp">--</div>
+                </div>
+                <div class="day-detail-card">
+                    <div class="day-detail-label">💧 Precipitation</div>
+                    <div class="day-detail-val" id="modalPrecip">--</div>
+                </div>
+                <div class="day-detail-card">
+                    <div class="day-detail-label">💦 Humidity</div>
+                    <div class="day-detail-val" id="modalHumidity">--</div>
+                </div>
+                <div class="day-detail-card">
+                    <div class="day-detail-label">💨 Wind Speed</div>
+                    <div class="day-detail-val" id="modalWind">--</div>
+                </div>
+            </div>
+
+            <div class="modal-section" id="modalProductsSection" style="display:none;">
+                <h3 style="margin-bottom: 1rem;">🛡️ Syngenta Product Interventions</h3>
+                <div id="modalProductsList"></div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
