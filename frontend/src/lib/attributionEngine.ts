@@ -166,7 +166,9 @@ export function calculateYieldAttribution(
   temperatureC: number,
   soilMoisturePct: number,
   fieldAreaAcres: number,
-  treatmentCostPerAc: number = 600
+  treatmentCostPerAc: number = 1280,
+  explicitNightTemp: number | null = null,
+  explicitDayMaxTemp: number | null = null
 ): YieldDecompositionResult {
   const normKey = (cropType || "soybean").toLowerCase();
   let cropInfo = CROP_THRESHOLDS_DB["soybean"];
@@ -178,9 +180,9 @@ export function calculateYieldAttribution(
     }
   }
 
-  // Estimate daytime max & nighttime min from average telemetry temperature
-  const estimatedTmax = temperatureC + 4.5;
-  const estimatedTmin = temperatureC - 2.5;
+  // Derive daytime max & nighttime min from explicit inputs or weather estimate
+  const estimatedTmax = explicitDayMaxTemp != null ? explicitDayMaxTemp : (temperatureC + 4.5);
+  const estimatedTmin = explicitNightTemp != null ? explicitNightTemp : (temperatureC - 2.5);
 
   // 1. Calculate Exact Indices using Syngenta Algorithm Formulas
   const hsiDay = calcDaytimeHeatStress(estimatedTmax, cropInfo);
@@ -202,13 +204,14 @@ export function calculateYieldAttribution(
   const soilMoistureDeltaQAc = Math.round(moistureDiff * 0.005 * 100) / 100;
 
   // 5. Management Baseline Delta
-  const managementDeltaQAc = 0.20;
+  const managementDeltaQAc = Math.round(cropInfo.baselineYieldQAc * 0.02 * 100) / 100;
 
   // 6. Biological Intervention Protection Gain (Syngenta Stress Buster)
-  // Bio-Efficacy mitigates thermal loss + provides baseline cellular nutrient stimulus
+  // Bio-Efficacy mitigates thermal loss + provides 4% cellular nutrient stimulus
+  const baselineStimulus = cropInfo.baselineYieldQAc * 0.04;
   const biologicalGainQAc = heatStressActive
-    ? Math.round((Math.abs(thermalDeltaQAc) * cropInfo.bioEfficacyEta + 0.35) * 100) / 100
-    : 0.45;
+    ? Math.round((Math.abs(thermalDeltaQAc) * cropInfo.bioEfficacyEta + baselineStimulus) * 100) / 100
+    : Math.round(baselineStimulus * 100) / 100;
 
   // 7. Final Harvest Yield
   const finalYieldQAc = Math.round(
@@ -222,10 +225,10 @@ export function calculateYieldAttribution(
 
   // 8. Financial ROBI Index Calculation
   const grossBioRevenuePerAc = biologicalGainQAc * cropInfo.pricePerQuintal;
-  const netProfitPerAc = Math.round(grossBioRevenuePerAc - treatmentCostPerAc);
+  const netProfitPerAc = Math.max(0, Math.round(grossBioRevenuePerAc - treatmentCostPerAc));
   const robiPercent = treatmentCostPerAc > 0
     ? Math.round((grossBioRevenuePerAc / treatmentCostPerAc) * 100)
-    : 245;
+    : 215;
   const totalFieldProfit = Math.round(netProfitPerAc * fieldAreaAcres);
 
   // 9. Weather Telemetry Modulated Confidence Score
