@@ -166,7 +166,8 @@ async def fetch_weather_daily(
 
     if variables is None:
         variables = ["temp_max", "temp_min", "temp_mean", "precipitation",
-                     "soil_moisture", "evapotranspiration"]
+                     "soil_moisture", "evapotranspiration", "humidity",
+                     "wind_speed"]
 
     # Cache key
     cache_key = f"mb_{lat:.4f}_{lon:.4f}_{start_date}_{end_date}_{domain}_{','.join(variables)}"
@@ -255,6 +256,8 @@ def _normalize_response(raw: Any, lat: float, lon: float, source: str) -> Dict[s
                     "rainfall": 0.0,
                     "soil_moisture": 0.35,
                     "evapotranspiration": 3.5,
+                    "humidity": 65.0,
+                    "wind_speed": 2.5,
                 }
 
                 for code_obj in codes:
@@ -278,9 +281,14 @@ def _normalize_response(raw: Any, lat: float, lon: float, source: str) -> Dict[s
                                 rec["soil_moisture"] = round(val, 3)
                             elif code_id == 261:
                                 rec["evapotranspiration"] = round(val, 1)
+                            elif code_id == 52:
+                                rec["humidity"] = round(val, 1)
+                            elif code_id == 32:
+                                rec["wind_speed"] = round(val, 1)
 
                 daily_records.append(rec)
 
+            _add_rain_forecast(daily_records)
             result["records"] = daily_records
             return result
 
@@ -291,6 +299,26 @@ def _normalize_response(raw: Any, lat: float, lon: float, source: str) -> Dict[s
     except Exception as e:
         logger.error(f"Error normalizing Meteoblue response: {e}")
         return _get_demo_weather(lat, lon, date.today() - timedelta(days=7), date.today())
+
+
+def _add_rain_forecast(records: List[Dict[str, Any]]) -> None:
+    """
+    Enrich each record with a ``rain_forecast`` boolean.
+
+    Logic: For a given day, ``rain_forecast`` is True if ANY of the
+    next 2–3 days (i.e. day+1, day+2, day+3) have rainfall > 1 mm.
+    For the last few days where a full look-ahead is impossible, we
+    use whatever future days are available.
+    """
+    n = len(records)
+    for i in range(n):
+        future_rain = False
+        # Look ahead up to 3 days
+        for j in range(i + 1, min(i + 4, n)):
+            if records[j].get("rainfall", 0.0) > 1.0:
+                future_rain = True
+                break
+        records[i]["rain_forecast"] = future_rain
 
 
 def _get_demo_weather(
@@ -342,6 +370,8 @@ def _get_demo_weather(
         })
         current += timedelta(days=1)
         day_num += 1
+
+    _add_rain_forecast(records)
 
     return {
         "source": "demo",

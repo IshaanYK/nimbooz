@@ -1,0 +1,12 @@
+{
+  "stress_buster": {
+    "targets": ["heat", "drought"],
+    "ideal_stage": ["mid", "late"],
+    "rain_sensitivity": "high"
+  },
+  "yield_booster": {
+    "targets": ["growth"],
+    "ideal_stage": ["early", "mid"],
+    "rain_sensitivity": "low"
+  }
+}
