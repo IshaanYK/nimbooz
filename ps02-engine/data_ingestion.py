@@ -54,7 +54,7 @@ class MeteoblueClient:
         url = f"{self.PACKAGES_URL}?lat={lat}&lon={lon}&apikey={self.api_key}&format=json"
         try:
             print("    [Meteoblue] Trying Packages API (GET)...")
-            response = requests.get(url, timeout=15)
+            response = requests.get(url, timeout=2)
             response.raise_for_status()
             data = response.json()
             print(f"    [Meteoblue] ✅ Live forecast received! Status: {response.status_code}")
@@ -106,7 +106,7 @@ class MeteoblueClient:
 
         try:
             print("    [Meteoblue] Trying Dataset API (POST)...")
-            response = requests.post(url, json=payload, timeout=15)
+            response = requests.post(url, json=payload, timeout=2)
             response.raise_for_status()
             data = response.json()
             print(f"    [Meteoblue] ✅ Live dataset received! Status: {response.status_code}")
@@ -255,7 +255,7 @@ class CEHubClient:
         
         try:
             print(f"    [CE Hub] Trying /api/Forecast/ShortRangeForecastDaily...")
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=2)
             if response.status_code == 200:
                 print(f"    [CE Hub] ✅ Live data received!")
                 return self._parse_cehub_response(response.json())
