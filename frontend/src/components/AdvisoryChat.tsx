@@ -342,7 +342,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                   <span className="h-5 w-1 bg-amber-300 animate-bounce delay-75"></span>
                   <span className="h-4 w-1 bg-white animate-bounce delay-150"></span>
                 </div>
-                <span className="font-bold text-white">SPEAKING ({chirpVoice})...</span>
+                <span className="font-bold text-white">SPEAKING ({langName} Neural Voice)...</span>
               </>
             )}
           </div>
