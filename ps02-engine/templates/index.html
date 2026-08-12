@@ -598,9 +598,9 @@
             document.getElementById('modalDominant').textContent = day.dominant_stress_type ? `Highest Risk: ${day.dominant_stress_type.replace('_', ' ').toUpperCase()}` : 'No Major Stress Detected';
             
             document.getElementById('modalTemp').textContent = raw.TMax !== undefined ? `${raw.TMax.toFixed(1)}°C` : '--';
-            document.getElementById('modalPrecip').textContent = raw.Precip !== undefined ? `${raw.Precip.toFixed(1)} mm` : '--';
+            document.getElementById('modalPrecip').textContent = raw.Precipitation_mm !== undefined ? `${raw.Precipitation_mm.toFixed(1)} mm` : '--';
             document.getElementById('modalHumidity').textContent = raw.RH_percent !== undefined ? `${raw.RH_percent.toFixed(0)}%` : '--';
-            document.getElementById('modalWind').textContent = raw.Wind_Speed !== undefined ? `${raw.Wind_Speed.toFixed(1)} km/h` : '--';
+            document.getElementById('modalWind').textContent = raw.Wind_kmh !== undefined ? `${raw.Wind_kmh.toFixed(1)} km/h` : '--';
 
             const productsSection = document.getElementById('modalProductsSection');
             const productsList = document.getElementById('modalProductsList');
