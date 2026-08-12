@@ -36,6 +36,7 @@ async function fetchMeteoblue(lat: number, lon: number): Promise<{
     soil_moisture: number;
   }>;
   is_demo: boolean;
+  source?: string;
 }> {
   const apiKey = process.env.METEOBLUE_API_KEY;
   if (!apiKey) {
