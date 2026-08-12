@@ -15,7 +15,7 @@ import {
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [profile, setProfile] = useState(getStoredProfile());
@@ -67,7 +67,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 }`}
               >
                 <MapPin className="h-4 w-4 text-[#10B981]" />
-                <span>{language === "hi" ? "मेरा खेत व नक्शा" : "My Farm"}</span>
+                <span>{t.navDashboard}</span>
               </Link>
 
               <Link
@@ -79,7 +79,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 }`}
               >
                 <Globe className="h-4 w-4 text-sky-500" />
-                <span>{language === "hi" ? "मौसम व टेलीमेट्री" : "Weather & Radar"}</span>
+                <span>{t.navWeather}</span>
               </Link>
 
               <Link
@@ -91,7 +91,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 }`}
               >
                 <Mic className="h-4 w-4 text-amber-500" />
-                <span>{language === "hi" ? "आसरा से पूछें" : "Ask AASRA AI"}</span>
+                <span>{t.navAdvisory}</span>
               </Link>
 
               <Link
@@ -103,7 +103,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 }`}
               >
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <span>{language === "hi" ? "कमाई व बचत" : "Income & Savings"}</span>
+                <span>{t.navRobi}</span>
               </Link>
 
               <Link
@@ -115,7 +115,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 }`}
               >
                 <Sliders className="h-4 w-4 text-blue-600" />
-                <span>{language === "hi" ? "परिणाम सिमुलेटर" : "What-If Simulator"}</span>
+                <span>{t.navWhatIf}</span>
               </Link>
 
             </nav>
@@ -212,13 +212,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   href="/login"
                   className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-[#10B981] hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
                 >
-                  {language === "hi" ? "लॉग इन" : "Login"}
+                  {t.navLogin}
                 </Link>
                 <Link
                   href="/signup"
                   className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#10B981] hover:bg-emerald-600 shadow-xs transition-all cursor-pointer"
                 >
-                  {language === "hi" ? "शुरू करें" : "Get Started"}
+                  {t.navGetStarted}
                 </Link>
               </div>
             )}
@@ -244,7 +244,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
               >
                 <LayoutDashboard className="h-4 w-4 text-[#10B981]" />
-                <span>{language === "hi" ? "ओवरवॉच डैशबोर्ड" : "Dashboard Overview"}</span>
+                <span>{t.navDashboard}</span>
               </Link>
               <Link
                 href="/fields"
@@ -252,7 +252,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
               >
                 <MapPin className="h-4 w-4 text-[#10B981]" />
-                <span>{language === "hi" ? "मेरा खेत व नक्शा" : "My Farm & Map"}</span>
+                <span>{t.mapTitle}</span>
               </Link>
               <Link
                 href="/weather"
@@ -260,7 +260,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
               >
                 <Globe className="h-4 w-4 text-sky-500" />
-                <span>{language === "hi" ? "मौसम व टेलीमेट्री" : "Weather Telemetry"}</span>
+                <span>{t.navWeather}</span>
               </Link>
               <Link
                 href="/assistant"
@@ -268,7 +268,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
               >
                 <Mic className="h-4 w-4 text-amber-500" />
-                <span>{language === "hi" ? "आसरा से पूछें" : "Ask AASRA Voice & Leaf AI"}</span>
+                <span>{t.navAdvisory}</span>
               </Link>
               <Link
                 href="/impact"
@@ -276,7 +276,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
               >
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <span>{language === "hi" ? "कमाई व बचत" : "ROBI Yield & Savings"}</span>
+                <span>{t.navRobi}</span>
               </Link>
               <Link
                 href="/what-if"
@@ -284,7 +284,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
               >
                 <Sliders className="h-4 w-4 text-blue-600" />
-                <span>{language === "hi" ? "परिणाम सिमुलेटर" : "What-If Simulator"}</span>
+                <span>{t.navWhatIf}</span>
               </Link>
               <Link
                 href="/journal"
@@ -292,7 +292,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800 transition-colors"
               >
                 <BookOpen className="h-4 w-4 text-purple-600" />
-                <span>{language === "hi" ? "हस्तक्षेप डायरी" : "Intervention Journal"}</span>
+                <span>{t.navJournal}</span>
               </Link>
             </div>
             {!loggedIn && (
@@ -302,14 +302,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 border border-slate-200"
                 >
-                  {language === "hi" ? "लॉग इन" : "Login"}
+                  {t.navLogin}
                 </Link>
                 <Link
                   href="/signup"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-white bg-[#10B981] hover:bg-emerald-600 shadow-xs"
                 >
-                  {language === "hi" ? "शुरू करें" : "Get Started"}
+                  {t.navGetStarted}
                 </Link>
               </div>
             )}
