@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request
 from data_ingestion import DataIngestionEngine
 from plant_categorization import PlantCategorizationMatrix
 from ensemble_model import HybridEnsembleModel
+import product_matrix
 from alert_engine import GeminiAlertEngine
 from product_matrix import get_recommendations_for_day
 
@@ -38,6 +39,11 @@ def run_pipeline():
     
     crop_type = data.get('crop_type', 'soybean')
     region_key = data.get('region', 'punjab')
+    
+    # PS-03 Contextual Inputs
+    growth_stage = data.get('growth_stage', 'Vegetative')
+    symptoms = data.get('symptoms', 'None')
+    soil_moisture = data.get('soil_moisture', 'Optimal')
     
     # 1. Get region info and coordinates
     region_info = categorization.get_region_info(region_key)
@@ -97,12 +103,18 @@ def run_pipeline():
         crop_profile, region_info, analysis_results, product_recommendations
     )
     
+    # 7. PS-03 CropFit Recommendation
+    cropfit_rec = product_matrix.get_cropfit_recommendation(
+        crop_type, growth_stage, symptoms, soil_moisture, region_key
+    )
+    
     return jsonify({
         "data_source": ingestion.data_source,
         "region": region_info,
         "crop_profile": crop_profile,
         "forecast": analysis_results,
         "alert": alert,
+        "cropfit": cropfit_rec,
         "has_critical_alert": has_critical_alert,
         "product_recommendations": [
             {"day": day_idx, "products": recs} 

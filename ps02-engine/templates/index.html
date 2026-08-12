@@ -353,6 +353,37 @@
                         </select>
                     </div>
 
+                    <div style="margin: 1rem 0; border-top: 1px solid var(--border); padding-top: 1rem;">
+                        <h3 style="font-size:0.95rem; margin-bottom:0.8rem;">🌱 Field Context (CropFit)</h3>
+                        <div class="form-group">
+                            <label>Growth Stage</label>
+                            <select id="growth_stage">
+                                <option value="Seedling">Seedling</option>
+                                <option value="Vegetative">Vegetative</option>
+                                <option value="Flowering">Flowering</option>
+                                <option value="Fruiting">Fruiting</option>
+                                <option value="Maturity">Maturity</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Observed Symptoms</label>
+                            <select id="symptoms">
+                                <option value="None">None (Healthy)</option>
+                                <option value="Wilting">Wilting / Drying</option>
+                                <option value="Yellowing/Chlorosis">Yellowing / Chlorosis</option>
+                                <option value="Stunting">Stunting / Slow Growth</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Soil Moisture</label>
+                            <select id="soil_moisture">
+                                <option value="Optimal">Optimal</option>
+                                <option value="Dry">Dry / Cracked</option>
+                                <option value="Waterlogged">Waterlogged / Muddy</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <button class="btn-primary" id="runBtn" onclick="runPipeline()">
                         ▶ Run 14-Day Analysis
                     </button>
@@ -461,7 +492,10 @@
 
             const payload = {
                 region: document.getElementById('region').value,
-                crop_type: document.getElementById('crop_type').value
+                crop_type: document.getElementById('crop_type').value,
+                growth_stage: document.getElementById('growth_stage').value,
+                symptoms: document.getElementById('symptoms').value,
+                soil_moisture: document.getElementById('soil_moisture').value
             };
 
             try {
@@ -498,6 +532,41 @@
                 badge.innerHTML = '<span class="badge live">🟢 LIVE DATA — Meteoblue + CE Hub APIs</span>';
             } else {
                 badge.innerHTML = '<span class="badge mock">🟡 MOCK DATA — Simulated forecast</span>';
+            }
+
+            // CropFit Immediate Recommendation
+            const cropfitDiv = document.getElementById('cropfitCard');
+            if (!cropfitDiv) {
+                const newDiv = document.createElement('div');
+                newDiv.id = 'cropfitCard';
+                newDiv.style.display = 'none';
+                newDiv.style.marginBottom = '1.5rem';
+                document.getElementById('alertCard').parentNode.insertBefore(newDiv, document.getElementById('alertCard'));
+            }
+            const cfDiv = document.getElementById('cropfitCard');
+            
+            if (data.cropfit && data.cropfit.product) {
+                cfDiv.style.display = 'block';
+                cfDiv.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 8px; padding: 1rem; border: 1px solid #bbf7d0;">
+                        <h3 style="color:#166534; margin-bottom: 0.5rem; display:flex; align-items:center; justify-content:space-between;">
+                            <span>🌱 CropFit Immediate Action</span>
+                            <span style="font-size:0.8rem; background:#22c55e; color:white; padding:2px 6px; border-radius:12px;">Confidence: ${data.cropfit.confidence}%</span>
+                        </h3>
+                        <p style="font-size:0.9rem; color:#15803d; margin-bottom: 0.75rem;">${data.cropfit.rationale}</p>
+                        
+                        <div style="background: white; padding: 0.75rem; border-radius: 6px; border: 1px solid #e2e8f0; display:flex; gap: 1rem;">
+                            <div style="font-size: 2rem;">🧪</div>
+                            <div>
+                                <div style="font-weight: 700; color: #1e293b;">${data.cropfit.product.product_name}</div>
+                                <div style="font-size: 0.8rem; color: #64748b;">${data.cropfit.product.active_ingredient}</div>
+                                <div style="font-size: 0.85rem; margin-top: 0.3rem;"><strong>Dosage:</strong> ${data.cropfit.product.dosage}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                cfDiv.style.display = 'none';
             }
 
             // Alert Card
