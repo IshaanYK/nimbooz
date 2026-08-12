@@ -66,7 +66,7 @@ export default function AssistantPage() {
                   <Thermometer className="h-4 w-4 text-rose-500" />
                   Live Field Telemetry
                 </h3>
-                <button onClick={refetch} className="p-1 hover:bg-slate-100 rounded-lg cursor-pointer">
+                <button onClick={() => refetch(true)} className="p-1 hover:bg-slate-100 rounded-lg cursor-pointer">
                   <RefreshCw className="h-3.5 w-3.5 text-slate-500" />
                 </button>
               </div>

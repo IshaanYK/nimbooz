@@ -2,8 +2,7 @@
 
 /**
  * AASRA Real-Time Weather & Predictive Intelligence Context
- * Integrates location, date/time, temperature, and live Open-Meteo precipitation telemetry.
- * Predicts rain status, night heat stress, and biostimulant spray windows.
+ * Respects user GPS permission settings to prevent repeated pop-up prompts.
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
@@ -35,7 +34,7 @@ export interface WeatherData {
 
 interface WeatherContextType {
   weather: WeatherData;
-  refetch: () => void;
+  refetch: (forceGps?: boolean) => void;
 }
 
 const WMO_DESCRIPTIONS: Record<number, { desc: string; emoji: string }> = {
@@ -134,7 +133,6 @@ export function predictWeatherCondition(
   const isRainingNow = precip > 0.1 || rainCodes.includes(code);
 
   const now = new Date();
-  const currentHour = now.getHours();
   const dateStr = now.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
   let predictionText = "";
@@ -164,17 +162,14 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const fetchWeather = useCallback(async (lat: number, lon: number) => {
     try {
-      // Reverse geocode location dynamically
       const geo = await reverseGeocode(lat, lon);
 
-      // Open-Meteo free API — no key needed, globally available
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m&timezone=auto&forecast_days=1`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("Open-Meteo fetch failed");
       const data = await res.json();
       const c = data.current;
 
-      // Calculate night heat stress (night temp proxy = current temp − 1.5°C offset)
       const nightTemp = c.temperature_2m - 1.5;
       const isNightStress = nightTemp > 25.0;
       const stressPercent = isNightStress
@@ -184,7 +179,6 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const soilEst = Math.min(95, Math.max(15, Math.round(c.relative_humidity_2m * 0.55 + c.precipitation * 2)));
       const wmoData = WMO_DESCRIPTIONS[c.weather_code] || { desc: "Clear", emoji: "☀️" };
 
-      // Weather prediction algorithm
       const { isRaining, prediction } = predictWeatherCondition(
         c.temperature_2m,
         c.precipitation,
@@ -222,19 +216,32 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
-  const getLocationAndFetch = useCallback(() => {
+  const getLocationAndFetch = useCallback((forceGps = false) => {
     setWeather((prev) => ({ ...prev, isLoading: true }));
     if (typeof window === "undefined") return;
+
+    const hasDeniedGps = localStorage.getItem("aasra_gps_denied") === "true";
+
+    // If user previously turned off / denied permission and forceGps is false, DO NOT prompt!
+    if (hasDeniedGps && !forceGps) {
+      fetchWeather(DEFAULT_WEATHER.lat, DEFAULT_WEATHER.lon);
+      return;
+    }
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          localStorage.removeItem("aasra_gps_denied");
           fetchWeather(pos.coords.latitude, pos.coords.longitude);
         },
-        () => {
+        (err) => {
+          // Store permission denial in localStorage so browser NEVER asks again automatically
+          if (err.code === 1) {
+            localStorage.setItem("aasra_gps_denied", "true");
+          }
           fetchWeather(DEFAULT_WEATHER.lat, DEFAULT_WEATHER.lon);
         },
-        { timeout: 8000, maximumAge: 300000 }
+        { timeout: 5000, maximumAge: 600000 }
       );
     } else {
       fetchWeather(DEFAULT_WEATHER.lat, DEFAULT_WEATHER.lon);
@@ -243,8 +250,6 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     getLocationAndFetch();
-    const interval = setInterval(getLocationAndFetch, 10 * 60 * 1000);
-    return () => clearInterval(interval);
   }, [getLocationAndFetch]);
 
   return (

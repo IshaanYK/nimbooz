@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { InteractiveWeatherMap } from "@/components/InteractiveWeatherMap";
 import { AdvisoryChat } from "@/components/AdvisoryChat";
 import { DataBadge } from "@/components/DataBadge";
+import { PageHelpModal } from "@/components/PageHelpModal";
 import { FarmerProfile, getStoredProfile } from "@/lib/userStore";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
@@ -52,9 +53,20 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
+            <PageHelpModal
+              pageKey="dashboard"
+              title="How to Use Field Command Center"
+              subtitle="Your central hub for satellite overwatch, live telemetry, and AI voice advisory."
+              steps={[
+                { number: "01", title: "View Satellite Field Boundary", desc: "Inspect your active farm on the Esri satellite map. Tap 'Draw Boundary' to mark custom farm polygons." },
+                { number: "02", title: "Monitor Live Weather Telemetry", desc: "Check real-time air temperature, soil moisture, wind speed, and rain alerts updated via Open-Meteo." },
+                { number: "03", title: "Chat with AASRA AI Assistant", desc: "Tap 'Ask AASRA' or use the right AI panel to get voice advice in 12 Indian languages." },
+              ]}
+            />
+
             <button
               onClick={() => setChatCollapsed((c) => !c)}
-              className="px-5 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
             >
               {chatCollapsed ? <PanelRightOpen className="h-4 w-4" /> : <PanelRightClose className="h-4 w-4" />}
               <span>{chatCollapsed ? "Open AI Assistant" : "Collapse Assistant"}</span>
@@ -65,7 +77,7 @@ export default function DashboardPage() {
         {/* Dual-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column (65% width if chat expanded) */}
+          {/* Left Column */}
           <div className={`space-y-8 transition-all duration-300 ${chatCollapsed ? "lg:col-span-12" : "lg:col-span-7"}`}>
             
             {/* Interactive Satellite Map */}
@@ -136,7 +148,7 @@ export default function DashboardPage() {
                   <Sun className="h-5 w-5 text-amber-500" />
                   Live Open-Meteo Telemetry ({weather.locationName})
                 </h3>
-                <button onClick={refetch} className="p-1 hover:bg-slate-100 rounded-lg transition-colors">
+                <button onClick={() => refetch(true)} className="p-1 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
                   <RefreshCw className="h-4 w-4 text-slate-500" />
                 </button>
               </div>
