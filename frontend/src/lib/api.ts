@@ -28,7 +28,7 @@ export async function sendChatMessage(
   night_temp?: number | null
 ) {
   try {
-    const res = await fetch(`${API_BASE}/chat/`, {
+    const res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, lat, lon, crop, language, location, night_temp }),
@@ -36,9 +36,76 @@ export async function sendChatMessage(
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn("Backend chat API unreachable:", err);
+    console.warn("Backend chat API error:", err);
     return null;
   }
+}
+
+export async function saveFieldToBackend(fieldData: any) {
+  try {
+    const res = await fetch(`${API_BASE}/fields`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fieldData),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Save field backend error:", err);
+    return null;
+  }
+}
+
+export async function fetchFieldsFromBackend() {
+  try {
+    const res = await fetch(`${API_BASE}/fields`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Fetch fields backend error:", err);
+    return null;
+  }
+}
+
+export async function fetchJournalEntries() {
+  try {
+    const res = await fetch(`${API_BASE}/journal`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Fetch journal entries error:", err);
+    return [];
+  }
+}
+
+export async function addJournalEntry(entry: any) {
+  try {
+    const res = await fetch(`${API_BASE}/journal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Add journal entry error:", err);
+    return null;
+  }
+}
+
+export async function fetchApiStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/health`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("Fetch API status error:", err);
+    return { status: "degraded", message: "API server offline or using Vercel serverless fallbacks" };
+  }
+}
+
+export async function checkBackendHealth() {
+  return fetchApiStatus();
 }
 
 export async function transcribeSpeechSaaras(audioBlob: Blob, languageCode: string = "hi-IN") {
@@ -101,103 +168,7 @@ export async function analyzeCropLeafImage(imageFile: File, crop: string = "soyb
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn("Multimodal leaf image scanner API unreachable:", err);
+    console.warn("Analyze crop leaf image error:", err);
     return null;
-  }
-}
-
-
-
-export async function fetchROBICalculation(payload: {
-  crop: string;
-  yield_with_treatment_kg_per_ha: number;
-  yield_without_treatment_kg_per_ha: number;
-  price_per_kg: number;
-  product_cost_per_ha: number;
-  application_cost_per_ha: number;
-  field_area_ha: number;
-}) {
-  try {
-    const res = await fetch(`${API_BASE}/impact/robi`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn("Backend ROBI API unreachable:", err);
-    return null;
-  }
-}
-
-export async function fetchJournalEntries() {
-  try {
-    const res = await fetch(`${API_BASE}/journal/`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn("Backend Journal API unreachable:", err);
-    return null;
-  }
-}
-
-export async function addJournalEntry(payload: any) {
-  try {
-    const res = await fetch(`${API_BASE}/journal/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn("Backend Journal Add API unreachable:", err);
-    return null;
-  }
-}
-
-export async function saveFieldToBackend(field: any) {
-  try {
-    const res = await fetch(`${API_BASE}/fields/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: field.name,
-        lat: field.center?.[0] || 23.2599,
-        lon: field.center?.[1] || 77.4126,
-        area_ha: field.areaHa || 1.7,
-        crop: field.crop,
-        polygon: field.polygon,
-      }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn("Backend field save API unreachable:", err);
-    return null;
-  }
-}
-
-export async function deleteFieldFromBackend(fieldId: string) {
-  try {
-    const res = await fetch(`${API_BASE}/fields/${fieldId}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn("Backend field delete API unreachable:", err);
-    return null;
-  }
-}
-
-export async function checkBackendHealth() {
-  try {
-    const res = await fetch(`${API_BASE}/health`, { cache: "no-store" });
-    if (!res.ok) return false;
-    return await res.json();
-  } catch (err) {
-    return false;
   }
 }
