@@ -81,10 +81,21 @@ class SyngentaProductAdvisor:
         )
 
         # 6. Decision Engine (Recommendation Generation)
-        response = recommend(engine_input)
+        decision_output = recommend(engine_input)
+
+        # 7. Alert Engine (Simple Language Formatter)
+        try:
+            from alert_engine import AlertEngine
+            final_alert = AlertEngine.generate_alert(decision_output)
+        except ImportError:
+            # Fallback if run from backend folder directly without ps02-engine in path
+            sys.path.append(str(Path(__file__).resolve().parent))
+            from alert_engine import AlertEngine
+            final_alert = AlertEngine.generate_alert(decision_output)
 
         return {
             "pipeline_status": "success",
             "fused_inputs": engine_input,
-            "recommendation": response
+            "decision_metrics": decision_output,
+            "farmer_alert": final_alert
         }
