@@ -5,17 +5,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { saveProfile, DEFAULT_DEMO_PROFILE, INDIAN_LANGUAGES, FarmerProfile } from "@/lib/userStore";
+import { saveProfile, EMPTY_FARMER_PROFILE, INDIAN_LANGUAGES, FarmerProfile } from "@/lib/userStore";
+import { saveFieldToBackend } from "@/lib/api";
 import { reverseGeocode } from "@/context/WeatherContext";
 import { User, MapPin, Sprout, Settings, ArrowRight, ArrowLeft, CheckCircle2, Navigation, Mic, Globe } from "lucide-react";
-import { RealFieldMap } from "@/components/RealFieldMap";
 
 export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState<number>(1);
 
   // Form State
-  const [formData, setFormData] = useState<FarmerProfile>({ ...DEFAULT_DEMO_PROFILE, fullName: "" });
+  const [formData, setFormData] = useState<FarmerProfile>({ ...EMPTY_FARMER_PROFILE, fullName: "" });
   const [gpsDetected, setGpsDetected] = useState<boolean>(false);
   const [loadingGps, setLoadingGps] = useState<boolean>(false);
   const [fieldReady, setFieldReady] = useState<boolean>(false);
@@ -28,12 +28,20 @@ export default function SignupPage() {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     saveProfile(formData);
     setFieldReady(true);
+    try {
+      await saveFieldToBackend({
+        name: formData.fieldName || `${formData.fullName}'s Farm`,
+        crop: formData.primaryCrop,
+        areaHa: formData.fieldAreaHa || 2.5,
+        center: [formData.gpsLocation?.lat || 23.2599, formData.gpsLocation?.lon || 77.4126],
+      });
+    } catch (_) {}
     setTimeout(() => {
       router.push("/dashboard");
-    }, 1500);
+    }, 1200);
   };
 
   const detectLocation = () => {

@@ -49,21 +49,21 @@ export const INDIAN_LANGUAGES = [
   { code: "en", name: "English", native: "English" },
 ];
 
-export const DEFAULT_DEMO_PROFILE: FarmerProfile = {
-  fullName: "Rajesh Sharma",
-  mobileNumber: "+91 98765 43210",
+export const EMPTY_FARMER_PROFILE: FarmerProfile = {
+  fullName: "",
+  mobileNumber: "",
   language: "hi",
   state: "Madhya Pradesh",
-  district: "Field Region",
-  village: "Local Plot",
+  district: "",
+  village: "",
   fieldName: "Primary Farm Plot",
-  fieldAreaHa: 4.2,
-  experienceYears: "6–10",
+  fieldAreaHa: 2.5,
+  experienceYears: "5+",
   gpsLocation: { lat: 23.2599, lon: 77.4126 },
   farmerType: "Medium",
-  farmingExperience: "6–10",
+  farmingExperience: "5+",
   primaryCrop: "soybean",
-  fieldAreaAcres: 4.2,
+  fieldAreaAcres: 6.0,
   sowingDate: "2026-06-15",
   cropVariety: "JS-335",
   irrigationType: "Rainfed + Borewell",
@@ -85,21 +85,21 @@ export function isUserLoggedIn(): boolean {
 }
 
 export function getStoredProfile(): FarmerProfile {
-  if (typeof window === "undefined") return DEFAULT_DEMO_PROFILE;
+  if (typeof window === "undefined") return EMPTY_FARMER_PROFILE;
   try {
     const raw = localStorage.getItem("aasra_farmer_profile");
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.fullName === "Ramesh" || parsed.fullName === "Ramesh Patel") {
-        parsed.fullName = "Rajesh Sharma";
-        localStorage.setItem("aasra_farmer_profile", JSON.stringify(parsed));
+      // Delete legacy fallback names
+      if (parsed.fullName === "Ramesh" || parsed.fullName === "Ramesh Patel" || parsed.fullName === "Rajesh Sharma") {
+        parsed.fullName = "";
       }
-      return { ...DEFAULT_DEMO_PROFILE, ...parsed };
+      return { ...EMPTY_FARMER_PROFILE, ...parsed };
     }
   } catch (e) {
     console.error("Failed to read farmer profile from cache", e);
   }
-  return DEFAULT_DEMO_PROFILE;
+  return EMPTY_FARMER_PROFILE;
 }
 
 export function saveProfile(profile: FarmerProfile): void {
