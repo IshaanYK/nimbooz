@@ -5,9 +5,10 @@ export async function GET() {
     status: "ok",
     app: "AASRA",
     version: "1.0.0",
-    demo_mode: false,
-    meteoblue_configured: true,
-    cehub_configured: true,
-    gemini_configured: true,
+    // Accurately report which env vars are configured
+    demo_mode: !process.env.METEOBLUE_API_KEY,
+    meteoblue_configured: !!process.env.METEOBLUE_API_KEY,
+    cehub_configured: !!process.env.CEHUB_API_KEY,
+    gemini_configured: !!process.env.GOOGLE_API_KEY,
   });
 }

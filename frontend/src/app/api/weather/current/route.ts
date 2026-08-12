@@ -85,8 +85,8 @@ async function fetchMeteoblue(lat: number, lon: number): Promise<{
     );
 
     if (!res.ok) {
-      console.warn(`[AASRA] Meteoblue HTTP ${res.status} — falling back to demo`);
-      return { records: getDemoWeatherRecords(), is_demo: true };
+      console.warn(`[AASRA] Meteoblue HTTP ${res.status} — falling back to Open-Meteo live API`);
+      return await fetchOpenMeteo(lat, lon);
     }
 
     const data = await res.json();
@@ -119,10 +119,51 @@ async function fetchMeteoblue(lat: number, lon: number): Promise<{
       soil_moisture: smArr[i] ?? 0.25,
     }));
 
-    return { records, is_demo: false };
+    if (records.length > 0) {
+      return { records, is_demo: false, source: "meteoblue" };
+    }
+    return await fetchOpenMeteo(lat, lon);
   } catch (err) {
-    console.warn("[AASRA] Meteoblue fetch error — using demo:", err);
-    return { records: getDemoWeatherRecords(), is_demo: true };
+    console.warn("[AASRA] Meteoblue fetch error — falling back to Open-Meteo live:", err);
+    return await fetchOpenMeteo(lat, lon);
+  }
+}
+
+// ─── Open-Meteo Live Telemetry Fallback ────────────────────
+async function fetchOpenMeteo(lat: number, lon: number): Promise<{
+  records: Array<{
+    date: string;
+    temperature_max: number;
+    temperature_min: number;
+    temperature_mean: number;
+    rainfall: number;
+    evapotranspiration: number;
+    soil_moisture: number;
+  }>;
+  is_demo: boolean;
+  source?: string;
+}> {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,et0_fao_evapotranspiration,soil_moisture_0_to_7cm_mean&past_days=7&forecast_days=1&timezone=auto`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return { records: getDemoWeatherRecords(), is_demo: true, source: "demo" };
+    const data = await res.json();
+    const daily = data?.daily;
+    if (!daily?.time?.length) return { records: getDemoWeatherRecords(), is_demo: true, source: "demo" };
+
+    const records = daily.time.map((timeStr: string, i: number) => ({
+      date: timeStr,
+      temperature_max: Math.round((daily.temperature_2m_max?.[i] ?? 32) * 10) / 10,
+      temperature_min: Math.round((daily.temperature_2m_min?.[i] ?? 23) * 10) / 10,
+      temperature_mean: Math.round((daily.temperature_2m_mean?.[i] ?? 27.5) * 10) / 10,
+      rainfall: Math.round((daily.precipitation_sum?.[i] ?? 0) * 10) / 10,
+      evapotranspiration: Math.round((daily.et0_fao_evapotranspiration?.[i] ?? 4.2) * 10) / 10,
+      soil_moisture: Math.round((daily.soil_moisture_0_to_7cm_mean?.[i] ?? 0.25) * 100) / 100,
+    }));
+    return { records, is_demo: false, source: "open-meteo" };
+  } catch (err) {
+    console.warn("[AASRA] Open-Meteo fallback error:", err);
+    return { records: getDemoWeatherRecords(), is_demo: true, source: "demo" };
   }
 }
 
@@ -320,9 +361,9 @@ export async function GET(req: NextRequest) {
     crop_label: cropThresholds.name,
     weather: {
       records,
-      location: { lat, lon, domain: isWeatherDemo ? "DEMO" : "NEMSGLOBAL" },
+      location: { lat, lon, domain: isWeatherDemo ? "DEMO" : meteoblueResult.source === "open-meteo" ? "OPEN-METEO" : "NEMSGLOBAL" },
       is_demo: isWeatherDemo,
-      source: isWeatherDemo ? "demo" : "meteoblue",
+      source: meteoblueResult.source || (isWeatherDemo ? "demo" : "meteoblue"),
     },
     latest_conditions: {
       temperature_max: latest.temperature_max,
@@ -339,9 +380,9 @@ export async function GET(req: NextRequest) {
     },
     hydric_stress_latest: hydricData.slice(-3),
     cehub_gdd_latest: gddData.slice(-3),
-    is_demo: isAnyDemo,
+    is_demo: isWeatherDemo && isGddDemo && isHydricDemo,
     data_sources: {
-      meteoblue: isWeatherDemo ? "demo" : "live",
+      weather: meteoblueResult.source || "demo",
       cehub_gdd: isGddDemo ? "demo" : "live",
       cehub_hydric: isHydricDemo ? "demo" : "live",
     },
