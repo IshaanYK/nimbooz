@@ -4,9 +4,9 @@ import React from "react";
 import { AppShell } from "@/components/AppShell";
 import { AdvisoryChat } from "@/components/AdvisoryChat";
 import { DataBadge } from "@/components/DataBadge";
+import { PageHelpModal } from "@/components/PageHelpModal";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
-import { getTranslation } from "@/lib/translations";
 import { getActiveField } from "@/lib/fieldStore";
 import { Mic, Thermometer, RefreshCw, AlertTriangle } from "lucide-react";
 
@@ -35,6 +35,19 @@ export default function AssistantPage() {
             <p className="text-xs sm:text-sm text-slate-600">
               Speak in any Indian language or upload leaf photos for instant Gemini AI diagnosis.
             </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <PageHelpModal
+              pageKey="assistant"
+              title="How to Use Ask AASRA AI"
+              subtitle="Multilingual voice advisory and leaf disease photo scanner."
+              steps={[
+                { number: "01", title: "Select Website Language", desc: "Choose any of 12 Indian languages from top header to switch AI responses, STT, and voice speech." },
+                { number: "02", title: "Tap Microphone or Type Question", desc: "Speak directly in your native dialect or type any query about spray timing, dosage, or pests." },
+                { number: "03", title: "Upload Leaf Photo for Scanner", desc: "Click camera icon to upload crop leaf photo for multimodal disease and heat chlorosis diagnosis." },
+              ]}
+            />
           </div>
         </div>
 

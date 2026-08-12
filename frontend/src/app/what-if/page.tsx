@@ -3,6 +3,7 @@
 import React from "react";
 import { AppShell } from "@/components/AppShell";
 import { WhatIfSimulator } from "@/components/WhatIfSimulator";
+import { PageHelpModal } from "@/components/PageHelpModal";
 import { Sliders } from "lucide-react";
 
 export default function WhatIfPage() {
@@ -28,6 +29,16 @@ export default function WhatIfPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <PageHelpModal
+              pageKey="what_if"
+              title="How to Use What-If Simulator"
+              subtitle="Simulate delay impacts on heat stress recovery and net profit."
+              steps={[
+                { number: "01", title: "Select Your Farm & Crop", desc: "Choose your active field from the dropdown or enter custom temperature/moisture values." },
+                { number: "02", title: "Drag Application Delay Slider", desc: "Move the slider from Day 0 (Today) to Day 3 (+3 Days Delay) to simulate spray delay penalties." },
+                { number: "03", title: "Review Net Profit & Bio-Efficacy", desc: "View how spray delay reduces biostimulant efficacy and alters your net profit per acre." },
+              ]}
+            />
             <span className="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 text-xs font-mono font-bold">
               MODEL 4.2 ONLINE
             </span>
