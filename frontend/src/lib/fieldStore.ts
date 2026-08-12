@@ -1,8 +1,10 @@
 "use client";
 
+import { getStoredProfile } from "./userStore";
+
 /**
  * AASRA Multi-Field Store & Polygon Boundary Engine
- * Allows farmers to create, draw, store, select, pin observations, and manage unlimited field boundary polygons.
+ * Allows farmers to create, draw, store, select, pin observations, and manage field boundary polygons.
  */
 
 export interface FieldPin {
@@ -34,66 +36,51 @@ export interface FieldRecord {
 }
 
 export const CROP_OPTIONS = [
-  { id: "rice", name: "Rice / Paddy (धान)", defaultVariety: "Pusa Basmati 1121", stage: "Flowering / Grain Filling" },
   { id: "soybean", name: "Soybean (सोयाबीन)", defaultVariety: "JS-335", stage: "R2 Flowering" },
+  { id: "rice", name: "Rice / Paddy (धान)", defaultVariety: "Pusa Basmati 1121", stage: "Flowering / Grain Filling" },
   { id: "wheat", name: "Wheat (गेहूं)", defaultVariety: "HD-2967", stage: "Tillering Stage" },
   { id: "cotton", name: "Cotton (कपास)", defaultVariety: "Bt Cotton II", stage: "Square Formation" },
   { id: "sugarcane", name: "Sugarcane (गन्ना)", defaultVariety: "Co-86032", stage: "Grand Growth Phase" },
   { id: "maize", name: "Maize (मक्का)", defaultVariety: "HQPM-1", stage: "Tasseling Stage" },
 ];
 
-export const DEFAULT_SAVED_FIELDS: FieldRecord[] = [
-  {
-    id: "field_a_rice",
-    name: "Field A - Rice / Paddy Plot",
-    crop: "Rice / Paddy",
-    cropVariety: "Pusa Basmati 1121",
-    areaAcres: 5.2,
-    areaHa: 2.1,
-    center: [23.2599, 77.4126],
-    polygon: [
-      [23.2615, 77.4105],
-      [23.2628, 77.4142],
-      [23.2595, 77.4158],
-      [23.2582, 77.4118],
-    ],
-    sowingDate: "2026-06-10",
-    growthStage: "Flowering Phase",
-    soilType: "Clay Loam Soil",
-    irrigationType: "Canal + Submersible",
-    color: "#00A878",
-    healthScore: 92,
-    pins: [
-      { id: "pin_1", lat: 23.2605, lon: 77.4125, note: "Syngenta Stress Buster Applied", category: "spray", date: "2026-08-10" }
-    ]
-  },
-  {
-    id: "field_b_soybean",
-    name: "Field B - Bhopal Soybean Plot",
-    crop: "Soybean",
-    cropVariety: "JS-335",
-    areaAcres: 4.2,
-    areaHa: 1.7,
-    center: [23.2550, 77.4200],
-    polygon: [
-      [23.2570, 77.4180],
-      [23.2580, 77.4220],
-      [23.2540, 77.4230],
-      [23.2530, 77.4190],
-    ],
-    sowingDate: "2026-06-15",
-    growthStage: "R2 Flowering Stage",
-    soilType: "Black Cotton Soil",
-    irrigationType: "Rainfed",
-    color: "#F59E0B",
-    healthScore: 84,
-    pins: []
-  },
-];
-
-const STORAGE_KEY_FIELDS = "aasra_farmer_fields_v2";
-const STORAGE_KEY_ACTIVE_FIELD = "aasra_active_field_id_v2";
+const STORAGE_KEY_FIELDS = "aasra_farmer_fields_v3";
+const STORAGE_KEY_ACTIVE_FIELD = "aasra_active_field_id_v3";
 const STORAGE_KEY_PINS = "aasra_map_pins_v1";
+
+/**
+ * Helper to generate default field for a newly logged in farmer based on their real profile
+ */
+export function getInitialFarmerField(): FieldRecord {
+  const profile = getStoredProfile();
+  const lat = profile.gpsLocation?.lat || 23.2599;
+  const lon = profile.gpsLocation?.lon || 77.4126;
+  const farmerName = profile.fullName.trim() || "My";
+  const fieldName = profile.fieldName || `${farmerName}'s Farm Plot`;
+
+  return {
+    id: `field_user_primary`,
+    name: fieldName,
+    crop: profile.primaryCrop || "Soybean",
+    cropVariety: profile.cropVariety || "JS-335",
+    areaAcres: profile.fieldAreaAcres || 5.0,
+    areaHa: profile.fieldAreaHa || 2.0,
+    center: [lat, lon],
+    polygon: [
+      [lat + 0.002, lon - 0.003],
+      [lat + 0.003, lon + 0.003],
+      [lat - 0.002, lon + 0.004],
+      [lat - 0.003, lon - 0.002],
+    ],
+    sowingDate: profile.sowingDate || "2026-06-15",
+    growthStage: "R2 Flowering Stage",
+    soilType: profile.soilType || "Black Cotton Soil",
+    irrigationType: profile.irrigationType || "Rainfed + Borewell",
+    color: "#10B981",
+    healthScore: 92,
+    pins: [],
+  };
+}
 
 /**
  * Calculate Shoelace spherical polygon area in Acres and Hectares
@@ -118,7 +105,7 @@ export function calculatePolygonAreaAcres(coords: Array<[number, number]>): { ac
  * Get all saved farmer fields
  */
 export function getSavedFields(): FieldRecord[] {
-  if (typeof window === "undefined") return DEFAULT_SAVED_FIELDS;
+  if (typeof window === "undefined") return [getInitialFarmerField()];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_FIELDS);
     if (raw) {
@@ -128,7 +115,7 @@ export function getSavedFields(): FieldRecord[] {
   } catch (e) {
     console.error("Error reading fields from storage:", e);
   }
-  return DEFAULT_SAVED_FIELDS;
+  return [getInitialFarmerField()];
 }
 
 /**
@@ -159,7 +146,7 @@ export function saveFarmerField(field: FieldRecord): FieldRecord[] {
 export function deleteFarmerField(fieldId: string): FieldRecord[] {
   const current = getSavedFields();
   const updated = current.filter((f) => f.id !== fieldId);
-  const fallbackList = updated.length > 0 ? updated : DEFAULT_SAVED_FIELDS;
+  const fallbackList = updated.length > 0 ? updated : [getInitialFarmerField()];
   try {
     localStorage.setItem(STORAGE_KEY_FIELDS, JSON.stringify(fallbackList));
     if (fallbackList.length > 0) {

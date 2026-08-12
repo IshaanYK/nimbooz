@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { DataBadge } from "@/components/DataBadge";
+import { useWeather } from "@/context/WeatherContext";
 import {
   getSavedFields,
   saveFarmerField,
@@ -17,7 +18,7 @@ import {
 } from "@/lib/fieldStore";
 import {
   MapPin, Layers, Sun, Droplets, Wind, AlertTriangle, ShieldCheck, Thermometer,
-  PenTool, Check, X, Sprout, Search, Filter, Eye, Trash2, Calendar, Award, Info, Plus
+  PenTool, Check, X, Sprout, Search, Filter, Eye, Trash2, Calendar, Award, Info, Plus, CloudRain
 } from "lucide-react";
 
 const LeafletMapInner = dynamic(
@@ -26,7 +27,7 @@ const LeafletMapInner = dynamic(
     ssr: false,
     loading: () => (
       <div className="h-full w-full bg-slate-100 flex items-center justify-center text-emerald-700 font-accent text-xs animate-pulse font-bold">
-        🛰️ Loading High-Precision Esri Satellite Map Layers...
+        🛰️ Loading High-Precision Satellite & Telemetry Map Layers...
       </div>
     ),
   }
@@ -47,6 +48,8 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   onLocationSelect,
   onFieldSelected,
 }) => {
+  const { weather } = useWeather();
+
   const [currentLat, setCurrentLat] = useState<number>(lat);
   const [currentLon, setCurrentLon] = useState<number>(lon);
 
@@ -58,8 +61,8 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [cropFilter, setCropFilter] = useState<string>("ALL");
 
-  // Map Active Layer Selector
-  const [activeLayer, setActiveLayer] = useState<string>("satellite");
+  // Map Active Layer Selector (DEFAULT TELEMETRY LAYER AUTO ADDED)
+  const [activeLayer, setActiveLayer] = useState<string>("crop_health");
 
   // Polygon Drawing State
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
@@ -84,7 +87,11 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   useEffect(() => {
     const list = getSavedFields();
     setSavedFields(list);
-    if (list.length > 0) setActiveFieldState(list[0]);
+    if (list.length > 0) {
+      setActiveFieldState(list[0]);
+      setCurrentLat(list[0].center[0]);
+      setCurrentLon(list[0].center[1]);
+    }
     setPinsList(getSavedPins());
   }, []);
 
@@ -114,7 +121,7 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
         },
         (err) => {
           console.warn("Geolocation permission or timeout error:", err);
-          alert("GPS permission denied or unavailable. Centering on default Bhopal field coordinates.");
+          alert("GPS permission unavailable. Please select or click on the map to set your location.");
           setIsLocating(false);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -144,7 +151,7 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   // Finish polygon drawing
   const handleFinishDrawing = () => {
     if (drawnNodes.length < 3) {
-      alert("Please click at least 3 points on map to form a field polygon boundary.");
+      alert("Please tap at least 3 points on map to form a valid farm boundary polygon.");
       return;
     }
     setShowSaveModal(true);
@@ -158,7 +165,7 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
 
     const newFieldObj: FieldRecord = {
       id: `field_${Date.now()}`,
-      name: newFieldName.trim() || `Field ${savedFields.length + 1}`,
+      name: newFieldName.trim() || `My Farm Plot ${savedFields.length + 1}`,
       crop: newCropOption.name,
       cropVariety: newCropOption.defaultVariety,
       areaAcres: acres,
@@ -167,9 +174,9 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
       polygon: drawnNodes,
       sowingDate: new Date().toISOString().split("T")[0],
       growthStage: newCropOption.stage,
-      soilType: "Clay Loam Soil",
-      irrigationType: "Canal + Borewell",
-      color: "#059669",
+      soilType: "Black Cotton Soil",
+      irrigationType: "Rainfed + Borewell",
+      color: "#10B981",
       healthScore: 94,
     };
 
@@ -201,7 +208,6 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
     setActiveField(field.id);
     setCurrentLat(field.center[0]);
     setCurrentLon(field.center[1]);
-    setShowDashboardDrawer(true);
     if (onFieldSelected) onFieldSelected(field);
     if (onLocationSelect) onLocationSelect(field.center[0], field.center[1]);
   };
@@ -224,21 +230,45 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
     setPinNote("");
   };
 
+  const currentDrawnArea = calculatePolygonAreaAcres(drawnNodes);
+
   return (
     <div className="bg-white text-slate-900 rounded-3xl border border-slate-200 p-6 space-y-5 shadow-sm relative font-body overflow-hidden">
+
+      {/* Live Rain & Weather Predictive Banner */}
+      <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 text-xs font-mono font-bold transition-all ${
+        weather.isRaining
+          ? "bg-blue-500/10 border-blue-500/30 text-blue-900 animate-pulse"
+          : "bg-emerald-500/10 border-emerald-500/30 text-emerald-900"
+      }`}>
+        <div className="flex items-center gap-2.5">
+          {weather.isRaining ? (
+            <CloudRain className="h-5 w-5 text-blue-600 animate-bounce shrink-0" />
+          ) : (
+            <Sun className="h-5 w-5 text-amber-500 shrink-0" />
+          )}
+          <div>
+            <span className="block font-black text-sm">{weather.rainPrediction}</span>
+            <span className="text-[11px] font-normal text-slate-600">
+              Location: {weather.locationName} · Temp: {weather.temperature}°C · Soil Moisture: {weather.soilMoistureEst}%
+            </span>
+          </div>
+        </div>
+        <DataBadge type="LIVE_METEOBLUE" />
+      </div>
 
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
-              <MapPin className="h-5 w-5 text-emerald-600" />
-              Precision Satellite Field Telemetry & Interactive Map Module
+              <MapPin className="h-5 w-5 text-[#10B981]" />
+              Precision Satellite Telemetry & Field Polygon Map
             </h3>
-            <DataBadge type="LIVE_CEHUB" customText="OPEN-METEO + ESRI SATELLITE" />
+            <DataBadge type="LIVE_CEHUB" customText="OPEN-METEO TELEMETRY" />
           </div>
           <p className="text-xs text-slate-600 mt-1">
-            Click map to inspect any point, draw boundaries, switch thermal/rain layers, or view field dashboard module.
+            Tap 'Draw Boundary' to mark your exact farm boundary. Satellite telemetry automatically overlays on your field.
           </p>
         </div>
 
@@ -247,11 +277,11 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
           <button
             onClick={handleFetchLiveLocation}
             disabled={isLocating}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-            title="Fetch hardware GPS live location"
+            className="px-4 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            title="Detect live GPS coordinates"
           >
             <MapPin className={`h-4 w-4 text-white ${isLocating ? "animate-spin" : ""}`} />
-            <span>{isLocating ? "Locating GPS..." : "Detect My Live GPS"}</span>
+            <span>{isLocating ? "Locating GPS..." : "Detect Live GPS"}</span>
           </button>
 
           {!isDrawingMode ? (
@@ -262,14 +292,14 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
               }}
               className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer"
             >
-              <PenTool className="h-4 w-4" />
+              <PenTool className="h-4 w-4 text-amber-400" />
               Draw Boundary
             </button>
           ) : (
             <div className="flex items-center gap-2">
               <button
                 onClick={handleFinishDrawing}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
               >
                 <Check className="h-4 w-4" />
                 Save ({drawnNodes.length} pts)
@@ -286,133 +316,78 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
               </button>
             </div>
           )}
-
-          <button
-            onClick={() => setShowDashboardDrawer(true)}
-            className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-xs flex items-center gap-2 cursor-pointer transition-all"
-          >
-            <Eye className="h-4 w-4 text-emerald-600" />
-            Open Field Module
-          </button>
         </div>
       </div>
+
+      {/* Active Drawing Helper Banner */}
+      {isDrawingMode && (
+        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-900 p-3 rounded-2xl text-xs font-mono font-bold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <PenTool className="h-4 w-4 text-amber-600 animate-pulse" />
+            <span>DRAWING ACTIVE: Tap points around your farm on the map. ({drawnNodes.length} points added)</span>
+          </div>
+          {drawnNodes.length >= 3 && (
+            <span className="text-[#10B981] font-black">
+              Area: {currentDrawnArea.acres} Acres ({currentDrawnArea.ha} Ha)
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Layer Selection Controls Bar */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs font-accent">
         <span className="text-slate-500 shrink-0 font-bold">Telemetry Layers:</span>
 
         <button
-          onClick={() => setActiveLayer("satellite")}
+          onClick={() => setActiveLayer("crop_health")}
           className={`px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
-            activeLayer === "satellite" ? "bg-emerald-600 text-white border-emerald-500 font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+            activeLayer === "crop_health" ? "bg-[#10B981] text-white border-[#10B981] font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
           }`}
         >
-          🛰️ Satellite Imagery
+          🌿 Crop Health (NDVI)
         </button>
 
         <button
           onClick={() => setActiveLayer("temp")}
           className={`px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
-            activeLayer === "temp" ? "bg-emerald-600 text-white border-emerald-500 font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+            activeLayer === "temp" ? "bg-[#10B981] text-white border-[#10B981] font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
           }`}
         >
-          🌡️ Thermal Scorch
+          🌡️ Thermal Heat Scorch
         </button>
 
         <button
           onClick={() => setActiveLayer("rain")}
           className={`px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
-            activeLayer === "rain" ? "bg-emerald-600 text-white border-emerald-500 font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+            activeLayer === "rain" ? "bg-[#10B981] text-white border-[#10B981] font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
           }`}
         >
-          🌧️ Rainfall Forecast
+          🌧️ Rainfall & Moisture
         </button>
 
         <button
           onClick={() => setActiveLayer("soil")}
           className={`px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
-            activeLayer === "soil" ? "bg-emerald-600 text-white border-emerald-500 font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+            activeLayer === "soil" ? "bg-[#10B981] text-white border-[#10B981] font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
           }`}
         >
           💧 Soil Moisture Deficit
         </button>
 
         <button
-          onClick={() => setActiveLayer("crop_health")}
+          onClick={() => setActiveLayer("satellite")}
           className={`px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
-            activeLayer === "crop_health" ? "bg-emerald-600 text-white border-emerald-500 font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+            activeLayer === "satellite" ? "bg-[#10B981] text-white border-[#10B981] font-bold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
           }`}
         >
-          🌿 Crop NDVI Health
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveLayer("before_after");
-            setIsAfterCondition(!isAfterCondition);
-          }}
-          className={`px-3.5 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
-            activeLayer === "before_after" ? "bg-emerald-700 text-white border-emerald-600 font-extrabold shadow-sm" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
-          }`}
-        >
-          📈 Before vs After ({isAfterCondition ? "Post-Spray Recovery" : "Pre-Spray Stress"})
+          🛰️ Pure Satellite
         </button>
       </div>
 
-      {/* Multi-Field Portfolio Selector */}
-      <div className="space-y-2 font-accent">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-700">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800">Field Portfolio ({savedFields.length} fields):</span>
-            <input
-              type="text"
-              placeholder="Search field..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-emerald-700 font-bold">Active: {activeField?.name} ({activeField?.crop})</span>
-            {savedFields.length > 1 && (
-              <button
-                onClick={() => handleDeleteField(activeField.id)}
-                className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                title="Delete Current Field"
-              >
-                <Trash2 className="h-3 w-3" /> Delete
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          {filteredFields.map((f) => {
-            const isSel = f.id === activeField?.id;
-            return (
-              <button
-                key={f.id}
-                onClick={() => handleSelectField(f)}
-                className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer ${
-                  isSel
-                    ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
-                    : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
-                }`}
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span>{f.name}</span>
-                <span className="text-[10px] opacity-80">({f.areaAcres} ac)</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Main Map Container */}
-      <div className="h-[440px] w-full rounded-2xl overflow-hidden border border-slate-300 shadow-inner relative">
+      {/* Map Display Container */}
+      <div className="relative w-full h-[450px] sm:h-[500px] rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-slate-900">
         <LeafletMapInner
-          center={activeField?.center || [currentLat, currentLon]}
+          center={[currentLat, currentLon]}
           savedFields={savedFields}
           activeFieldId={activeField?.id}
           isDrawingMode={isDrawingMode}
@@ -422,201 +397,129 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
           onMapClick={handleMapClick}
           onSelectField={handleSelectField}
         />
-
-        {/* Live Weather Overlay Badge */}
-        <div className="absolute top-4 right-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-md space-y-1 text-xs font-accent text-slate-900">
-          <div className="text-[10px] text-emerald-700 font-bold tracking-wider uppercase">Live Open-Meteo Sensor</div>
-          <div className="text-slate-900 font-bold text-sm">Temp: 28.4°C · Rain: 0.0mm</div>
-          <div className="text-emerald-700 font-bold">Soil Moisture Index: 72%</div>
-          <div className="text-amber-600 text-[11px] font-bold">Night Thermal Stress: HIGH (&gt;25°C)</div>
-        </div>
-
-        {/* Field Health Score Overlay Badge */}
-        <div className="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-slate-200 shadow-md flex items-center gap-3 font-accent">
-          <div className="h-10 w-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-base">
-            {activeField?.healthScore || 92}%
-          </div>
-          <div>
-            <div className="text-xs font-bold text-slate-900">Field Health Index</div>
-            <div className="text-[10px] text-emerald-700 font-bold">Thermal Stress Protected</div>
-          </div>
-        </div>
       </div>
 
-      {/* Field Telemetry Module Drawer Modal */}
-      {showDashboardDrawer && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-7 max-w-xl w-full text-slate-900 space-y-5 shadow-2xl font-body relative">
-            <div className="flex justify-between items-start border-b border-slate-100 pb-4">
-              <div>
-                <span className="text-[10px] font-accent font-bold text-emerald-700 uppercase tracking-wider">FIELD TELEMETRY MODULE</span>
-                <h3 className="text-2xl font-extrabold text-slate-900 font-display mt-0.5">{activeField?.name}</h3>
-                <p className="text-xs text-slate-600">{activeField?.crop} ({activeField?.cropVariety || "Standard"}) · {activeField?.areaAcres} Acres ({activeField?.areaHa} Ha)</p>
-              </div>
-              <button onClick={() => setShowDashboardDrawer(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 cursor-pointer">
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs font-accent">
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500 block text-[10px]">SOIL TYPE</span>
-                <span className="font-bold text-slate-900 text-sm">{activeField?.soilType}</span>
-              </div>
-
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                <span className="text-slate-400 block text-[10px]">IRRIGATION SYSTEM</span>
-                <span className="font-bold text-slate-900 text-sm">{activeField?.irrigationType}</span>
-              </div>
-
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500 block text-[10px]">SOWING DATE</span>
-                <span className="font-bold text-emerald-700 text-sm">{activeField?.sowingDate}</span>
-              </div>
-
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500 block text-[10px]">CROP STAGE</span>
-                <span className="font-bold text-emerald-700 text-sm">{activeField?.growthStage}</span>
-              </div>
-            </div>
-
-            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 space-y-2">
-              <h4 className="text-xs font-bold text-emerald-800 flex items-center gap-2 font-accent">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                AI Field Telemetry Analysis
-              </h4>
-              <p className="text-xs text-slate-700 leading-relaxed font-body">
-                Night thermal stress (&gt;25°C) detected during flowering stage. Syngenta Stress Buster protects cellular membranes and prevents pod abortion.
-              </p>
-            </div>
-
-            <div className="flex gap-3 pt-2 font-accent">
-              <button
-                onClick={() => {
-                  handleDeleteField(activeField.id);
-                  setShowDashboardDrawer(false);
-                }}
-                className="py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Trash2 className="h-4 w-4" /> Delete Field
-              </button>
-              <button
-                onClick={() => setShowDashboardDrawer(false)}
-                className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-md"
-              >
-                Close Field Module
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pin Location Observation Modal Module */}
-      {showPinModal && pinLatLng && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full text-slate-900 space-y-4 shadow-2xl font-body relative">
+      {/* Save Boundary Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl space-y-5 animate-fade-in-up">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 font-display flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-emerald-600" />
-                Inspect Coordinates ({pinLatLng[0].toFixed(4)}°, {pinLatLng[1].toFixed(4)}°)
+              <h3 className="text-lg font-extrabold text-slate-900 font-display flex items-center gap-2">
+                <Check className="h-5 w-5 text-[#10B981]" /> Save Drawn Farm Boundary
               </h3>
-              <button onClick={() => setShowPinModal(false)} className="text-slate-400 hover:text-slate-900 cursor-pointer">
+              <button onClick={() => setShowSaveModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs font-accent">
-              <div>
-                <label className="block text-slate-700 mb-1 font-bold">Observation Category:</label>
-                <select
-                  value={pinCategory}
-                  onChange={(e) => setPinCategory(e.target.value as any)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-600"
-                >
-                  <option value="spray">Biological Spray Site</option>
-                  <option value="pest">Pest / Disease Spotting</option>
-                  <option value="water">Soil Water Stress Spotting</option>
-                  <option value="general">General Field Note</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 mb-1 font-bold">Field Note / Detail:</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Syngenta Stress Buster applied on 2.1 acres"
-                  value={pinNote}
-                  onChange={(e) => setPinNote(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-600"
-                />
-              </div>
+            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs font-mono text-emerald-900">
+              <span className="font-bold block">Calculated Field Area:</span>
+              <span className="text-base font-black text-[#10B981]">
+                {currentDrawnArea.acres} Acres ({currentDrawnArea.ha} Hectares)
+              </span>
             </div>
 
-            <div className="flex gap-2 pt-2 font-accent">
-              <button
-                onClick={handleSavePin}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-md"
-              >
-                Save Location Pin
-              </button>
-              <button
-                onClick={() => setShowPinModal(false)}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer border border-slate-200"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Save Drawn Field Modal */}
-      {showSaveModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full text-slate-900 space-y-4 shadow-2xl font-body relative">
-            <h3 className="text-lg font-bold text-slate-900 font-display">Save Drawn Field Polygon</h3>
-            
-            <div className="space-y-3 text-xs font-accent">
+            <div className="space-y-4 text-xs font-bold text-slate-800">
               <div>
-                <label className="block text-slate-700 mb-1 font-bold">Field Name:</label>
+                <label className="block uppercase tracking-wider mb-1">Field / Plot Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. North Plot - Soybean"
                   value={newFieldName}
                   onChange={(e) => setNewFieldName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-600"
+                  placeholder="e.g. North Plot / Primary Soybean Field"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm text-slate-900 focus:border-[#10B981] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1 font-bold">Primary Crop:</label>
+                <label className="block uppercase tracking-wider mb-1">Primary Crop</label>
                 <select
                   value={newCropOption.id}
                   onChange={(e) => {
-                    const found = CROP_OPTIONS.find((c) => c.id === e.target.value);
-                    if (found) setNewCropOption(found);
+                    const opt = CROP_OPTIONS.find((c) => c.id === e.target.value);
+                    if (opt) setNewCropOption(opt);
                   }}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-emerald-600"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm text-slate-900 focus:border-[#10B981] outline-none"
                 >
                   {CROP_OPTIONS.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            <div className="flex gap-2 pt-2 font-accent">
-              <button
-                onClick={handleSaveDrawnField}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-md"
-              >
-                Save Field Polygon
-              </button>
+            <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={() => setShowSaveModal(false)}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer border border-slate-200"
+                className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs cursor-pointer"
               >
                 Cancel
+              </button>
+              <button
+                onClick={handleSaveDrawnField}
+                className="flex-1 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Check className="h-4 w-4" /> Save Field
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pin Observation Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-fade-in-up">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 font-display flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-[#10B981]" /> Add Field Observation Pin
+              </h3>
+              <button onClick={() => setShowPinModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs font-bold text-slate-800">
+              <div>
+                <label className="block uppercase tracking-wider mb-1">Observation Note</label>
+                <input
+                  type="text"
+                  value={pinNote}
+                  onChange={(e) => setPinNote(e.target.value)}
+                  placeholder="e.g. Syngenta Stress Buster applied / Pest spotted"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm text-slate-900 focus:border-[#10B981] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block uppercase tracking-wider mb-1">Category</label>
+                <select
+                  value={pinCategory}
+                  onChange={(e) => setPinCategory(e.target.value as any)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm text-slate-900 focus:border-[#10B981] outline-none"
+                >
+                  <option value="spray">Biostimulant Spray Applied</option>
+                  <option value="water">Irrigation / Soil Moisture</option>
+                  <option value="pest">Pest / Stress Spotted</option>
+                  <option value="general">General Note</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => setShowPinModal(false)}
+                className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePin}
+                className="flex-1 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Check className="h-4 w-4" /> Save Pin
               </button>
             </div>
           </div>
@@ -625,4 +528,4 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
 
     </div>
   );
-}
+};
