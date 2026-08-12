@@ -70,12 +70,39 @@ export interface TranslationDict {
   heatRiskLabel: string;
   recentActionLabel: string;
   growthStageLabel: string;
+  // What-If & Simulation Keys
+  whatIfTitle: string;
+  whatIfSubtitle: string;
+  whatIfBadge: string;
+  dynamicInputsTitle: string;
+  dynamicInputsSub: string;
+  resetToLive: string;
+  activeFarmLabel: string;
+  tempInputLabel: string;
+  soilInputLabel: string;
+  costInputLabel: string;
+  delaySliderLabel: string;
+  applyToday: string;
+  dayDelay: string;
+  expectedYield: string;
+  bioYieldGain: string;
+  netProfitPerAcre: string;
+  robiReturnIndex: string;
+  modelConfidence: string;
+  attributionBreakdownTitle: string;
+  cellularSimTitle: string;
+  cellularSimSub: string;
+  pauseSim: string;
+  playSim: string;
+  speedLabel: string;
+  cellularRespirationLoss: string;
+  yieldRetention: string;
+  bioEfficacy: string;
 }
 
 
 
-export const TRANSLATIONS: Record<string, TranslationDict> = {
-  en: {
+const EN_DICT: TranslationDict = {
     brandName: "AASRA",
     tagline: "Your Field's Most Caring AI Companion",
     navDashboard: "My Field",
@@ -140,8 +167,37 @@ export const TRANSLATIONS: Record<string, TranslationDict> = {
     heatRiskLabel: "3-Day Heat Risk",
     recentActionLabel: "Recent Action",
     growthStageLabel: "Growth Stage",
-  },
+    whatIfTitle: "What-If Spray Delay Simulator",
+    whatIfSubtitle: "Simulate how biostimulant spray delay (0 to 7 days) impacts heat stress risk, yield loss, and net profit.",
+    whatIfBadge: "BIOLOGICAL SCENARIO SIMULATION ENGINE",
+    dynamicInputsTitle: "Dynamic What-If Scenario Inputs",
+    dynamicInputsSub: "Enter custom weather or field values below or use live Open-Meteo telemetry placeholders.",
+    resetToLive: "Reset to Live",
+    activeFarmLabel: "Select Active Farm:",
+    tempInputLabel: "Night / Day Temp (°C):",
+    soilInputLabel: "Soil Moisture Index (%):",
+    costInputLabel: "Biostimulant Cost (₹/ac):",
+    delaySliderLabel: "Application Delay:",
+    applyToday: "APPLY TODAY (Day 0)",
+    dayDelay: "DAY DELAY",
+    expectedYield: "EXPECTED YIELD",
+    bioYieldGain: "BIOLOGICAL YIELD GAIN",
+    netProfitPerAcre: "NET PROFIT / ACRE",
+    robiReturnIndex: "ROBI INDEX RETURN",
+    modelConfidence: "MODEL CONFIDENCE",
+    attributionBreakdownTitle: "Shapley Biophysical Yield Attribution Breakdown",
+    cellularSimTitle: "Abiotic Heat Stress vs Biological Protection Simulation",
+    cellularSimSub: "Real-time animation comparing cellular respiration loss in unmanaged crop vs biostimulant protected crop.",
+    pauseSim: "Pause Simulation",
+    playSim: "Play Simulation",
+    speedLabel: "Speed",
+    cellularRespirationLoss: "Respiration Loss",
+    yieldRetention: "Yield Retention",
+    bioEfficacy: "Bio-Efficacy",
+};
 
+const TRANSLATIONS_PARTIAL: Record<string, Partial<TranslationDict>> = {
+  en: EN_DICT,
   hi: {
     brandName: "आसरा",
     tagline: "आपकी फसल का सबसे स्नेही AI साथी",
@@ -207,6 +263,33 @@ export const TRANSLATIONS: Record<string, TranslationDict> = {
     heatRiskLabel: "3-दिन गर्मी जोखिम",
     recentActionLabel: "हालिया कार्रवाई",
     growthStageLabel: "विकास अवस्था",
+    whatIfTitle: "स्प्रे देरी परिणाम सिमुलेटर",
+    whatIfSubtitle: "देखें कि छिड़काव में 0 से 7 दिन की देरी से आपकी फसल और कमाई पर क्या प्रभाव पड़ता है।",
+    whatIfBadge: "जैविक परिणाम सिमुलेशन इंजन",
+    dynamicInputsTitle: "डायनामिक परिदृश्य इनपुट",
+    dynamicInputsSub: "नीचे अपनी फसल का तापमान या मिट्टी की नमी का मान दर्ज करें।",
+    resetToLive: "लाइव मान रिसेट करें",
+    activeFarmLabel: "सक्रिय खेत चुनें:",
+    tempInputLabel: "रात / दिन तापमान (°C):",
+    soilInputLabel: "मिट्टी नमी सूचकांक (%):",
+    costInputLabel: "जैविक दवा लागत (₹/एकड़):",
+    delaySliderLabel: "छिड़काव में देरी:",
+    applyToday: "आज ही छिड़कें (दिन 0)",
+    dayDelay: "दिन की देरी",
+    expectedYield: "अपेक्षित पैदावार",
+    bioYieldGain: "जैविक उपज लाभ",
+    netProfitPerAcre: "शुद्ध मुनाफा / एकड़",
+    robiReturnIndex: "कमाई अनुपात सूचकांक",
+    modelConfidence: "मॉडल विश्वसनीयता",
+    attributionBreakdownTitle: "शेपली बायोफिजिकल उपज आवंटन विश्लेषण",
+    cellularSimTitle: "गर्मी तनाव बनाम जैविक फसल सुरक्षा सिमुलेशन",
+    cellularSimSub: "बिना सुरक्षा वाली फसल और सिंजेंटा सुरक्षा वाली फसल में तुलनात्मक 2D सिमुलेशन।",
+    pauseSim: "सिमुलेशन रोकें",
+    playSim: "सिमुलेशन चलाएं",
+    speedLabel: "गति",
+    cellularRespirationLoss: "श्वसन चीनी नुकसान",
+    yieldRetention: "उपज सुरक्षा दर",
+    bioEfficacy: "जैविक प्रभावशीलता",
   },
 
   mr: {
@@ -880,6 +963,19 @@ export const TRANSLATIONS: Record<string, TranslationDict> = {
   },
 };
 
+export const TRANSLATIONS: Record<string, TranslationDict> = new Proxy(
+  {},
+  {
+    get: (_, langCode: string) => {
+      const target = TRANSLATIONS_PARTIAL[langCode];
+      if (!target) return EN_DICT;
+      return { ...EN_DICT, ...target };
+    },
+  }
+);
+
 export function getTranslation(langCode: string): TranslationDict {
-  return TRANSLATIONS[langCode] || TRANSLATIONS.en;
+  const target = TRANSLATIONS_PARTIAL[langCode];
+  if (!target) return EN_DICT;
+  return { ...EN_DICT, ...target };
 }

@@ -6,10 +6,13 @@ import { DataBadge } from "./DataBadge";
 import { getSavedFields, getActiveField, setActiveField, FieldRecord } from "@/lib/fieldStore";
 import { calculateYieldAttribution, YieldDecompositionResult } from "@/lib/attributionEngine";
 import { useWeather } from "@/context/WeatherContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { BiologicalSimulationAnimation } from "./BiologicalSimulationAnimation";
 
 export const WhatIfSimulator: React.FC = () => {
   const { weather } = useWeather();
+  const { language, t } = useLanguage();
+
   const [savedFields, setSavedFields] = useState<FieldRecord[]>(getSavedFields());
   const [selectedField, setSelectedFieldState] = useState<FieldRecord>(getActiveField());
 
@@ -59,23 +62,23 @@ export const WhatIfSimulator: React.FC = () => {
     const netProfitAc = Math.max(0, grossReturnAc - costAc);
     const robi = Math.round((grossReturnAc / (costAc || 1)) * 100);
 
-    let windowStatus = "OPTIMAL SPRAY WINDOW OPEN";
+    let windowStatus = t.applyToday;
     let color = "border-[#00A878] bg-[#DDF7EC]";
     let textColor = "text-[#063B2D]";
     let actionMsg = `Applying Syngenta Stress Buster today for ${selectedField.crop} protects ${Math.round(decayFactor * 100)}% of heat-susceptible yield. Net profit: ₹${netProfitAc.toLocaleString('en-IN')}/acre.`;
 
     if (days === 1) {
-      windowStatus = "WINDOW CLOSING (+1 DAY DELAY)";
+      windowStatus = `+1 ${t.dayDelay}`;
       color = "border-amber-400 bg-amber-50/80";
       textColor = "text-amber-900";
       actionMsg = `1-day delay in ${selectedField.crop} spray causes respiration sugar loss. Bio-gain drops to +${bioGain} q/ac.`;
     } else if (days === 2) {
-      windowStatus = "HIGH RISK DELAY (+2 DAYS DELAY)";
+      windowStatus = `+2 ${t.dayDelay}S`;
       color = "border-orange-400 bg-orange-50/80";
       textColor = "text-orange-950";
       actionMsg = `2-day delay causes partial flower abortion in ${selectedField.crop}. Bio-efficacy drops to ${Math.round(decayFactor * 100)}%.`;
     } else if (days >= 3) {
-      windowStatus = "CRITICAL MISSED WINDOW (+3+ DAYS DELAY)";
+      windowStatus = `+3+ ${t.dayDelay}S`;
       color = "border-rose-400 bg-rose-50/80";
       textColor = "text-rose-950";
       actionMsg = `3+ day delay results in severe yield loss in ${selectedField.crop}. Biological product efficacy drops drastically to ${Math.round(decayFactor * 100)}%.`;
@@ -113,10 +116,10 @@ export const WhatIfSimulator: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <Sprout className="h-5 w-5 text-[#20C98A]" />
-              <h3 className="font-extrabold text-base font-display text-white">Dynamic What-If Scenario Inputs</h3>
+              <h3 className="font-extrabold text-base font-display text-white">{t.dynamicInputsTitle}</h3>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              Enter custom weather or field values below or use live Open-Meteo telemetry placeholders.
+              {t.dynamicInputsSub}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -124,7 +127,7 @@ export const WhatIfSimulator: React.FC = () => {
               onClick={resetCustomInputs}
               className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Reset to Live
+              <RotateCcw className="h-3.5 w-3.5" /> {t.resetToLive}
             </button>
             <DataBadge type="MODELLED" customText="SHAPLEY BIOPHYSICAL ENGINE" />
           </div>
@@ -134,7 +137,7 @@ export const WhatIfSimulator: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
           
           <div className="space-y-1">
-            <label className="text-slate-300 block text-[11px]">Select Active Farm:</label>
+            <label className="text-slate-300 block text-[11px]">{t.activeFarmLabel}</label>
             <select
               value={selectedField.id}
               onChange={(e) => handleFieldChange(e.target.value)}
@@ -149,7 +152,7 @@ export const WhatIfSimulator: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-slate-300 block text-[11px]">Night / Day Temp (°C):</label>
+            <label className="text-slate-300 block text-[11px]">{t.tempInputLabel}</label>
             <input
               type="number"
               value={customTempStr}
@@ -160,7 +163,7 @@ export const WhatIfSimulator: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-slate-300 block text-[11px]">Soil Moisture Index (%):</label>
+            <label className="text-slate-300 block text-[11px]">{t.soilInputLabel}</label>
             <input
               type="number"
               value={customSoilStr}
@@ -171,7 +174,7 @@ export const WhatIfSimulator: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-slate-300 block text-[11px]">Biostimulant Cost (₹/ac):</label>
+            <label className="text-slate-300 block text-[11px]">{t.costInputLabel}</label>
             <input
               type="number"
               value={customCostStr}
@@ -204,10 +207,10 @@ export const WhatIfSimulator: React.FC = () => {
         <div className="space-y-4 max-w-2xl mx-auto bg-[#F7F6EF] p-6 rounded-2xl border border-slate-200">
           <div className="flex justify-between items-center text-xs font-mono font-bold text-slate-700 flex-wrap gap-2">
             <span className="flex items-center gap-1.5 text-slate-900 font-sans font-extrabold text-sm">
-              <Clock className="h-4 w-4 text-[#00A878]" /> Application Delay:
+              <Clock className="h-4 w-4 text-[#00A878]" /> {t.delaySliderLabel}
             </span>
             <span className="text-[#00A878] font-black text-sm bg-white px-3 py-1 rounded-full border border-[#00A878]/30 shadow-sm">
-              {delayDays === 0 ? "APPLY TODAY (Day 0)" : `+${delayDays} DAY${delayDays > 1 ? "S" : ""} DELAY`}
+              {delayDays === 0 ? t.applyToday : `+${delayDays} ${t.dayDelay}${delayDays > 1 ? "S" : ""}`}
             </span>
           </div>
 
@@ -232,13 +235,13 @@ export const WhatIfSimulator: React.FC = () => {
         {/* Dynamic Simulation Outcome Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
           <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-1">
-            <span className="text-[11px] text-slate-500 font-mono block">EXPECTED YIELD</span>
+            <span className="text-[11px] text-slate-500 font-mono block">{t.expectedYield}</span>
             <span className="text-3xl font-black text-slate-900 font-mono">{sim.expectedYield} <span className="text-xs text-slate-500 font-normal">q/ac</span></span>
             <span className="text-[10px] text-slate-400 block font-mono">Baseline: {baseAttribution.baselineYieldQAc} q/ac</span>
           </div>
 
           <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-1">
-            <span className="text-[11px] text-slate-500 font-mono block">BIOLOGICAL YIELD GAIN</span>
+            <span className="text-[11px] text-slate-500 font-mono block">{t.bioYieldGain}</span>
             <span className={`text-3xl font-black font-mono ${sim.bioGain > 0.3 ? "text-[#00A878]" : "text-rose-600"}`}>
               +{sim.bioGain} <span className="text-xs font-normal">q/ac</span>
             </span>
@@ -246,13 +249,13 @@ export const WhatIfSimulator: React.FC = () => {
           </div>
 
           <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-1">
-            <span className="text-[11px] text-slate-500 font-mono block">NET PROFIT / ACRE</span>
+            <span className="text-[11px] text-slate-500 font-mono block">{t.netProfitPerAcre}</span>
             <span className="text-3xl font-black font-mono text-[#00A878]">₹{sim.netProfitAc.toLocaleString('en-IN')}</span>
             <span className="text-[10px] text-slate-400 block font-mono">Cost: ₹{activeCost}/acre</span>
           </div>
 
           <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-1">
-            <span className="text-[11px] text-slate-500 font-mono block">ROBI INDEX RETURN</span>
+            <span className="text-[11px] text-slate-500 font-mono block">{t.robiReturnIndex}</span>
             <span className={`text-3xl font-black font-mono ${sim.robi > 100 ? "text-[#00A878]" : "text-rose-600"}`}>{sim.robi}%</span>
             <span className="text-[10px] text-emerald-600 block font-mono">Return on Bio-Investment</span>
           </div>
@@ -277,28 +280,28 @@ export const WhatIfSimulator: React.FC = () => {
         <div className="bg-[#063B2D] text-white p-6 rounded-2xl space-y-4">
           <h4 className="font-extrabold text-sm font-display text-emerald-300 flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-[#20C98A]" />
-            Shapley Biophysical Yield Attribution Breakdown ({selectedField.crop})
+            {t.attributionBreakdownTitle} ({selectedField.crop})
           </h4>
 
           <div className="space-y-2 font-mono text-xs">
             <div className="flex justify-between bg-[#10241F] p-3 rounded-xl border border-white/10">
-              <span className="text-slate-300">Baseline Expected Yield ({selectedField.crop}):</span>
+              <span className="text-slate-300">{t.baselineYield} ({selectedField.crop}):</span>
               <span className="font-bold text-white">{baseAttribution.baselineYieldQAc} q/acre</span>
             </div>
             <div className="flex justify-between bg-white/5 p-2.5 rounded-xl text-slate-300">
-              <span>├── Thermal Stress Impact ({activeTemp}°C):</span>
+              <span>├── {t.heatStressEffect} ({activeTemp}°C):</span>
               <span className="font-bold text-rose-300">{baseAttribution.thermalDeltaQAc} q/acre</span>
             </div>
             <div className="flex justify-between bg-white/5 p-2.5 rounded-xl text-slate-300">
-              <span>├── Soil Moisture Factor ({activeSoil}% Index):</span>
+              <span>├── {t.soilContribution} ({activeSoil}% Index):</span>
               <span className="font-bold text-emerald-300">+{baseAttribution.soilMoistureDeltaQAc} q/acre</span>
             </div>
             <div className="flex justify-between bg-white/5 p-2.5 rounded-xl text-slate-300">
-              <span>├── Field Management Baseline:</span>
+              <span>├── {t.fieldManagement}:</span>
               <span className="font-bold text-emerald-300">+{baseAttribution.managementDeltaQAc} q/acre</span>
             </div>
             <div className="flex justify-between bg-[#00A878]/30 p-3 rounded-xl border border-[#20C98A]/40 text-[#20C98A] font-bold">
-              <span>└── Modelled Syngenta Bio-Gain (Day {delayDays} Delay):</span>
+              <span>└── {t.biologicalSprayEffect} (Day {delayDays} Delay):</span>
               <span className="text-amber-300">+{sim.bioGain} q/acre</span>
             </div>
           </div>

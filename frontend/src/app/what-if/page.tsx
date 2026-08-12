@@ -4,9 +4,12 @@ import React from "react";
 import { AppShell } from "@/components/AppShell";
 import { WhatIfSimulator } from "@/components/WhatIfSimulator";
 import { PageHelpModal } from "@/components/PageHelpModal";
+import { useLanguage } from "@/context/LanguageContext";
 import { Sliders } from "lucide-react";
 
 export default function WhatIfPage() {
+  const { t } = useLanguage();
+
   return (
     <AppShell>
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8 font-sans">
@@ -16,15 +19,15 @@ export default function WhatIfPage() {
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="text-xs font-mono font-bold text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                BIOLOGICAL SCENARIO SIMULATION ENGINE
+                {t.whatIfBadge}
               </span>
             </div>
             <h1 className="text-3xl font-black font-display text-slate-900 mt-1 flex items-center gap-2">
               <Sliders className="h-7 w-7 text-blue-600" />
-              What-If Spray Delay Simulator
+              {t.whatIfTitle}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600">
-              Simulate how biostimulant spray delay (0 to 7 days) impacts heat stress risk, yield loss, and net profit.
+              {t.whatIfSubtitle}
             </p>
           </div>
 

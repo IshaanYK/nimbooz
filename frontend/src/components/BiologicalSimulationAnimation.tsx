@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Play, Pause, RotateCcw, Sparkles, ShieldCheck, AlertTriangle, Zap, Sliders, Activity, Flame, Droplets, Leaf } from "lucide-react";
 import { DataBadge } from "./DataBadge";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface BiologicalSimulationAnimationProps {
   crop?: string;
@@ -11,6 +12,7 @@ interface BiologicalSimulationAnimationProps {
 export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimationProps> = ({
   crop = "Soybean",
 }) => {
+  const { language, t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Simulation controls state
@@ -130,7 +132,7 @@ export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimati
           ctx.fillText("🔴 UNMANAGED / DELAYED SPRAY", 15, 25);
           ctx.fillStyle = "#7F1D1D";
           ctx.font = "10px Inter, sans-serif";
-          ctx.fillText(`Respiration Loss: ${Math.round(progress * stressFactor * 45)}%`, 15, 42);
+          ctx.fillText(`${t.cellularRespirationLoss}: ${Math.round(progress * stressFactor * 45)}%`, 15, 42);
 
           // -------------------------------------------------------------
           // RIGHT SIDE: MANAGED SCENARIO (Syngenta Stress Buster)
@@ -192,7 +194,7 @@ export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimati
           ctx.fillText("🟢 MANAGED (Syngenta Stress Buster)", midX + 15, 25);
           ctx.fillStyle = "#047857";
           ctx.font = "10px Inter, sans-serif";
-          ctx.fillText(`Yield Retention: 98% · Bio-Efficacy: Active`, midX + 15, 42);
+          ctx.fillText(`${t.yieldRetention}: 98% · ${t.bioEfficacy}: Active`, midX + 15, 42);
 
           // Day Scrubber Banner on Canvas bottom
           ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
@@ -210,7 +212,7 @@ export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimati
 
     animationFrameId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isPlaying, simDay, delayDays, nightTemp, animSpeed]);
+  }, [isPlaying, simDay, delayDays, nightTemp, animSpeed, t]);
 
   // Derived Telemetry Metrics for active frame
   const cellIntegrityLeft = Math.max(38, Math.round(98 - (simDay * 3.8) - (delayDays * 8)));
@@ -230,10 +232,10 @@ export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimati
             <DataBadge type="MODELLED" customText="SHAPLEY BIO-ENGINE 4.2" />
           </div>
           <h3 className="text-xl font-bold font-display text-slate-900">
-            Abiotic Heat Stress vs Biological Protection Simulation
+            {t.cellularSimTitle}
           </h3>
           <p className="text-xs text-slate-600">
-            Real-time animation comparing cellular respiration loss in unmanaged crop vs biostimulant protected crop ({selectedCrop}).
+            {t.cellularSimSub} ({selectedCrop}).
           </p>
         </div>
 
@@ -244,7 +246,7 @@ export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimati
             className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-sm cursor-pointer transition-all"
           >
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            <span>{isPlaying ? "Pause Simulation" : "Play Simulation"}</span>
+            <span>{isPlaying ? t.pauseSim : t.playSim}</span>
           </button>
 
           <button
@@ -260,10 +262,10 @@ export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimati
             onChange={(e) => setAnimSpeed(Number(e.target.value))}
             className="bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
           >
-            <option value={0.5}>0.5x Speed</option>
-            <option value={1}>1.0x Speed</option>
-            <option value={2}>2.0x Speed</option>
-            <option value={4}>4.0x Speed</option>
+            <option value={0.5}>0.5x {t.speedLabel}</option>
+            <option value={1}>1.0x {t.speedLabel}</option>
+            <option value={2}>2.0x {t.speedLabel}</option>
+            <option value={4}>4.0x {t.speedLabel}</option>
           </select>
         </div>
       </div>
@@ -286,7 +288,7 @@ export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimati
           <div className="flex justify-between items-center">
             <label className="font-bold text-slate-800 flex items-center gap-1.5">
               <Sliders className="h-4 w-4 text-emerald-600" />
-              Intervention Delay:
+              {t.delaySliderLabel}:
             </label>
             <span className="font-bold text-emerald-700 bg-white px-2.5 py-0.5 rounded-full border border-emerald-200">
               {delayDays === 0 ? "Day 0 (Optimal)" : `+${delayDays} Days Delay`}
@@ -313,7 +315,7 @@ export const BiologicalSimulationAnimation: React.FC<BiologicalSimulationAnimati
           <div className="flex justify-between items-center">
             <label className="font-bold text-slate-800 flex items-center gap-1.5">
               <Flame className="h-4 w-4 text-rose-500" />
-              Night Temperature:
+              {t.nightTempLabel}:
             </label>
             <span className="font-bold text-rose-600 bg-white px-2.5 py-0.5 rounded-full border border-rose-200">
               {nightTemp}°C ({nightTemp > 25 ? "High Heat Risk" : "Normal"})
