@@ -30,6 +30,7 @@ yarn-debug.log*
 tests/api/responses/
 tests/api/*.json
 test_results/
+test_*.json
 
 # DB
 *.db

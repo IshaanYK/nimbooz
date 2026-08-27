@@ -4,7 +4,7 @@
   "private": true,
   "description": "AASRA — Your field's intelligent companion (PS-04 & PS-07)",
   "scripts": {
-    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"emerald.bold,cyan.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"green.bold,cyan.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000",
     "dev:frontend": "cd frontend && npm run dev",
     "install:all": "npm install && cd frontend && npm install"
