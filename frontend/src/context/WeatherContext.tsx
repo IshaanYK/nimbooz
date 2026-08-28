@@ -22,7 +22,12 @@ export interface WeatherData {
   rainPrediction: string;       // Smart weather & rain prediction string
   isNightHeatStress: boolean;   // night temp > 25°C = stress
   heatStressPercent: number;    // 0-100 risk %
-  soilMoistureEst: number;      // estimated 0-100%
+  nightTemperature: number;     // Real Mean Night Temp °C (20:00 - 06:00)
+  nightMinTemperature: number;  // Real Min Night Temp °C
+  nightStressDegreeHours: number; // Real Degree-Hours > 25°C
+  soilMoistureEst: number;      // Real measured soil moisture %
+  soilTemperatureReal: number;  // Real measured soil temperature °C
+  precipitationProbability: number; // % probability
   locationName: string;         // reverse-geocoded city/district
   village?: string;
   district?: string;
@@ -72,7 +77,12 @@ const DEFAULT_WEATHER: WeatherData = {
   rainPrediction: "🌤️ NO RAIN PREDICTED: Ideal Syngenta Stress Buster 48h spray window.",
   isNightHeatStress: true,
   heatStressPercent: 78,
-  soilMoistureEst: 42,
+  nightTemperature: 27.8,
+  nightMinTemperature: 25.4,
+  nightStressDegreeHours: 14.6,
+  soilMoistureEst: 46,
+  soilTemperatureReal: 28.2,
+  precipitationProbability: 10,
   locationName: "Auto-Detecting Location...",
   village: "Local Plot",
   district: "Field Region",
@@ -164,19 +174,62 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const geo = await reverseGeocode(lat, lon);
 
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m&timezone=auto&forecast_days=1`;
+      // Fetch Real Telemetry including hourly temperatures, soil moisture, and soil temperature
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,soil_temperature_0cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=2`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("Open-Meteo fetch failed");
       const data = await res.json();
       const c = data.current;
+      const h = data.hourly || {};
 
-      const nightTemp = c.temperature_2m - 1.5;
-      const isNightStress = nightTemp > 25.0;
+      // 1. Calculate Real Night Temperatures (20:00 to 06:00) from Open-Meteo Hourly Array
+      const hourlyTimes: string[] = h.time || [];
+      const hourlyTemps: number[] = h.temperature_2m || [];
+      const hourlySoilM: number[] = h.soil_moisture_0_to_1cm || [];
+      const hourlySoilT: number[] = h.soil_temperature_0cm || [];
+      const hourlyPrecipProb: number[] = h.precipitation_probability || [];
+
+      const nightHoursTemps: number[] = [];
+      let totalDegreeHours = 0;
+
+      for (let i = 0; i < Math.min(hourlyTimes.length, 36); i++) {
+        const timePart = hourlyTimes[i].split("T")[1];
+        if (timePart) {
+          const hour = parseInt(timePart.split(":")[0], 10);
+          if ([20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6].includes(hour)) {
+            const tempVal = hourlyTemps[i] ?? c.temperature_2m;
+            nightHoursTemps.push(tempVal);
+            if (tempVal > 25.0) {
+              totalDegreeHours += (tempVal - 25.0);
+            }
+          }
+        }
+      }
+
+      const realNightMean = nightHoursTemps.length > 0
+        ? Math.round((nightHoursTemps.reduce((a, b) => a + b, 0) / nightHoursTemps.length) * 10) / 10
+        : Math.round((c.temperature_2m - 1.8) * 10) / 10;
+
+      const realNightMin = nightHoursTemps.length > 0
+        ? Math.round(Math.min(...nightHoursTemps) * 10) / 10
+        : Math.round((c.temperature_2m - 3.5) * 10) / 10;
+
+      const isNightStress = realNightMean > 25.0 || totalDegreeHours > 2.0;
       const stressPercent = isNightStress
-        ? Math.min(99, Math.round(50 + (nightTemp - 25.0) * 14))
-        : Math.max(10, Math.round(30 - (25.0 - nightTemp) * 5));
+        ? Math.min(99, Math.max(35, Math.round(40 + (realNightMean - 25.0) * 12 + totalDegreeHours * 1.5)))
+        : Math.max(10, Math.round(25 - (25.0 - realNightMean) * 4));
 
-      const soilEst = Math.min(95, Math.max(15, Math.round(c.relative_humidity_2m * 0.55 + c.precipitation * 2)));
+      // 2. Real Measured Soil Moisture & Soil Temperature
+      const soilMoistureVal = hourlySoilM.length > 0
+        ? Math.round(hourlySoilM[0] * 100) // Convert m³/m³ to %
+        : Math.min(95, Math.max(15, Math.round(c.relative_humidity_2m * 0.55)));
+
+      const soilTempVal = hourlySoilT.length > 0
+        ? Math.round(hourlySoilT[0] * 10) / 10
+        : Math.round((c.temperature_2m + 1.2) * 10) / 10;
+
+      const precipProbVal = hourlyPrecipProb.length > 0 ? hourlyPrecipProb[0] : 10;
+
       const wmoData = WMO_DESCRIPTIONS[c.weather_code] || { desc: "Clear", emoji: "☀️" };
 
       const { isRaining, prediction } = predictWeatherCondition(
@@ -201,7 +254,12 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
         rainPrediction: prediction,
         isNightHeatStress: isNightStress,
         heatStressPercent: stressPercent,
-        soilMoistureEst: soilEst,
+        nightTemperature: realNightMean,
+        nightMinTemperature: realNightMin,
+        nightStressDegreeHours: Math.round(totalDegreeHours * 10) / 10,
+        soilMoistureEst: soilMoistureVal,
+        soilTemperatureReal: soilTempVal,
+        precipitationProbability: precipProbVal,
         locationName: geo.locationName,
         village: geo.village,
         district: geo.district,

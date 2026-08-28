@@ -60,7 +60,11 @@ export const WhatIfSimulator: React.FC = () => {
     if (stored.fieldAreaAcres) {
       setFieldArea(stored.fieldAreaAcres);
     }
-  }, []);
+    if (weather.temperature > 0 && !weather.isLoading) {
+      setNightTemp(weather.nightTemperature || weather.temperature);
+      setSoilMoisture(weather.soilMoistureEst);
+    }
+  }, [weather.temperature, weather.nightTemperature, weather.soilMoistureEst, weather.isLoading]);
 
   const handleFieldChange = (fieldId: string) => {
     setActiveField(fieldId);

@@ -7,10 +7,25 @@ import { ROBICalculator } from "@/components/ROBICalculator";
 import { ExportProofCardModal } from "@/components/ExportProofCardModal";
 import { Award, Download, BarChart2, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useWeather } from "@/context/WeatherContext";
+import { getStoredProfile } from "@/lib/userStore";
+import { calculateYieldAttribution } from "@/lib/attributionEngine";
 
 export default function ImpactPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const { t } = useLanguage();
+  const { weather } = useWeather();
+  const profile = getStoredProfile();
+
+  const farmerAcres = profile.fieldAreaAcres || 12.5;
+  const farmerCrop = profile.primaryCrop || "Soybean";
+  const realNightTemp = weather.nightTemperature || weather.temperature || 28.5;
+  const realSoilMoisture = weather.soilMoistureEst || 45;
+
+  const attribution = calculateYieldAttribution(farmerCrop, realNightTemp, realSoilMoisture, farmerAcres);
+  const netGainAcre = Math.round(attribution.biologicalGainQAc * 4600 - 1280);
+  const totalFarmExtraGain = Math.round(netGainAcre * farmerAcres);
+  const robiPercent = Math.round(((attribution.biologicalGainQAc * 4600) / 1280) * 100);
 
   return (
     <AppShell>
@@ -23,13 +38,16 @@ export default function ImpactPage() {
               <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
                 {t.yieldAttributionBadge}
               </span>
+              <span className="text-xs font-mono font-bold text-slate-700 uppercase bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                {profile.fullName || "Ramesh Patel"} · {farmerAcres} Acres ({farmerCrop})
+              </span>
             </div>
             <h1 className="text-3xl font-black font-display text-slate-900 mt-1 flex items-center gap-2">
               <Award className="h-7 w-7 text-emerald-600" />
               {t.robiAttributionTitle}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600">
-              {t.robiAttributionDesc}
+              {t.robiAttributionDesc} (Live telemetry calibrated for {weather.locationName})
             </p>
           </div>
 
@@ -42,13 +60,13 @@ export default function ImpactPage() {
           </button>
         </div>
 
-        {/* Animated Stat Counter Banner */}
+        {/* Dynamically Calibrated Stat Counter Banner */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { value: "215%",       label: t.verifiedNetRobi,   sub: t.returnOnBioInvestment, color: "emerald" },
-            { value: "\u20b92,760", label: t.extraIncomeAcre,   sub: t.vsUntreatedControl,   color: "emerald" },
-            { value: "0.6 q/acre", label: t.yieldUpliftProven, sub: t.synBioVsControl,       color: "blue"    },
-            { value: "75%",        label: t.podRecoveryRate,    sub: t.duringR2HeatEvent,     color: "amber"   },
+            { value: `${robiPercent}%`, label: t.verifiedNetRobi, sub: t.returnOnBioInvestment, color: "emerald" },
+            { value: `₹${totalFarmExtraGain.toLocaleString("en-IN")}`, label: `Total Net Farm Gain (${farmerAcres} Ac)`, sub: `+₹${netGainAcre}/acre vs untreated`, color: "emerald" },
+            { value: `+${attribution.biologicalGainQAc} q/ac`, label: t.yieldUpliftProven, sub: t.synBioVsControl, color: "blue" },
+            { value: "75%", label: t.podRecoveryRate, sub: `At ${realNightTemp}°C Night Temp`, color: "amber" },
           ].map(({ value, label, sub, color }) => (
             <div key={label} className={`stripe-card p-5 space-y-1.5 border-l-4 border-l-${
               color === "emerald" ? "emerald-500" : color === "blue" ? "blue-500" : "amber-500"
