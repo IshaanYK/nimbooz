@@ -6,6 +6,8 @@ import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
 import { DataBadge } from "@/components/DataBadge";
 import { AskActProveSection } from "@/components/AskActProveSection";
+import { KisanActionVerdict } from "@/components/KisanActionVerdict";
+import { MandiPriceTicker } from "@/components/MandiPriceTicker";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
@@ -105,6 +107,12 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* LIVE KISAN ACTION VERDICT & LIVE MANDI TICKER CONTAINER */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          <KisanActionVerdict />
+          <MandiPriceTicker />
+        </div>
 
         {/* ASK ACT PROVE SECTION */}
         <AskActProveSection />

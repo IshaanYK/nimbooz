@@ -8,6 +8,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { getTranslation } from "@/lib/translations";
 import { isUserLoggedIn, getStoredProfile, logoutUser, loginAsDemo, INDIAN_LANGUAGES } from "@/lib/userStore";
 import { Footer } from "@/components/Footer";
+import { HackathonJudgeHUD } from "@/components/HackathonJudgeHUD";
 import {
   Globe, User, LogOut, Menu, X, Sparkles, LayoutDashboard, MapPin, BookOpen, TrendingUp, ChevronDown, Mic, Sliders, Leaf, Settings, Lock, ArrowRight, ShieldCheck, CheckCircle2, Sprout
 } from "lucide-react";
@@ -473,6 +474,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       </main>
 
       <Footer />
+      <HackathonJudgeHUD />
     </div>
   );
 };

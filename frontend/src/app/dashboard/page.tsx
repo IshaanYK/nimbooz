@@ -13,6 +13,8 @@ import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
 import { getActiveField, FieldRecord } from "@/lib/fieldStore";
 import { SyngentaDealerLocator } from "@/components/SyngentaDealerLocator";
+import { KisanActionVerdict } from "@/components/KisanActionVerdict";
+import { MandiPriceTicker } from "@/components/MandiPriceTicker";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
@@ -238,6 +240,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* 🌟 1. Today's Farmer Action Verdict & 1-Tap Voice Briefing */}
+        <KisanActionVerdict />
+
         {/* Dual-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
@@ -411,6 +416,9 @@ export default function DashboardPage() {
               fieldAcres={currentAcres}
               productName="Syngenta Quantis & Stress Buster"
             />
+
+            {/* Daily APMC Mandi Commodity Rates Ticker */}
+            <MandiPriceTicker />
 
           </div>
 
