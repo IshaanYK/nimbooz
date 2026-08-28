@@ -1,15 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { StressMetrics } from "@/components/StressMetrics";
 import { InteractiveWeatherMap } from "@/components/InteractiveWeatherMap";
 import { DataBadge } from "@/components/DataBadge";
+import { useWeather } from "@/context/WeatherContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { getActiveField, FieldRecord } from "@/lib/fieldStore";
 import { CloudSun, Sparkles, RefreshCw, Loader2, AlertCircle } from "lucide-react";
 
 export default function WeatherPage() {
   const [activeField, setActiveField] = useState<FieldRecord | null>(null);
+  const { weather, refetch } = useWeather();
+  const { t } = useLanguage();
   const [weatherData, setWeatherData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,17 +71,17 @@ export default function WeatherPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b border-slate-200 pb-8">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-accent font-bold tracking-wider uppercase">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-600" /> ATMOSPHERIC TELEMETRY NETWORK
+              <Sparkles className="h-3.5 w-3.5 text-emerald-600" /> {t.atmosphericTelemetryBadge}
             </div>
             <h1 className="text-3xl sm:text-5xl font-extrabold font-display text-slate-900 tracking-tight">
-              Micro-Climate <br />
+              {t.microClimateTitle} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-sky-600">
-                Sensors &amp; Stress Analysis.
+                {t.microClimateSubtitle}
               </span>
             </h1>
             {activeField && (
               <p className="text-sm text-slate-600 max-w-xl font-body">
-                Active field:{" "}
+                {t.activeFieldLabel}:{" "}
                 <strong className="text-slate-800">{activeField.name}</strong> ·{" "}
                 <span className="font-mono text-xs">
                   {activeField.crop} · {activeField.center[0].toFixed(4)}°N,{" "}
@@ -103,7 +108,7 @@ export default function WeatherPage() {
               ) : (
                 <RefreshCw className="h-3.5 w-3.5" />
               )}
-              {lastFetched ? `Updated ${lastFetched}` : "Refresh"}
+              {lastFetched ? `Updated ${lastFetched}` : t.refreshLabel}
             </button>
           </div>
         </div>
@@ -119,7 +124,7 @@ export default function WeatherPage() {
                 onClick={handleRefresh}
                 className="mt-3 px-4 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition-colors cursor-pointer"
               >
-                Retry
+                {t.retryLabel}
               </button>
             </div>
           </div>
@@ -231,6 +236,47 @@ export default function WeatherPage() {
             </div>
           </>
         )}
+
+        {/* 14-Day AI Forecast CTA + Data Source Legend */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {/* CTA: Plant Intelligence */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 to-slate-900 p-5 text-white border border-emerald-500/30">
+            <div className="space-y-3 relative z-10">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">PS-02 ENGINE</span>
+              </div>
+              <h3 className="font-black text-white text-sm leading-tight">{t.runForecastCta}</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {t.runForecastDesc}
+              </p>
+              <Link href="/plant-intelligence" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all">
+                <span>{t.launchPlantIntelligence}</span>
+                <span>→</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Data Source Legend */}
+          <div className="stripe-card p-5 space-y-4 rounded-2xl">
+            <h3 className="font-extrabold text-slate-900 text-sm border-b border-slate-100 pb-2">{t.dataSourceArchitecture}</h3>
+            <div className="space-y-2.5 text-xs font-mono">
+              {[
+                { dot: "bg-sky-500",     src: "Meteoblue NEMSGLOBAL",      desc: "Temperature, Precipitation, ET, ERA5 Reanalysis (7km global grid)" },
+                { dot: "bg-emerald-500", src: "Syngenta CE Hub API",       desc: "GDD accumulation, Hydric Stress, Spray/Planting windows, Disease Risk" },
+                { dot: "bg-amber-500",   src: "Open-Meteo (Dashboard)",    desc: "Real-time air temp, soil moisture, wind speed — used in header telemetry" },
+                { dot: "bg-purple-500",  src: "SHAP TreeExplainer (PS-02)",desc: "Feature attribution explaining which sensor drives each stress prediction" },
+              ].map(({ dot, src, desc }) => (
+                <div key={src} className="flex items-start gap-2">
+                  <span className={`mt-1 h-2 w-2 rounded-full ${dot} shrink-0`} />
+                  <div>
+                    <span className="font-bold text-slate-900 block">{src}</span>
+                    <span className="text-[10px] text-slate-500 font-sans">{desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Weather Map */}
         <div className="bg-white p-3 border border-slate-200 rounded-3xl shadow-sm">

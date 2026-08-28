@@ -49,12 +49,40 @@ export const INDIAN_LANGUAGES = [
   { code: "en", name: "English", native: "English" },
 ];
 
+export const DEMO_FARMER_PROFILE: FarmerProfile = {
+  fullName: "Ramesh Patel",
+  mobileNumber: "+91 98260 14890",
+  language: "hi",
+  state: "Madhya Pradesh",
+  district: "Bhopal",
+  village: "Fanda Kalan",
+  fieldName: "Bhopal North Agro Plot",
+  fieldAreaHa: 5.0,
+  fieldAreaAcres: 12.5,
+  areaUnit: "Acres",
+  experienceYears: "14+",
+  gpsLocation: { lat: 23.2599, lon: 77.4126 },
+  farmerType: "Medium Commercial",
+  farmingExperience: "14+",
+  primaryCrop: "soybean",
+  sowingDate: "2026-06-15",
+  cropVariety: "JS-335 (Broadleaf Soybean)",
+  irrigationType: "Drip + Monsoon Rainfed",
+  soilType: "Black Vertisol Deep Clay (High Retentive)",
+  preferredCommunication: "Voice + Text",
+  voiceResponsesEnabled: true,
+  helpTopics: ["Heat Stress", "Spray Timing", "Yield Attribution", "Cost Reduction"],
+  notificationPreference: "High-Priority Weather Alerts",
+  dataConsent: true,
+  isDemoUser: true,
+};
+
 export const EMPTY_FARMER_PROFILE: FarmerProfile = {
   fullName: "",
   mobileNumber: "",
   language: "hi",
   state: "Madhya Pradesh",
-  district: "",
+  district: "Bhopal",
   village: "",
   fieldName: "Primary Farm Plot",
   fieldAreaHa: 2.5,
@@ -85,21 +113,19 @@ export function isUserLoggedIn(): boolean {
 }
 
 export function getStoredProfile(): FarmerProfile {
-  if (typeof window === "undefined") return EMPTY_FARMER_PROFILE;
+  if (typeof window === "undefined") return DEMO_FARMER_PROFILE;
   try {
     const raw = localStorage.getItem("aasra_farmer_profile");
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Delete legacy fallback names
-      if (parsed.fullName === "Ramesh" || parsed.fullName === "Ramesh Patel" || parsed.fullName === "Rajesh Sharma") {
-        parsed.fullName = "";
+      if (parsed.fullName && parsed.fullName.trim().length > 0) {
+        return { ...EMPTY_FARMER_PROFILE, ...parsed };
       }
-      return { ...EMPTY_FARMER_PROFILE, ...parsed };
     }
   } catch (e) {
     console.error("Failed to read farmer profile from cache", e);
   }
-  return EMPTY_FARMER_PROFILE;
+  return DEMO_FARMER_PROFILE;
 }
 
 export function saveProfile(profile: FarmerProfile): void {
@@ -121,6 +147,16 @@ export function loginUser(): void {
   }
 }
 
+export function loginAsDemo(): FarmerProfile {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("aasra_farmer_profile", JSON.stringify(DEMO_FARMER_PROFILE));
+      localStorage.setItem("aasra_is_logged_in", "true");
+    } catch (e) {}
+  }
+  return DEMO_FARMER_PROFILE;
+}
+
 export function logoutUser(): void {
   if (typeof window === "undefined") return;
   try {
@@ -129,4 +165,3 @@ export function logoutUser(): void {
     console.error("Failed to log out user", e);
   }
 }
-

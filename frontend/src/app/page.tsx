@@ -109,6 +109,66 @@ export default function LandingPage() {
         {/* ASK ACT PROVE SECTION */}
         <AskActProveSection />
 
+        {/* PS-02 & PS-03 HACKATHON FEATURE SHOWCASE */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 p-8 sm:p-12 text-white border border-emerald-500/20 shadow-2xl">
+            <div className="absolute top-0 right-0 -mt-12 -mr-12 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              <div className="space-y-5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    {t.plantStressEngineBadge}
+                  </span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+                  {t.plantStressEngineTitle}
+                </h2>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  {t.plantStressEngineDesc}
+                </p>
+                <div className="grid grid-cols-3 gap-4 py-4 border-t border-emerald-500/20 font-mono text-xs">
+                  <div>
+                    <span className="text-emerald-400 block text-[10px] font-bold">{t.forecastHorizon}</span>
+                    <span className="text-white font-black text-lg">14 Days</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-400 block text-[10px] font-bold">{t.mlAccuracy}</span>
+                    <span className="text-white font-black text-lg">97% CI</span>
+                  </div>
+                  <div>
+                    <span className="text-amber-400 block text-[10px] font-bold">{t.stressTypes}</span>
+                    <span className="text-white font-black text-lg">4 Modes</span>
+                  </div>
+                </div>
+                <Link
+                  href="/plant-intelligence"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg transition-all"
+                >
+                  <span>{t.launchPlantIntelligence}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { label: "Meteoblue NEMSGLOBAL",    desc: "7km global temperature, rainfall, evapotranspiration",    dot: "bg-sky-400"     },
+                  { label: "Syngenta CE Hub API",     desc: "GDD, hydric stress, spray windows, disease risk metadata",  dot: "bg-emerald-400" },
+                  { label: "GradientBoostingRegressor",desc: "14-day stress probability per day across 4 stress types",  dot: "bg-blue-400"    },
+                  { label: "SHAP TreeExplainer",      desc: "Feature attribution — know WHY each stress is predicted",  dot: "bg-amber-400"   },
+                  { label: "CropFit Decision Matrix", desc: "Quantis, Isabion, Amistar Top, Coucal product matching",   dot: "bg-purple-400"  },
+                ].map(({ label, desc, dot }) => (
+                  <div key={label} className="flex items-start gap-3 bg-white/5 rounded-xl p-3.5 border border-white/10">
+                    <span className={`mt-1.5 h-2 w-2 rounded-full ${dot} shrink-0`} />
+                    <div>
+                      <span className="text-xs font-bold text-white block">{label}</span>
+                      <span className="text-[11px] text-slate-400">{desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 4 CORE CAPABILITY MODULES GRID */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
@@ -116,7 +176,7 @@ export default function LandingPage() {
             <h2 className="text-3xl font-black text-slate-900">{t.mapTitle}</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
             <div className="stripe-card p-6 space-y-3">
               <div className="h-10 w-10 rounded-xl bg-emerald-50 text-[#10B981] flex items-center justify-center">
@@ -159,6 +219,20 @@ export default function LandingPage() {
               <p className="text-xs text-slate-600">{t.seasonComparison}</p>
               <Link href="/what-if" className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline pt-1">
                 {t.navWhatIf} <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            <div className="stripe-card p-6 space-y-3 border-l-4 border-l-emerald-500">
+              <div className="h-10 w-10 rounded-xl bg-emerald-900 text-emerald-400 flex items-center justify-center">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">PS-02/03</span>
+              </div>
+              <h3 className="font-extrabold text-base text-slate-900">{t.plantHealthAI}</h3>
+              <p className="text-xs text-slate-600">{t.plantStressEngineDesc}</p>
+              <Link href="/plant-intelligence" className="text-xs font-bold text-emerald-600 flex items-center gap-1 hover:underline pt-1">
+                {t.exploreEngine} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 

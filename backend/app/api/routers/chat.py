@@ -61,7 +61,7 @@ def _sync_gemini_call(key: str, prompt: str) -> Optional[str]:
     try:
         import google.generativeai as genai
         genai.configure(api_key=key)
-        for model_name in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]:
+        for model_name in ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-1.5-flash"]:
             try:
                 model = genai.GenerativeModel(model_name)
                 response = model.generate_content(prompt)
@@ -83,24 +83,25 @@ async def _try_google_ai(prompt: str) -> Optional[str]:
         if res_sdk:
             return res_sdk
 
-        # 2. Direct REST API execution fallback
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={key}"
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.post(
-                    url,
-                    json={"contents": [{"parts": [{"text": prompt}]}]},
-                    headers={"Content-Type": "application/json"}
-                )
-                if res.status_code == 200:
-                    data = res.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts:
-                            return parts[0].get("text", "").strip()
-        except Exception as e:
-            logger.warning(f"Google REST API attempt error: {e}")
+        # 2. Direct REST API execution fallback across models
+        for model_name in ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-pro"]:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    res = await client.post(
+                        url,
+                        json={"contents": [{"parts": [{"text": prompt}]}]},
+                        headers={"Content-Type": "application/json"}
+                    )
+                    if res.status_code == 200:
+                        data = res.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                return parts[0].get("text", "").strip()
+            except Exception as e:
+                logger.warning(f"Google REST API attempt error for {model_name}: {e}")
 
     return None
 

@@ -10,12 +10,15 @@ import { saveFieldToBackend } from "@/lib/api";
 import { reverseGeocode } from "@/context/WeatherContext";
 import { User, MapPin, Sprout, Settings, ArrowRight, ArrowLeft, CheckCircle2, Navigation, Mic, Globe } from "lucide-react";
 
+import { useLanguage } from "@/context/LanguageContext";
+
 export default function SignupPage() {
   const router = useRouter();
+  const { language, setLanguage, t } = useLanguage();
   const [step, setStep] = useState<number>(1);
 
   // Form State
-  const [formData, setFormData] = useState<FarmerProfile>({ ...EMPTY_FARMER_PROFILE, fullName: "" });
+  const [formData, setFormData] = useState<FarmerProfile>({ ...EMPTY_FARMER_PROFILE, language: language || "hi", fullName: "" });
   const [gpsDetected, setGpsDetected] = useState<boolean>(false);
   const [loadingGps, setLoadingGps] = useState<boolean>(false);
   const [fieldReady, setFieldReady] = useState<boolean>(false);
@@ -30,6 +33,7 @@ export default function SignupPage() {
 
   const handleFinish = async () => {
     saveProfile(formData);
+    setLanguage(formData.language);
     setFieldReady(true);
     try {
       await saveFieldToBackend({
@@ -86,12 +90,12 @@ export default function SignupPage() {
             <Image src="/images/aasra_logo.png" alt="AASRA" fill className="object-contain p-0.5" priority />
           </div>
           <span className="text-xs font-mono font-bold tracking-wider text-[#10B981] uppercase hidden sm:inline">
-            AASRA · FARMER ONBOARDING
+            {t.brandName} · {t.btnStartFarm}
           </span>
         </Link>
 
         <Link href="/login" className="text-xs font-extrabold text-slate-600 hover:text-[#10B981]">
-          Already registered? <span className="text-[#10B981] underline">Log In</span>
+          {t.alreadyRegistered}
         </Link>
       </header>
 
@@ -139,17 +143,17 @@ export default function SignupPage() {
                     STEP 01 / FARMER PROFILE
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    Tell us about yourself
+                    {t.tellUsAboutYourself}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Your information helps AASRA customize farm advice and crop warnings for your region.
+                    {t.aboutYouDesc}
                   </p>
                 </div>
 
                 <div className="space-y-5">
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Full Name / नाम
+                      {t.fullNameLabel}
                     </label>
                     <input
                       type="text"
@@ -162,7 +166,7 @@ export default function SignupPage() {
 
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Mobile Number (OTP Verification)
+                      {t.mobileNumberLabel}
                     </label>
                     <input
                       type="tel"
@@ -173,21 +177,49 @@ export default function SignupPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Preferred Language / भाषा
-                    </label>
-                    <select
-                      value={formData.language}
-                      onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100 outline-none cursor-pointer"
-                    >
-                      {INDIAN_LANGUAGES.map((lang) => (
-                        <option key={lang.code} value={lang.code}>
-                          {lang.native} ({lang.name})
-                        </option>
-                      ))}
-                    </select>
+                  <div className="notranslate" translate="no">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                        {t.preferredLanguage}
+                      </label>
+                      <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 uppercase">
+                        12 Indian Languages
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {INDIAN_LANGUAGES.map((lang) => {
+                        const isSelected = formData.language === lang.code;
+                        return (
+                          <button
+                            key={lang.code}
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, language: lang.code }));
+                              setLanguage(lang.code);
+                            }}
+                            className={`text-left p-2.5 sm:p-3 rounded-xl border transition-all flex flex-col justify-between notranslate cursor-pointer ${
+                              isSelected
+                                ? "bg-emerald-50 border-[#10B981] text-slate-900 shadow-xs ring-2 ring-emerald-300"
+                                : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
+                            }`}
+                            translate="no"
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <span className="font-bold text-xs sm:text-sm text-slate-900 notranslate" translate="no">
+                                {lang.native}
+                              </span>
+                              {isSelected && (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-medium notranslate mt-0.5" translate="no">
+                              {lang.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -196,7 +228,7 @@ export default function SignupPage() {
                     onClick={handleNext}
                     className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
                   >
-                    <span>Continue to Step 2</span>
+                    <span>{t.continueToStep2}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -217,16 +249,16 @@ export default function SignupPage() {
                     STEP 02 / FARM LOCATION
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    Where is your farm located?
+                    {t.whereIsFarmLocated}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    AASRA pulls real-time weather telemetry from Open-Meteo for your village coordinates.
+                    {t.locationDesc}
                   </p>
                 </div>
 
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
                   <div className="space-y-1">
-                    <span className="font-extrabold text-sm text-slate-900 block">Use Phone Hardware GPS</span>
+                    <span className="font-extrabold text-sm text-slate-900 block">{t.usePhoneGps}</span>
                     <span className="text-xs text-slate-500 font-mono">Automatically sets exact Lat/Lon coordinates</span>
                   </div>
                   <button
@@ -242,7 +274,7 @@ export default function SignupPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      State / राज्य
+                      {t.stateLabel}
                     </label>
                     <input
                       type="text"
@@ -254,7 +286,7 @@ export default function SignupPage() {
 
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      District / जिला
+                      {t.districtLabel}
                     </label>
                     <input
                       type="text"
@@ -266,7 +298,7 @@ export default function SignupPage() {
 
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Village / गाँव
+                      {t.villageLabel}
                     </label>
                     <input
                       type="text"
@@ -283,14 +315,14 @@ export default function SignupPage() {
                     className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back</span>
+                    <span>{t.backBtn}</span>
                   </button>
 
                   <button
                     onClick={handleNext}
                     className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
                   >
-                    <span>Continue to Step 3</span>
+                    <span>{t.continueToStep3}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -311,17 +343,17 @@ export default function SignupPage() {
                     STEP 03 / CROP & FIELD BOUNDARY
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    Primary Crop & Field Area
+                    {t.primaryCropFieldArea}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    AASRA calculates night heat stress degradation specific to your crop variety.
+                    {t.primaryCropDesc}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Primary Crop / मुख्य फसल
+                      {t.primaryCropLabel}
                     </label>
                     <select
                       value={formData.primaryCrop}
@@ -338,7 +370,7 @@ export default function SignupPage() {
 
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Field Area (Acres)
+                      {t.fieldAreaAcresLabel}
                     </label>
                     <input
                       type="number"
@@ -351,7 +383,7 @@ export default function SignupPage() {
 
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Sowing Date / बुआई तिथि
+                      {t.sowingDateLabel}
                     </label>
                     <input
                       type="date"
@@ -368,14 +400,14 @@ export default function SignupPage() {
                     className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back</span>
+                    <span>{t.backBtn}</span>
                   </button>
 
                   <button
                     onClick={handleNext}
                     className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
                   >
-                    <span>Continue to Step 4</span>
+                    <span>{t.continueToStep4}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -396,10 +428,10 @@ export default function SignupPage() {
                     STEP 04 / FINAL CONFIRMATION
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    Review & Setup Farm Overwatch
+                    {t.reviewSetupFarm}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Confirm details to initialize your personalized AASRA AI Assistant.
+                    {t.reviewDesc}
                   </p>
                 </div>
 
@@ -424,7 +456,7 @@ export default function SignupPage() {
                     className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back</span>
+                    <span>{t.backBtn}</span>
                   </button>
 
                   <button
@@ -432,7 +464,7 @@ export default function SignupPage() {
                     className="px-8 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>{fieldReady ? "Initializing Overwatch..." : "Complete Setup & Launch Dashboard"}</span>
+                    <span>{fieldReady ? "Initializing Overwatch..." : t.completeSetupLaunch}</span>
                   </button>
                 </div>
               </motion.div>

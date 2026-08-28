@@ -2,11 +2,14 @@
   "name": "aasra-hyperion",
   "version": "1.0.0",
   "private": true,
-  "description": "AASRA — Your field's intelligent companion (PS-04 & PS-07)",
+  "description": "AASRA — Your field's intelligent companion (PS-02, PS-03, PS-04 & PS-07)",
   "scripts": {
-    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"green.bold,cyan.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "concurrently -n \"BACKEND,FRONTEND,PS02\" -c \"green.bold,cyan.bold,yellow.bold\" \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:ps02\"",
     "dev:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000",
     "dev:frontend": "cd frontend && npm run dev",
+    "dev:ps02": "cd ps02-engine && python app.py",
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm start",
     "install:all": "npm install && cd frontend && npm install"
   },
   "devDependencies": {

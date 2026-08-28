@@ -67,7 +67,7 @@ class Settings(BaseSettings):
 
     # App
     DEMO_MODE: bool = False
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
+    ALLOWED_ORIGINS: str = "*"
     LOG_LEVEL: str = "INFO"
 
     class Config:

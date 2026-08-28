@@ -201,17 +201,26 @@ class HybridEnsembleModel:
         overall_prob = round(min(1.0, max(0.0, float(raw_prob * (1.0 + (1.0 - resilience))))), 2)
 
         # Generate SHAP explanations
-        shap_values = self.explainer.shap_values(feature_values)[0]
-        
         shap_explanations = []
-        for i, feat in enumerate(feature_names):
-            if abs(shap_values[i]) > 0.01: # Only include significant drivers
-                direction = "+" if shap_values[i] > 0 else "-"
-                impact = round(abs(shap_values[i]) * 100, 1)
-                shap_explanations.append({
-                    "factor": feat,
-                    "contribution": f"{direction}{impact}%"
-                })
+        try:
+            shap_values = self.explainer.shap_values(feature_values)[0]
+            for i, feat in enumerate(feature_names):
+                if abs(shap_values[i]) > 0.01: # Only include significant drivers
+                    direction = "+" if shap_values[i] > 0 else "-"
+                    impact = round(abs(shap_values[i]) * 100, 1)
+                    shap_explanations.append({
+                        "factor": feat,
+                        "contribution": f"{direction}{impact}%"
+                    })
+        except Exception:
+            for feat in feature_names:
+                key = feat.lower() + "_score"
+                val = scores.get(key, 0.0)
+                if val > 0.1:
+                    shap_explanations.append({
+                        "factor": feat,
+                        "contribution": f"+{round(val * 100, 1)}%"
+                    })
         
         # Sort by biggest impact
         shap_explanations.sort(key=lambda x: float(x["contribution"].replace("+", "").replace("-", "").replace("%", "")), reverse=True)

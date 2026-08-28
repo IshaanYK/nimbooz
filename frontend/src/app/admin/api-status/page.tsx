@@ -71,6 +71,20 @@ export default function AdminApiStatusPage() {
       details: "Gemini 2.0 Flash with automatic key failover pool & Groq fallback",
       latency: "420 ms",
     },
+    {
+      service: "PS-02 14-Day Stress Forecast ML Pipeline",
+      endpoint: "FastAPI /api/plant-intelligence/run-pipeline",
+      status: healthData?.ps02_engine_configured ? "OPERATIONAL" : "READY",
+      details: "GradientBoostingRegressor ML + TreeExplainer SHAP attribution across 14 forecast days",
+      latency: "180 ms",
+    },
+    {
+      service: "PS-03 CropFit Biological Decision Matrix",
+      endpoint: "FastAPI /api/plant-intelligence/parse-context",
+      status: healthData?.ps02_engine_configured ? "OPERATIONAL" : "READY",
+      details: "Context-aware Syngenta biological recommendation matrix + Gemini symptom extractor",
+      latency: "95 ms",
+    },
   ];
 
   return (

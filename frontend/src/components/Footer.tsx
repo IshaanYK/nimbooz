@@ -28,7 +28,7 @@ export const Footer: React.FC = () => {
         {/* Links */}
         <div className="flex flex-wrap justify-center gap-8 font-semibold">
           <div className="space-y-2">
-            <span className="text-[10px] font-mono text-[#20C98A] uppercase block font-black">PLATFORM</span>
+            <span className="text-[10px] font-mono text-[#20C98A] uppercase block font-black">{t.footerPlatform}</span>
             <ul className="space-y-1 text-slate-300">
               <li><Link href="/assistant" className="hover:text-white transition-colors">{t.navAdvisory}</Link></li>
               <li><Link href="/impact" className="hover:text-white transition-colors">{t.navRobi}</Link></li>
@@ -37,7 +37,7 @@ export const Footer: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <span className="text-[10px] font-mono text-[#20C98A] uppercase block font-black">FARMERS</span>
+            <span className="text-[10px] font-mono text-[#20C98A] uppercase block font-black">{t.footerFarmers}</span>
             <ul className="space-y-1 text-slate-300">
               <li><Link href="/dashboard" className="hover:text-white transition-colors">{t.navDashboard}</Link></li>
               <li><Link href="/weather" className="hover:text-white transition-colors">{t.navWeather}</Link></li>
@@ -46,18 +46,18 @@ export const Footer: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <span className="text-[10px] font-mono text-[#20C98A] uppercase block font-black">ACCOUNT</span>
+            <span className="text-[10px] font-mono text-[#20C98A] uppercase block font-black">{t.footerAccount}</span>
             <ul className="space-y-1 text-slate-300">
               <li><Link href="/login" className="hover:text-white transition-colors">{t.navLogin}</Link></li>
               <li><Link href="/signup" className="hover:text-white transition-colors">{t.navGetStarted}</Link></li>
-              <li><Link href="/admin" className="hover:text-white transition-colors">System Diagnostics</Link></li>
+              <li><Link href="/admin" className="hover:text-white transition-colors">{t.footerDiagnostics}</Link></li>
             </ul>
           </div>
         </div>
 
         {/* Copyright */}
         <div className="text-center md:text-right space-y-1 text-[11px] text-slate-400 font-mono">
-          <p>© 2026 {t.brandName}. All rights reserved.</p>
+          <p>{t.footerRights}</p>
           <p className="text-emerald-300">{t.heroBadge}</p>
         </div>
       </div>

@@ -57,10 +57,10 @@ class MeteoblueClient:
             response = requests.get(url, timeout=15)
             response.raise_for_status()
             data = response.json()
-            print(f"    [Meteoblue] ✅ Live forecast received! Status: {response.status_code}")
+            print(f"    [Meteoblue] [OK] Live forecast received! Status: {response.status_code}")
             return self._parse_packages_response(data)
         except Exception as e:
-            print(f"    [Meteoblue] ⚠️  Packages API failed ({e}). Using mock data.")
+            print(f"    [Meteoblue] [WARN] Packages API failed ({e}). Using mock data.")
             return None
 
     def _try_dataset_api(self, lat, lon, alt):
@@ -109,10 +109,10 @@ class MeteoblueClient:
             response = requests.post(url, json=payload, timeout=15)
             response.raise_for_status()
             data = response.json()
-            print(f"    [Meteoblue] ✅ Live dataset received! Status: {response.status_code}")
+            print(f"    [Meteoblue] [OK] Live dataset received! Status: {response.status_code}")
             return self._parse_dataset_response(data, today)
         except Exception as e:
-            print(f"    [Meteoblue] ⚠️  Dataset API failed ({e}). Trying Packages API...")
+            print(f"    [Meteoblue] [WARN] Dataset API failed ({e}). Trying Packages API...")
 
     def _parse_dataset_response(self, data, start_date):
         """
@@ -257,7 +257,7 @@ class CEHubClient:
             print(f"    [CE Hub] Trying /api/Forecast/ShortRangeForecastDaily...")
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
-                print(f"    [CE Hub] ✅ Live data received!")
+                print(f"    [CE Hub] [OK] Live data received!")
                 return self._parse_cehub_response(response.json())
             else:
                 print(f"    [CE Hub] Endpoint returned {response.status_code}. Using mock satellite/soil data.")

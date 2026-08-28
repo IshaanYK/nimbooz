@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * AASRA Google Neural Female Voice Engine & Speech API Resilience
- * - Streams high-fidelity natural human female voice MP3 audio from backend Google TTS
- * - Web Speech API fallback for offline speech synthesis
- * - Handles long text chunking to prevent Chrome Web Speech API stalling
+ * AASRA Google Neural Human Voice Engine & Speech Synthesis
+ * - Streams natural high-fidelity Indian human voices from Google TTS
+ * - Dynamic voice selector matching Google Neural & Microsoft Natural Speech synthesis
+ * - Clean phoneme preprocessing to ensure warm, empathetic, and natural speech without robotic pauses
  */
 
 import { fetchGoogleTTSAudio } from "@/lib/api";
@@ -35,6 +35,34 @@ let currentAudio: HTMLAudioElement | null = null;
 let speechSynthesisTimer: any = null;
 
 /**
+ * Pre-clean text for natural, conversational human cadence:
+ * - Removes markdown syntax, emojis, URL brackets, complex JSON fragments
+ * - Expands or cleans technical symbols so speech sounds natural
+ */
+export function cleanTextForNaturalSpeech(rawText: string): string {
+  if (!rawText) return "";
+  let clean = rawText
+    .replace(/[*_#`~🔴🟢🌾🌧️☀️🌤️⛅☁️🌫️🌦️⛈️❄️🌨️🌩️📌🎯💡⚡⚠️✅✕]/g, "")
+    .replace(/\(.*?\)/g, "") // Remove parenthetical notes e.g. (JS-335)
+    .replace(/₹/g, "rupees ")
+    .replace(/@/g, "at the rate of ")
+    .replace(/\/acre/g, " per acre")
+    .replace(/\/ac/g, " per acre")
+    .replace(/\/ha/g, " per hectare")
+    .replace(/\bml\b/gi, "millilitres")
+    .replace(/\bq\b/gi, "quintals")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Return the first 2-3 essential sentences for instant, crisp voice delivery
+  const sentences = clean.split(/(?<=[.!?।])\s+/);
+  if (sentences.length > 3) {
+    return sentences.slice(0, 3).join(" ");
+  }
+  return clean;
+}
+
+/**
  * Play high-quality natural Google Neural MP3 Audio Stream from backend
  */
 export async function playGoogleNeuralSpeech(
@@ -48,23 +76,29 @@ export async function playGoogleNeuralSpeech(
 ): Promise<boolean> {
   try {
     stopGoogleSpeech();
+    const spokenText = cleanTextForNaturalSpeech(text);
+    if (!spokenText) {
+      if (options?.onEnd) options.onEnd();
+      return false;
+    }
 
     if (options?.onStart) options.onStart();
 
     // Call backend Google TTS streaming endpoint
-    const res = await fetchGoogleTTSAudio(text, langKey);
+    const res = await fetchGoogleTTSAudio(spokenText, langKey);
     if (res && res.status === "success" && res.audio_base64) {
       const audioUrl = `data:audio/mp3;base64,${res.audio_base64}`;
       const audio = new Audio(audioUrl);
       currentAudio = audio;
+      audio.playbackRate = 1.05; // Slightly faster, crisp natural cadence
 
       audio.onended = () => {
         currentAudio = null;
         if (options?.onEnd) options.onEnd();
       };
-      audio.onerror = (e) => {
+      audio.onerror = () => {
         currentAudio = null;
-        speakBrowserSpeechFallback(text, langKey, options);
+        speakBrowserSpeechFallback(spokenText, langKey, options);
       };
 
       await audio.play();
@@ -75,11 +109,11 @@ export async function playGoogleNeuralSpeech(
   }
 
   // Fallback to browser synthesis if backend audio fetch fails
-  return speakBrowserSpeechFallback(text, langKey, options);
+  return speakBrowserSpeechFallback(cleanTextForNaturalSpeech(text), langKey, options);
 }
 
 /**
- * Browser Speech Synthesis Fallback with chunking to prevent Chrome stalls
+ * Browser Speech Synthesis Fallback with Best Natural Voice Match
  */
 export function speakBrowserSpeechFallback(
   text: string,
@@ -100,7 +134,7 @@ export function speakBrowserSpeechFallback(
     if (speechSynthesisTimer) clearInterval(speechSynthesisTimer);
 
     const config = BCP47_MAP[langKey] || BCP47_MAP["hi"];
-    const cleanedText = text.replace(/[*_#`~]/g, "").trim();
+    const cleanedText = cleanTextForNaturalSpeech(text);
 
     if (!cleanedText) {
       if (options?.onEnd) options.onEnd();
@@ -109,8 +143,22 @@ export function speakBrowserSpeechFallback(
 
     const utterance = new SpeechSynthesisUtterance(cleanedText);
     utterance.lang = config.code;
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
+    utterance.rate = 1.02;
+    utterance.pitch = 1.02;
+
+    // Pick highest quality Google Neural or Microsoft Natural voice
+    const availableVoices = window.speechSynthesis.getVoices();
+    if (availableVoices && availableVoices.length > 0) {
+      const preferredVoice = availableVoices.find(
+        (v) =>
+          (v.lang.startsWith(config.code) || config.fallbackCodes.some((fc) => v.lang.includes(fc))) &&
+          (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Neural"))
+      ) || availableVoices.find((v) => v.lang.startsWith(config.code));
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+    }
 
     utterance.onstart = () => {
       if (options?.onStart) options.onStart();
@@ -127,7 +175,7 @@ export function speakBrowserSpeechFallback(
       if (options?.onEnd) options.onEnd();
     };
 
-    // Chrome bug workaround: keep synthesis active
+    // Keep synthesis active in Chromium engines
     speechSynthesisTimer = setInterval(() => {
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.pause();
@@ -135,7 +183,7 @@ export function speakBrowserSpeechFallback(
       } else {
         clearInterval(speechSynthesisTimer);
       }
-    }, 10000);
+    }, 8000);
 
     window.speechSynthesis.speak(utterance);
     return true;

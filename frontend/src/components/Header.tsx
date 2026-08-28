@@ -51,6 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/plant-intelligence", label: "Plant Health AI (PS-02 & PS-03)", icon: Sprout },
     { href: "/fields", label: "Fields & Map", icon: Layers },
     { href: "/assistant", label: "Ask AASRA", icon: MessageSquare },
     { href: "/journal", label: "Journal", icon: BookOpen },
@@ -132,15 +133,16 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Right Controls */}
       <div className="flex flex-wrap items-center gap-2 text-xs font-accent">
         {/* Language Selector */}
-        <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 text-xs">
+        <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 text-xs notranslate" translate="no">
           <Globe className="h-3.5 w-3.5 text-emerald-600" />
           <select
             value={language}
             onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
-            className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer pr-1 notranslate"
+            translate="no"
           >
             {INDIAN_LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code} className="bg-white text-slate-900">
+              <option key={l.code} value={l.code} className="bg-white text-slate-900 notranslate" translate="no">
                 {l.native} ({l.name})
               </option>
             ))}
