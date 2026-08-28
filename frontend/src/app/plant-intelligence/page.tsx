@@ -233,24 +233,25 @@ export default function PlantIntelligencePage() {
         {/* Top Header Banner: Stripe Clean Inks & Gradients */}
         <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-xs font-mono font-bold text-emerald-700 uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                {t.plantIntelligenceBadge}
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span className="text-xs font-mono font-black text-blue-900 bg-blue-100 px-3 py-1 rounded-full border border-blue-300 flex items-center gap-1.5 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-blue-600 animate-ping" />
+                PS-02: 14-Day Predictive Plant Stress Engine
               </span>
-              <span className="text-xs font-mono font-bold text-blue-700 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+              <span className="text-xs font-mono font-black text-purple-900 bg-purple-100 px-3 py-1 rounded-full border border-purple-300">
+                PS-03: Syngenta CropFit Matcher
+              </span>
+              <span className="text-xs font-mono font-bold text-emerald-800 uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300">
                 {pipelineData?.data_source === "LIVE_METEOBLUE"
-                  ? "LIVE APIS: METEOBLUE + CE HUB"
-                  : "LIVE / SIMULATED HYBRID TELEMETRY"}
-              </span>
-              <span className="text-[10px] font-mono font-bold text-amber-700 uppercase bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                🏆 HACKATHON DEMO
+                  ? "🛰️ LIVE: Open-Meteo & CE Hub"
+                  : "🛰️ LIVE SAT HYBRID TELEMETRY"}
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 mt-1">
-              {t.plantIntelligenceTitle}
+              14-Day Plant Stress AI & Biological Prescription
             </h1>
             <p className="text-sm text-slate-600 font-medium max-w-3xl">
-              {t.plantIntelligenceSub}
+              14-day rolling machine-learning forecast evaluating extreme daytime heat, night respiration degradation (T &gt; 25°C), drought deficit, and Syngenta biostimulant interventions.
             </p>
           </div>
 

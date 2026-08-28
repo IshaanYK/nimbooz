@@ -10,10 +10,42 @@ import { isUserLoggedIn, getStoredProfile, logoutUser, loginAsDemo, INDIAN_LANGU
 import { Footer } from "@/components/Footer";
 import { HackathonJudgeHUD } from "@/components/HackathonJudgeHUD";
 import {
-  Globe, User, LogOut, Menu, X, Sparkles, LayoutDashboard, MapPin, BookOpen, TrendingUp, ChevronDown, Mic, Sliders, Leaf, Settings, Lock, ArrowRight, ShieldCheck, CheckCircle2, Sprout
+  Globe,
+  User,
+  LogOut,
+  Menu,
+  X,
+  Sparkles,
+  LayoutDashboard,
+  MapPin,
+  TrendingUp,
+  ChevronDown,
+  Mic,
+  Sliders,
+  Leaf,
+  Settings,
+  Lock,
+  ArrowRight,
+  ShieldCheck,
+  Sprout,
+  Activity,
+  Package,
+  Layers,
+  PhoneCall,
+  Home,
 } from "lucide-react";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/how-it-works", "/product", "/impact-story"];
+
+const PS_MODULES = [
+  { id: "PS-01", name: "GIS & Geo-Registry", path: "/fields", icon: MapPin, color: "text-emerald-700 bg-emerald-50 border-emerald-300" },
+  { id: "PS-02", name: "14-Day Stress Engine", path: "/plant-intelligence", icon: Activity, color: "text-blue-700 bg-blue-50 border-blue-300" },
+  { id: "PS-03", name: "CropFit Biostimulant Matrix", path: "/product", icon: Package, color: "text-purple-700 bg-purple-50 border-purple-300" },
+  { id: "PS-04", name: "Multilingual Voice & Vision AI", path: "/assistant", icon: Mic, color: "text-amber-700 bg-amber-50 border-amber-300" },
+  { id: "PS-05", name: "Mobile Touch & Dealer Connect", path: "/dashboard", icon: PhoneCall, color: "text-rose-700 bg-rose-50 border-rose-300" },
+  { id: "PS-06", name: "Biophysical What-If Simulator", path: "/what-if", icon: Sliders, color: "text-indigo-700 bg-indigo-50 border-indigo-300" },
+  { id: "PS-07", name: "ROBI Yield & Financial Proof", path: "/impact", icon: TrendingUp, color: "text-emerald-800 bg-emerald-100 border-emerald-400" },
+];
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
@@ -52,9 +84,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const displayCrop = `${profile.fieldAreaAcres || 12.5} Acres · ${profile.primaryCrop || "Soybean"} (${profile.cropVariety || "JS-335"})`;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] selection:bg-[#10B981] selection:text-white font-sans">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] selection:bg-[#10B981] selection:text-white font-sans pb-16 md:pb-0">
       
-      {/* Top Stripe Pure White Navigation Header Bar */}
+      {/* Top Pure White Navigation Header Bar */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-xs text-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
@@ -69,62 +101,50 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </div>
           </Link>
 
-          {/* AUTHENTICATED STRIPE NAVIGATION TABS */}
+          {/* AUTHENTICATED NAVIGATION TABS */}
           {loggedIn && (
-            <nav className="hidden md:flex items-center gap-1 text-xs font-bold text-slate-700">
+            <nav className="hidden xl:flex items-center gap-1 text-xs font-bold text-slate-700">
               <Link
-                href="/fields"
-                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
-                  pathname === "/fields" || pathname === "/dashboard"
-                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                href="/dashboard"
+                className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/dashboard"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-xs"
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <MapPin className="h-4 w-4 text-[#10B981]" />
+                <LayoutDashboard className="h-4 w-4 text-[#10B981]" />
                 <span>{t.navDashboard}</span>
               </Link>
 
               <Link
-                href="/weather"
-                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
-                  pathname === "/weather"
-                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
-                    : "hover:text-[#10B981] hover:bg-slate-100"
-                }`}
-              >
-                <Globe className="h-4 w-4 text-sky-500" />
-                <span>{t.navWeather}</span>
-              </Link>
-
-              <Link
                 href="/assistant"
-                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all whitespace-nowrap ${
                   pathname === "/assistant" || pathname === "/advisory"
-                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-xs"
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <Mic className="h-4 w-4 text-amber-500" />
+                <Mic className="h-4 w-4 text-amber-500 animate-pulse" />
                 <span>{t.navAdvisory}</span>
               </Link>
 
               <Link
-                href="/impact"
-                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
-                  pathname === "/impact" || pathname === "/robi"
-                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                href="/plant-intelligence"
+                className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/plant-intelligence"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-xs"
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <span>{t.navRobi}</span>
+                <Leaf className="h-4 w-4 text-emerald-600" />
+                <span>{t.navPlantAi}</span>
               </Link>
 
               <Link
                 href="/what-if"
-                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all whitespace-nowrap ${
                   pathname === "/what-if"
-                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-xs"
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
@@ -133,15 +153,39 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               </Link>
 
               <Link
-                href="/plant-intelligence"
-                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl transition-all whitespace-nowrap ${
-                  pathname === "/plant-intelligence"
-                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
+                href="/impact"
+                className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/impact" || pathname === "/robi"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-xs"
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <Leaf className="h-4 w-4 text-emerald-600" />
-                <span>{t.navPlantAi}</span>
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                <span>{t.navRobi}</span>
+              </Link>
+
+              <Link
+                href="/fields"
+                className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/fields"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-xs"
+                    : "hover:text-[#10B981] hover:bg-slate-100"
+                }`}
+              >
+                <MapPin className="h-4 w-4 text-emerald-600" />
+                <span>Farm GIS</span>
+              </Link>
+
+              <Link
+                href="/weather"
+                className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all whitespace-nowrap ${
+                  pathname === "/weather"
+                    ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-xs"
+                    : "hover:text-[#10B981] hover:bg-slate-100"
+                }`}
+              >
+                <Globe className="h-4 w-4 text-sky-500" />
+                <span>{t.navWeather}</span>
               </Link>
             </nav>
           )}
@@ -281,11 +325,40 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             {/* Mobile Menu Trigger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100"
+              className="xl:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
 
+          </div>
+        </div>
+
+        {/* 🌟 PROBLEM STATEMENT GLOBAL QUICK-NAV STRIP (PS-01 to PS-07) */}
+        <div className="bg-slate-900 text-white px-4 sm:px-6 py-2 overflow-x-auto no-scrollbar border-t border-slate-800 flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0 pr-3 border-r border-slate-800 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+            <Layers className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Problem Statements:</span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {PS_MODULES.map((ps) => {
+              const IconComp = ps.icon;
+              const isActive = pathname === ps.path;
+              return (
+                <Link
+                  key={ps.id}
+                  href={ps.path}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all shrink-0 border ${
+                    isActive
+                      ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm"
+                      : "bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-slate-500"
+                  }`}
+                >
+                  <span className="font-extrabold text-emerald-300">{ps.id}:</span>
+                  <span>{ps.name}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
@@ -312,23 +385,15 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-1.5 text-xs font-bold shadow-xl divide-y divide-slate-100">
+          <div className="xl:hidden bg-white border-b border-slate-200 p-4 space-y-1.5 text-xs font-bold shadow-xl divide-y divide-slate-100">
             <div className="space-y-1 pb-2">
               <Link
-                href="/fields"
+                href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
               >
-                <MapPin className="h-4 w-4 text-[#10B981]" />
+                <LayoutDashboard className="h-4 w-4 text-[#10B981]" />
                 <span>{t.navDashboard}</span>
-              </Link>
-              <Link
-                href="/weather"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <Globe className="h-4 w-4 text-sky-500" />
-                <span>{t.navWeather}</span>
               </Link>
               <Link
                 href="/assistant"
@@ -336,23 +401,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
               >
                 <Mic className="h-4 w-4 text-amber-500" />
-                <span>{t.navAdvisory}</span>
-              </Link>
-              <Link
-                href="/impact"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <span>{t.navRobi}</span>
-              </Link>
-              <Link
-                href="/what-if"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <Sliders className="h-4 w-4 text-blue-600" />
-                <span>{t.navWhatIf}</span>
+                <span>{t.navAdvisory} (PS-04 Voice & Vision AI)</span>
               </Link>
               <Link
                 href="/plant-intelligence"
@@ -360,18 +409,48 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] bg-emerald-50 border border-emerald-200 text-emerald-800 font-black"
               >
                 <Leaf className="h-4 w-4 text-emerald-600" />
-                <span>{t.navPlantAi}</span>
+                <span>{t.navPlantAi} (PS-02 14-Day Forecast)</span>
               </Link>
-              {loggedIn && (
-                <Link
-                  href="/settings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-                >
-                  <Settings className="h-4 w-4 text-[#10B981]" />
-                  <span>Settings & Profile</span>
-                </Link>
-              )}
+              <Link
+                href="/what-if"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
+              >
+                <Sliders className="h-4 w-4 text-blue-600" />
+                <span>{t.navWhatIf} (PS-06 Scenario Simulator)</span>
+              </Link>
+              <Link
+                href="/impact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
+              >
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                <span>{t.navRobi} (PS-07 ROBI Yield Proof)</span>
+              </Link>
+              <Link
+                href="/product"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
+              >
+                <Package className="h-4 w-4 text-purple-600" />
+                <span>CropFit Products (PS-03)</span>
+              </Link>
+              <Link
+                href="/fields"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
+              >
+                <MapPin className="h-4 w-4 text-emerald-600" />
+                <span>Farm GIS & GeoJSON (PS-01)</span>
+              </Link>
+              <Link
+                href="/weather"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
+              >
+                <Globe className="h-4 w-4 text-sky-500" />
+                <span>{t.navWeather} (Satellite Feed)</span>
+              </Link>
             </div>
 
             {!loggedIn && (
@@ -472,6 +551,62 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           children
         )}
       </main>
+
+      {/* 📱 PERSISTENT MOBILE BOTTOM NAVIGATION BAR FOR FARMERS */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2 flex items-center justify-around shadow-lg">
+        <Link
+          href={loggedIn ? "/dashboard" : "/"}
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            pathname === "/dashboard" || pathname === "/" ? "text-emerald-600 font-black" : "text-slate-500"
+          }`}
+        >
+          <Home className="h-5 w-5" />
+          <span className="text-[10px] font-bold">Home</span>
+        </Link>
+
+        <Link
+          href="/assistant"
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            pathname === "/assistant" ? "text-amber-600 font-black" : "text-slate-500"
+          }`}
+        >
+          <div className="relative">
+            <Mic className="h-5 w-5 text-amber-500" />
+            <span className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+          </div>
+          <span className="text-[10px] font-bold">AASRA AI</span>
+        </Link>
+
+        <Link
+          href="/plant-intelligence"
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            pathname === "/plant-intelligence" ? "text-emerald-600 font-black" : "text-slate-500"
+          }`}
+        >
+          <Leaf className="h-5 w-5" />
+          <span className="text-[10px] font-bold">Stress ML</span>
+        </Link>
+
+        <Link
+          href="/what-if"
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            pathname === "/what-if" ? "text-blue-600 font-black" : "text-slate-500"
+          }`}
+        >
+          <Sliders className="h-5 w-5" />
+          <span className="text-[10px] font-bold">What-If</span>
+        </Link>
+
+        <Link
+          href="/impact"
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            pathname === "/impact" ? "text-emerald-600 font-black" : "text-slate-500"
+          }`}
+        >
+          <TrendingUp className="h-5 w-5" />
+          <span className="text-[10px] font-bold">ROBI Proof</span>
+        </Link>
+      </nav>
 
       <Footer />
       <HackathonJudgeHUD />

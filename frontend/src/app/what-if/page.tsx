@@ -17,17 +17,21 @@ export default function WhatIfPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-xs font-mono font-bold text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                {t.whatIfBadge}
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span className="text-xs font-mono font-black text-indigo-900 bg-indigo-100 px-3 py-1 rounded-full border border-indigo-300 flex items-center gap-1.5 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-indigo-600 animate-ping" />
+                PS-06: Biophysical Scenario Simulator
+              </span>
+              <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+                12% Protection Loss / Day Delayed
               </span>
             </div>
             <h1 className="text-3xl font-black font-display text-slate-900 mt-1 flex items-center gap-2">
-              <Sliders className="h-7 w-7 text-blue-600" />
-              {t.whatIfTitle}
+              <Sliders className="h-7 w-7 text-indigo-600" />
+              Biophysical What-If Scenario Simulator
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600">
-              {t.whatIfSubtitle}
+            <p className="text-xs sm:text-sm text-slate-600 max-w-3xl">
+              Simulate how delaying biostimulant spraying (Syngenta Quantis) reduces cellular heat shock recovery from 78% to 42%, impacting your net yield and financial earnings.
             </p>
           </div>
 

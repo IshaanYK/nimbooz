@@ -70,14 +70,17 @@ export default function WeatherPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b border-slate-200 pb-8">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-accent font-bold tracking-wider uppercase">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-600" /> {t.atmosphericTelemetryBadge}
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="text-xs font-mono font-black text-sky-950 bg-sky-100 px-3 py-1 rounded-full border border-sky-300 flex items-center gap-1.5 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-sky-600 animate-ping" />
+                PS-02: Live Satellite & Atmospheric Telemetry
+              </span>
+              <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                100% REAL OPEN-METEO HOURLY FEED
+              </span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-extrabold font-display text-slate-900 tracking-tight">
-              {t.microClimateTitle} <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-sky-600">
-                {t.microClimateSubtitle}
-              </span>
+              Micro-Climate & Thermal Stress Overwatch
             </h1>
             {activeField && (
               <p className="text-sm text-slate-600 max-w-xl font-body">

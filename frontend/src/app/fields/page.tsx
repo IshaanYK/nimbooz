@@ -45,18 +45,19 @@ export default function MyFieldsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                {t.farmPortfolioBadge}
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span className="text-xs font-mono font-black text-emerald-950 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-400 flex items-center gap-1.5 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-600 animate-ping" />
+                PS-01: Agro-Climatic Intelligence & Field Geo-Registry
               </span>
               <DataBadge type="USER_PROVIDED" customText="REGISTERED FIELDS" />
             </div>
             <h1 className="text-3xl font-black font-display text-slate-900 mt-1 flex items-center gap-2">
               <MapPin className="h-7 w-7 text-[#10B981]" />
-              {t.myFieldsTitle}
+              Farm Fields GIS & Polygon Management
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600">
-              {t.myFieldsDesc}
+            <p className="text-xs sm:text-sm text-slate-600 max-w-3xl">
+              Register field boundaries using Leaflet GIS, compute Shoelace acreage, and inspect hyper-local soil and climate telemetry across all farm plots.
             </p>
           </div>
 

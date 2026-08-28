@@ -377,20 +377,20 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       {/* Header (Clean, High Contrast, Responsive) */}
       <div className="p-3.5 sm:p-4 border-b border-slate-200 bg-white text-slate-900 flex items-center justify-between font-accent shadow-xs shrink-0">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs font-bold shrink-0">
-            <Bot className="h-5 w-5" />
+          <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-600 text-white flex items-center justify-center shadow-xs font-bold shrink-0">
+            <Mic className="h-5 w-5 animate-pulse" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <h3 className="text-xs sm:text-sm font-bold font-display text-slate-900 truncate">
-                AASRA AI Voice Assistant
+              <h3 className="text-xs sm:text-sm font-black font-display text-slate-900 truncate">
+                AASRA Multilingual Voice Companion
               </h3>
-              <span className="hidden sm:inline-flex text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200">
-                GEMINI 2.5 FLASH
+              <span className="inline-flex text-[10px] font-mono font-black bg-amber-100 text-amber-950 px-2 py-0.5 rounded-md border border-amber-300">
+                PS-04 (100% GOOGLE AI)
               </span>
             </div>
             <p className="text-[10px] sm:text-[11px] text-slate-500 truncate notranslate" translate="no">
-              PS-04 Vision & Speech · {langName}
+              Gemini 2.5 Flash + Chirp 3 HD Speech · {langName}
             </p>
           </div>
         </div>
