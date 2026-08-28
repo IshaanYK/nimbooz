@@ -46,6 +46,48 @@ export interface LiveTelemetryContext {
 }
 
 /**
+ * Extract and parse JSON safely from LLM output
+ */
+export function extractAndParseJson(text: string): any {
+  let cleaned = (text || "").trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  }
+
+  // 1. Direct JSON parse
+  try {
+    const obj = JSON.parse(cleaned);
+    if (typeof obj === "object" && obj !== null) {
+      if (typeof obj.reply === "string" && obj.reply.trim().startsWith("{")) {
+        try {
+          const inner = JSON.parse(obj.reply.trim());
+          if (typeof inner === "object" && inner !== null) return inner;
+        } catch {}
+      }
+      return obj;
+    }
+  } catch {}
+
+  // 2. Extract balanced JSON block { ... }
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const candidate = cleaned.slice(firstBrace, lastBrace + 1);
+    try {
+      const obj = JSON.parse(candidate);
+      if (typeof obj === "object" && obj !== null) return obj;
+    } catch {
+      try {
+        const sanitized = candidate.replace(/,\s*([\]}])/g, "$1");
+        return JSON.parse(sanitized);
+      } catch {}
+    }
+  }
+
+  return { reply: cleaned };
+}
+
+/**
  * Fetch live combined Open-Meteo and Syngenta CE Hub telemetry
  */
 export async function fetchLiveAgronomicTelemetry(
@@ -164,28 +206,7 @@ export async function executeGoogleGeminiPrompt(prompt: string, systemInstructio
           const data = await res.json();
           const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawText) {
-            let parsed: any = null;
-            const cleaned = rawText
-              .replace(/^```(?:json)?\s*/i, "")
-              .replace(/\s*```$/i, "")
-              .trim();
-
-            try {
-              parsed = JSON.parse(cleaned);
-              if (typeof parsed === "string") {
-                try {
-                  parsed = JSON.parse(
-                    parsed
-                      .replace(/^```(?:json)?\s*/i, "")
-                      .replace(/\s*```$/i, "")
-                      .trim()
-                  );
-                } catch {}
-              }
-            } catch {
-              parsed = { reply: cleaned };
-            }
-
+            const parsed = extractAndParseJson(rawText);
             if (parsed && typeof parsed === "object") {
               return { data: parsed, model, keyUsed: key.slice(0, 10) + "..." };
             }
