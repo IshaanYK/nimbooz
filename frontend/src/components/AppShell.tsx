@@ -38,12 +38,9 @@ import {
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/how-it-works", "/product", "/impact-story"];
 
 const PS_MODULES = [
-  { id: "PS-01", name: "GIS & Geo-Registry", path: "/fields", icon: MapPin, color: "text-emerald-700 bg-emerald-50 border-emerald-300" },
   { id: "PS-02", name: "14-Day Stress Engine", path: "/plant-intelligence", icon: Activity, color: "text-blue-700 bg-blue-50 border-blue-300" },
   { id: "PS-03", name: "CropFit Biostimulant Matrix", path: "/product", icon: Package, color: "text-purple-700 bg-purple-50 border-purple-300" },
   { id: "PS-04", name: "Multilingual Voice & Vision AI", path: "/assistant", icon: Mic, color: "text-amber-700 bg-amber-50 border-amber-300" },
-  { id: "PS-05", name: "Mobile Touch & Dealer Connect", path: "/dashboard", icon: PhoneCall, color: "text-rose-700 bg-rose-50 border-rose-300" },
-  { id: "PS-06", name: "Biophysical What-If Simulator", path: "/what-if", icon: Sliders, color: "text-indigo-700 bg-indigo-50 border-indigo-300" },
   { id: "PS-07", name: "ROBI Yield & Financial Proof", path: "/impact", icon: TrendingUp, color: "text-emerald-800 bg-emerald-100 border-emerald-400" },
 ];
 
@@ -574,27 +571,27 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <Mic className="h-5 w-5 text-amber-500" />
             <span className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
           </div>
-          <span className="text-[10px] font-bold">AASRA AI</span>
+          <span className="text-[10px] font-bold">PS-04 Voice</span>
         </Link>
 
         <Link
           href="/plant-intelligence"
           className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
-            pathname === "/plant-intelligence" ? "text-emerald-600 font-black" : "text-slate-500"
+            pathname === "/plant-intelligence" ? "text-blue-600 font-black" : "text-slate-500"
           }`}
         >
-          <Leaf className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Stress ML</span>
+          <Activity className="h-5 w-5" />
+          <span className="text-[10px] font-bold">PS-02 Stress</span>
         </Link>
 
         <Link
-          href="/what-if"
+          href="/product"
           className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
-            pathname === "/what-if" ? "text-blue-600 font-black" : "text-slate-500"
+            pathname === "/product" ? "text-purple-600 font-black" : "text-slate-500"
           }`}
         >
-          <Sliders className="h-5 w-5" />
-          <span className="text-[10px] font-bold">What-If</span>
+          <Package className="h-5 w-5" />
+          <span className="text-[10px] font-bold">PS-03 CropFit</span>
         </Link>
 
         <Link
@@ -604,7 +601,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           }`}
         >
           <TrendingUp className="h-5 w-5" />
-          <span className="text-[10px] font-bold">ROBI Proof</span>
+          <span className="text-[10px] font-bold">PS-07 ROBI</span>
         </Link>
       </nav>
 

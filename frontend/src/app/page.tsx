@@ -177,70 +177,103 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 4 CORE CAPABILITY MODULES GRID */}
+        {/* 4 CORE PROBLEM STATEMENTS MATRIX (PS-02, PS-03, PS-04, PS-07) */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
-            <span className="text-xs font-mono font-bold text-[#10B981] uppercase tracking-wider">{t.fieldContextTitle}</span>
-            <h2 className="text-3xl font-black text-slate-900">{t.mapTitle}</h2>
+            <span className="text-xs font-mono font-black text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-300">
+              CHOSEN HACKATHON FOCUS (4 PILLARS)
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 font-display">
+              Four Core Architectural Engines
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600">
+              Engineered exclusively for Syngenta Biologicals with 100% Google AI and live Open-Meteo satellite feeds.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             
-            <div className="stripe-card p-6 space-y-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 text-[#10B981] flex items-center justify-center">
-                <MapPin className="h-5 w-5" />
+            {/* PS-02 */}
+            <div className="stripe-card p-6 space-y-3 bg-white border-2 border-slate-200 hover:border-blue-500 rounded-3xl shadow-xs hover:shadow-xl transition-all flex flex-col justify-between group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-black text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-md border border-blue-300">
+                    PS-02
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">EARLY WARNING</span>
+                </div>
+                <h3 className="font-extrabold text-base text-slate-900 font-display group-hover:text-blue-700 transition-colors">
+                  14-Day Stress Engine
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  GradientBoosting ML forecasting heat stress, nocturnal respiration deficits, and SHAP TreeExplainer feature attribution.
+                </p>
               </div>
-              <h3 className="font-extrabold text-base text-slate-900">{t.navDashboard}</h3>
-              <p className="text-xs text-slate-600">{t.mapDesc}</p>
-              <Link href="/fields" className="text-xs font-bold text-[#10B981] flex items-center gap-1 hover:underline pt-1">
-                {t.btnExploreMap} <ArrowRight className="h-3.5 w-3.5" />
+              <Link href="/plant-intelligence" className="text-xs font-bold text-blue-600 flex items-center justify-between pt-2 border-t border-slate-100 group-hover:underline">
+                <span>Launch Engine</span> <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
-            <div className="stripe-card p-6 space-y-3">
-              <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Mic className="h-5 w-5" />
+            {/* PS-03 */}
+            <div className="stripe-card p-6 space-y-3 bg-white border-2 border-slate-200 hover:border-purple-500 rounded-3xl shadow-xs hover:shadow-xl transition-all flex flex-col justify-between group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-black text-purple-900 bg-purple-100 px-2.5 py-0.5 rounded-md border border-purple-300">
+                    PS-03
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">PRODUCT MATCHER</span>
+                </div>
+                <h3 className="font-extrabold text-base text-slate-900 font-display group-hover:text-purple-700 transition-colors">
+                  CropFit Biologicals
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Syngenta product prescription matching crop growth stage and thermal thresholds (Quantis @ 250ml/ac, Isabion).
+                </p>
               </div>
-              <h3 className="font-extrabold text-base text-slate-900">{t.navAdvisory}</h3>
-              <p className="text-xs text-slate-600">{t.voiceDesc}</p>
-              <Link href="/assistant" className="text-xs font-bold text-amber-600 flex items-center gap-1 hover:underline pt-1">
-                {t.btnPlayVoice} <ArrowRight className="h-3.5 w-3.5" />
+              <Link href="/product" className="text-xs font-bold text-purple-600 flex items-center justify-between pt-2 border-t border-slate-100 group-hover:underline">
+                <span>CropFit Matrix</span> <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
-            <div className="stripe-card p-6 space-y-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5" />
+            {/* PS-04 */}
+            <div className="stripe-card p-6 space-y-3 bg-white border-2 border-slate-200 hover:border-amber-500 rounded-3xl shadow-xs hover:shadow-xl transition-all flex flex-col justify-between group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300">
+                    PS-04
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">GOOGLE AI</span>
+                </div>
+                <h3 className="font-extrabold text-base text-slate-900 font-display group-hover:text-amber-700 transition-colors">
+                  Voice & Vision AI
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Google Gemini 2.5 Flash + Chirp 3 HD speech streaming in 12 Indian languages and foliar scorch camera diagnostics.
+                </p>
               </div>
-              <h3 className="font-extrabold text-base text-slate-900">{t.navRobi}</h3>
-              <p className="text-xs text-slate-600">{t.robiDesc}</p>
-              <Link href="/impact" className="text-xs font-bold text-emerald-600 flex items-center gap-1 hover:underline pt-1">
-                {t.robiTitle} <ArrowRight className="h-3.5 w-3.5" />
+              <Link href="/assistant" className="text-xs font-bold text-amber-600 flex items-center justify-between pt-2 border-t border-slate-100 group-hover:underline">
+                <span>Voice Assistant</span> <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
-            <div className="stripe-card p-6 space-y-3">
-              <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Sliders className="h-5 w-5" />
+            {/* PS-07 */}
+            <div className="stripe-card p-6 space-y-3 bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-3xl shadow-xs hover:shadow-xl transition-all flex flex-col justify-between group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-black text-emerald-900 bg-emerald-100 px-2.5 py-0.5 rounded-md border border-emerald-300">
+                    PS-07
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">FINANCIAL PROOF</span>
+                </div>
+                <h3 className="font-extrabold text-base text-slate-900 font-display group-hover:text-emerald-700 transition-colors">
+                  ROBI Yield Engine
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Disentangling weather noise to prove net financial return (+₹23,125 gain) with verifiable Proof Card export.
+                </p>
               </div>
-              <h3 className="font-extrabold text-base text-slate-900">{t.navWhatIf}</h3>
-              <p className="text-xs text-slate-600">{t.seasonComparison}</p>
-              <Link href="/what-if" className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline pt-1">
-                {t.navWhatIf} <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            <div className="stripe-card p-6 space-y-3 border-l-4 border-l-emerald-500">
-              <div className="h-10 w-10 rounded-xl bg-emerald-900 text-emerald-400 flex items-center justify-center">
-                <Zap className="h-5 w-5" />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">PS-02/03</span>
-              </div>
-              <h3 className="font-extrabold text-base text-slate-900">{t.plantHealthAI}</h3>
-              <p className="text-xs text-slate-600">{t.plantStressEngineDesc}</p>
-              <Link href="/plant-intelligence" className="text-xs font-bold text-emerald-600 flex items-center gap-1 hover:underline pt-1">
-                {t.exploreEngine} <ArrowRight className="h-3.5 w-3.5" />
+              <Link href="/impact" className="text-xs font-bold text-emerald-600 flex items-center justify-between pt-2 border-t border-slate-100 group-hover:underline">
+                <span>ROBI Proof</span> <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 

@@ -138,11 +138,14 @@ export default function DashboardPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-[11px] font-mono font-black text-emerald-950 bg-emerald-200/80 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                    PS-01: Agro-Climatic Profile
+                  <span className="text-[11px] font-mono font-black text-amber-950 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                    PS-04: Voice Advisory AI
                   </span>
-                  <span className="text-[11px] font-mono font-black text-rose-950 bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-300">
-                    PS-05: Mobile Touch & Dealer Hub
+                  <span className="text-[11px] font-mono font-black text-purple-950 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-300">
+                    PS-03: Syngenta Prescription
+                  </span>
+                  <span className="text-[11px] font-mono font-black text-emerald-950 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                    PS-07: ROBI Return
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

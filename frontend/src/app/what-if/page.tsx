@@ -18,9 +18,9 @@ export default function WhatIfPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className="text-xs font-mono font-black text-indigo-900 bg-indigo-100 px-3 py-1 rounded-full border border-indigo-300 flex items-center gap-1.5 shadow-xs">
-                <span className="h-2 w-2 rounded-full bg-indigo-600 animate-ping" />
-                PS-06: Biophysical Scenario Simulator
+              <span className="text-xs font-mono font-black text-emerald-950 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-400 flex items-center gap-1.5 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-600 animate-ping" />
+                PS-07: Biophysical Simulation & Delay Penalty Model
               </span>
               <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
                 12% Protection Loss / Day Delayed
