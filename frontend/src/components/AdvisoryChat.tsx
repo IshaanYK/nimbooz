@@ -63,6 +63,7 @@ export interface Message {
   totalProfitGain?: string;
   confidenceScore?: number;
   followUpQuestions?: string[];
+  telemetryUsed?: any;
 }
 
 interface AdvisoryChatProps {
@@ -321,7 +322,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         whyReason = res?.why_recommendation || `Open-Meteo telemetry for ${locationLabel}: Temp ${weather.temperature}°C, Soil moisture ${weather.soilMoistureEst}%.`;
         confScore = res?.confidence_score || 95;
         followUps = res?.follow_up_questions && res.follow_up_questions.length > 0 ? res.follow_up_questions : followUps;
-        providerUsed = res?.provider_used || res?.provider || "Google Gemini 2.5 Flash";
+        providerUsed = res?.model_used ? `Google ${res.model_used}` : (res?.source === "GOOGLE_GEMINI_2_5_FLASH_LIVE" ? "Google Gemini 2.5 Flash" : "Google Gemini 2.5");
 
         const botMsg: Message = {
           id: `bot-${Date.now()}`,
@@ -334,6 +335,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           totalProfitGain: res?.total_profit_gain,
           confidenceScore: confScore,
           followUpQuestions: followUps,
+          telemetryUsed: res?.telemetry_used,
         };
 
         setMessages((prev) => [...prev, botMsg]);
@@ -507,6 +509,27 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
               )}
 
               <p className="whitespace-pre-line font-body">{msg.text}</p>
+
+              {/* Live Google AI & Syngenta CE Hub Grounding Strip */}
+              {msg.telemetryUsed && msg.sender === "bot" && (
+                <div className="bg-slate-900 text-white rounded-xl p-2.5 space-y-1.5 shadow-2xs text-[10px] font-mono border border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                      100% REAL LIVE TELEMETRY
+                    </span>
+                    <span className="text-slate-400 text-[9px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                      {msg.provider || "Google Gemini 2.5 Flash"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1 text-slate-300 border-t border-slate-800">
+                    <div>🌡️ Temp: <strong className="text-white">{msg.telemetryUsed.temp}°C</strong></div>
+                    <div>🌙 Night: <strong className="text-amber-400">{msg.telemetryUsed.nightTemp}°C</strong></div>
+                    <div>💧 Soil: <strong className="text-blue-400">{msg.telemetryUsed.soilMoisture}%</strong></div>
+                    <div>🛰️ GDD: <strong className="text-emerald-400">{msg.telemetryUsed.cehubGddAccumulated}°C·d</strong></div>
+                  </div>
+                </div>
+              )}
 
               {/* Exact Dosage & Total Farm Profit Badges */}
               {(msg.dosageSummary || msg.totalProfitGain) && msg.sender === "bot" && (
