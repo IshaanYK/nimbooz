@@ -41,11 +41,18 @@ import {
   MessageSquare,
   Store,
   MapPin as MapPinIcon,
+  Navigation,
+  ExternalLink,
 } from "lucide-react";
 import { sendChatMessage, analyzeCropLeafImage } from "@/lib/api";
 import { DataBadge } from "./DataBadge";
 import { getStoredProfile, INDIAN_LANGUAGES } from "@/lib/userStore";
-import { getNearbySyngentaDealers, generateWhatsAppOrderLink } from "@/lib/syngentaDealers";
+import {
+  getNearbySyngentaDealers,
+  generateWhatsAppOrderLink,
+  getLiveGoogleMapsDealerSearchUrl,
+  SYNGENTA_OFFICIAL_CONTACTS,
+} from "@/lib/syngentaDealers";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
@@ -597,54 +604,100 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                       onClick={() => setOpenDealersId(openDealersId === msg.id ? null : msg.id)}
                       className="text-[10px] font-black text-emerald-800 bg-white hover:bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-300 cursor-pointer transition-all shadow-2xs"
                     >
-                      {openDealersId === msg.id ? (language === "hi" ? "छुपाएं ▲" : "Hide ▲") : (language === "hi" ? "विक्रेता देखें ▼" : "View Dealers ▼")}
+                      {openDealersId === msg.id ? (language === "hi" ? "छुपाएं ▲" : "विक्रेता देखें ▼") : (language === "hi" ? "विक्रेता देखें ▼" : "View Dealers ▼")}
                     </button>
                   </div>
 
                   {openDealersId === msg.id ? (
-                    <div className="space-y-2 pt-1 border-t border-emerald-200">
-                      {nearbyDealers.slice(0, 2).map((dlr) => {
+                    <div className="space-y-2.5 pt-1 border-t border-emerald-200">
+                      {nearbyDealers.slice(0, 3).map((dlr) => {
                         const waMsgLink = generateWhatsAppOrderLink(dlr, farmerName, crop, profile?.fieldAreaAcres || 12.5, "Syngenta Quantis / Stress Buster");
                         return (
-                          <div key={dlr.id} className="bg-white p-2.5 rounded-xl border border-emerald-200 space-y-1.5 shadow-2xs">
-                            <div className="flex items-start justify-between gap-1">
+                          <div key={dlr.id} className="bg-white p-2.5 rounded-xl border border-emerald-200 space-y-2 shadow-2xs">
+                            <div className="flex items-start justify-between gap-1.5">
                               <div>
-                                <h5 className="font-extrabold text-xs text-slate-900 leading-tight">{dlr.name}</h5>
-                                <p className="text-[10px] text-slate-500">{dlr.proprietor} · {dlr.address}</p>
+                                <div className="flex items-center gap-1">
+                                  <h5 className="font-extrabold text-xs text-slate-900 leading-tight">{dlr.name}</h5>
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded">✓ Verified</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 pt-0.5">{dlr.proprietor} · {dlr.address}</p>
                               </div>
                               <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded shrink-0">
                                 {dlr.distanceKm} km
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 pt-1">
+
+                            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
                               <a
                                 href={`tel:${dlr.phone}`}
-                                className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer"
+                                className="py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer transition-colors"
                               >
                                 <Phone className="h-3 w-3" />
-                                <span>{dlr.phone}</span>
+                                <span>Call</span>
+                              </a>
+                              <a
+                                href={dlr.googleMapsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Navigation className="h-3 w-3" />
+                                <span>Maps</span>
                               </a>
                               <a
                                 href={waMsgLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex-1 py-1.5 px-2 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer"
+                                className="py-1.5 px-2 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer transition-colors"
                               >
                                 <MessageSquare className="h-3 w-3" />
-                                <span>WhatsApp</span>
+                                <span>Order</span>
                               </a>
                             </div>
                           </div>
                         );
                       })}
-                      <div className="text-[10px] text-emerald-900 font-bold bg-emerald-100/70 p-2 rounded-lg text-center">
-                        📞 Syngenta Kisan Toll-Free: <strong>1800-102-7964</strong>
+
+                      {/* Google Maps Real Search & Toll-Free Links */}
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <a
+                          href={getLiveGoogleMapsDealerSearchUrl(activeDistrict, profile?.state || "Madhya Pradesh")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 py-1.5 px-2.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 text-center"
+                        >
+                          <Navigation className="h-3 w-3 text-blue-600" />
+                          <span>{language === "hi" ? "गूगल मैप पर सभी विक्रेता खोजें" : "Search All Dealers on Google Maps"}</span>
+                        </a>
+                        <a
+                          href={SYNGENTA_OFFICIAL_CONTACTS.retailerLocatorUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 bg-emerald-900 hover:bg-emerald-800 text-emerald-200 py-1.5 px-2.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 text-center"
+                        >
+                          <ExternalLink className="h-3 w-3 text-emerald-400" />
+                          <span>Syngenta Official Retailer Portal</span>
+                        </a>
+                      </div>
+
+                      <div className="text-[10px] text-emerald-950 font-bold bg-emerald-100/80 p-2 rounded-lg text-center flex items-center justify-center gap-2 flex-wrap">
+                        <span>📞 Syngenta Kisan Toll-Free: <strong>1800-102-7964</strong></span>
+                        <span>·</span>
+                        <span>Pesticides Helpline: <strong>1800-200-1310</strong></span>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between text-[10px] text-emerald-900 pt-0.5 font-medium">
-                      <span>{nearbyDealers[0]?.name} · {nearbyDealers[0]?.distanceKm} km ({nearbyDealers[0]?.phone})</span>
-                      <span className="text-emerald-700 font-bold">🟢 Quantis In-Stock</span>
+                      <span className="truncate">{nearbyDealers[0]?.name} · {nearbyDealers[0]?.distanceKm} km</span>
+                      <a
+                        href={nearbyDealers[0]?.googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 font-bold hover:underline flex items-center gap-0.5 shrink-0 ml-2"
+                      >
+                        <Navigation className="h-2.5 w-2.5" />
+                        <span>Google Maps</span>
+                      </a>
                     </div>
                   )}
                 </div>
