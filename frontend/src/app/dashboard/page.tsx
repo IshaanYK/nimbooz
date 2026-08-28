@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
 import { getActiveField, FieldRecord } from "@/lib/fieldStore";
+import { SyngentaDealerLocator } from "@/components/SyngentaDealerLocator";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
@@ -400,6 +401,15 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            {/* Verified Syngenta Authorized Dealer Locator Section */}
+            <SyngentaDealerLocator
+              district={profile.district || "Bhopal"}
+              farmerName={profile.fullName || "Ramesh Patel"}
+              crop={profile.primaryCrop || "Soybean"}
+              fieldAcres={currentAcres}
+              productName="Syngenta Quantis & Stress Buster"
+            />
 
           </div>
 

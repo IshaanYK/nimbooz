@@ -37,10 +37,15 @@ import {
   X,
   Play,
   RotateCcw,
+  Phone,
+  MessageSquare,
+  Store,
+  MapPin as MapPinIcon,
 } from "lucide-react";
 import { sendChatMessage, analyzeCropLeafImage } from "@/lib/api";
 import { DataBadge } from "./DataBadge";
 import { getStoredProfile, INDIAN_LANGUAGES } from "@/lib/userStore";
+import { getNearbySyngentaDealers, generateWhatsAppOrderLink } from "@/lib/syngentaDealers";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
@@ -99,9 +104,12 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
   const [chirpVoice, setChirpVoice] = useState<"hi-IN-Chirp3-HD-Kore" | "hi-IN-Chirp3-HD-Charon">("hi-IN-Chirp3-HD-Kore");
   const [openWhyId, setOpenWhyId] = useState<string | null>(null);
+  const [openDealersId, setOpenDealersId] = useState<string | null>(null);
 
   const profile = getStoredProfile();
   const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : "Ramesh Patel";
+  const activeDistrict = profile?.district || "Bhopal";
+  const nearbyDealers = getNearbySyngentaDealers(activeDistrict);
 
   // Welcome message generator
   const buildWelcome = useCallback((): Message => {
@@ -550,6 +558,71 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                     <p className="text-slate-700 pt-1 leading-normal italic font-body text-[11px]">
                       💡 {msg.whyRecommendation}
                     </p>
+                  )}
+                </div>
+              )}
+
+              {/* Nearby Syngenta Sellers & Contact Information Card */}
+              {msg.sender === "bot" && (
+                <div className="border border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-3 text-[11px] font-accent space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-emerald-950">
+                      <Store className="h-4 w-4 text-emerald-700" />
+                      <span>{language === "hi" ? "📍 पास के अधिकृत सिंजेंटा विक्रेता" : "📍 Nearby Syngenta Dealers"} ({activeDistrict})</span>
+                    </div>
+                    <button
+                      onClick={() => setOpenDealersId(openDealersId === msg.id ? null : msg.id)}
+                      className="text-[10px] font-black text-emerald-800 bg-white hover:bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-300 cursor-pointer transition-all shadow-2xs"
+                    >
+                      {openDealersId === msg.id ? (language === "hi" ? "छुपाएं ▲" : "Hide ▲") : (language === "hi" ? "विक्रेता देखें ▼" : "View Dealers ▼")}
+                    </button>
+                  </div>
+
+                  {openDealersId === msg.id ? (
+                    <div className="space-y-2 pt-1 border-t border-emerald-200">
+                      {nearbyDealers.slice(0, 2).map((dlr) => {
+                        const waMsgLink = generateWhatsAppOrderLink(dlr, farmerName, crop, profile?.fieldAreaAcres || 12.5, "Syngenta Quantis / Stress Buster");
+                        return (
+                          <div key={dlr.id} className="bg-white p-2.5 rounded-xl border border-emerald-200 space-y-1.5 shadow-2xs">
+                            <div className="flex items-start justify-between gap-1">
+                              <div>
+                                <h5 className="font-extrabold text-xs text-slate-900 leading-tight">{dlr.name}</h5>
+                                <p className="text-[10px] text-slate-500">{dlr.proprietor} · {dlr.address}</p>
+                              </div>
+                              <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded shrink-0">
+                                {dlr.distanceKm} km
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 pt-1">
+                              <a
+                                href={`tel:${dlr.phone}`}
+                                className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <Phone className="h-3 w-3" />
+                                <span>{dlr.phone}</span>
+                              </a>
+                              <a
+                                href={waMsgLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 py-1.5 px-2 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <MessageSquare className="h-3 w-3" />
+                                <span>WhatsApp</span>
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="text-[10px] text-emerald-900 font-bold bg-emerald-100/70 p-2 rounded-lg text-center">
+                        📞 Syngenta Kisan Toll-Free: <strong>1800-102-7964</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-[10px] text-emerald-900 pt-0.5 font-medium">
+                      <span>{nearbyDealers[0]?.name} · {nearbyDealers[0]?.distanceKm} km ({nearbyDealers[0]?.phone})</span>
+                      <span className="text-emerald-700 font-bold">🟢 Quantis In-Stock</span>
+                    </div>
                   )}
                 </div>
               )}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { Ps04SpeechIntelligence } from "@/components/Ps04SpeechIntelligence";
 import { WhyScienceSection } from "@/components/WhyScienceSection";
+import { SyngentaDealerLocator } from "@/components/SyngentaDealerLocator";
 import { Mic, ArrowRight, Sparkles, Leaf, Zap } from "lucide-react";
 
 const PS_SYSTEMS = [
@@ -182,6 +183,15 @@ export default function ProductPage() {
 
         {/* Feature Deep-Dive Sections */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+          {/* Syngenta Authorized Dealers Directory */}
+          <SyngentaDealerLocator
+            district="Bhopal"
+            farmerName="Ramesh Patel"
+            crop="Soybean"
+            fieldAcres={12.5}
+            productName="Syngenta Quantis & Stress Buster"
+          />
+
           <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
             <Ps04SpeechIntelligence />
           </div>
