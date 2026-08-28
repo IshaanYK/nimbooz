@@ -10,6 +10,7 @@ interface LeafletMapInnerProps {
   isDrawingMode?: boolean;
   drawnNodes?: Array<[number, number]>;
   activeLayer?: string;
+  baseMapType?: "satellite" | "streets" | "hybrid";
   pinsList?: FieldPin[];
   onMapClick?: (lat: number, lon: number) => void;
   onSelectField?: (field: FieldRecord) => void;
@@ -21,17 +22,20 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
   activeFieldId,
   isDrawingMode = false,
   drawnNodes = [],
-  activeLayer = "satellite",
+  activeLayer = "crop_health",
+  baseMapType = "satellite",
   pinsList = [],
   onMapClick,
   onSelectField,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const tileLayerRef = useRef<any>(null);
+  const labelLayerRef = useRef<any>(null);
   const layerGroupRef = useRef<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // 1. Load Leaflet script once
+  // 1. Load Leaflet CDN script & CSS reliably
   useEffect(() => {
     if (typeof window !== "undefined" && !(window as any).L) {
       const link = document.createElement("link");
@@ -48,36 +52,47 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     }
   }, []);
 
-  // 2. Initialize Leaflet Map ONCE
+  // 2. Initialize Leaflet Map Instance ONCE
   useEffect(() => {
     if (!mapLoaded || !mapContainerRef.current || mapInstanceRef.current) return;
     const L = (window as any).L;
     if (!L) return;
 
+    // Fix default Leaflet icon paths
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    });
+
     const map = L.map(mapContainerRef.current, {
       center: center,
       zoom: 15,
-      zoomControl: true,
+      zoomControl: false,
+      attributionControl: false,
     });
 
     mapInstanceRef.current = map;
 
-    // Satellite Base Layer (Esri World Imagery)
-    L.tileLayer(
+    // Add custom positioned Zoom Control
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    // Initial Base Tiles (Esri Satellite)
+    const baseTiles = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      {
-        attribution: "Esri World Imagery Satellite",
-        maxZoom: 18,
-      }
+      { maxZoom: 19, attribution: "Esri Satellite" }
     ).addTo(map);
+    tileLayerRef.current = baseTiles;
 
-    // OpenStreetMap Hybrid Labels Overlay
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      opacity: 0.25,
-      maxZoom: 18,
-    }).addTo(map);
+    // Labels overlay for villages, roads, and mandis
+    const labelTiles = L.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 19, opacity: 0.8 }
+    ).addTo(map);
+    labelLayerRef.current = labelTiles;
 
-    // Vector Layer Group for polygons/markers
+    // Layer Group for vector features
     const layerGroup = L.layerGroup().addTo(map);
     layerGroupRef.current = layerGroup;
 
@@ -85,60 +100,107 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       if (onMapClick) onMapClick(e.latlng.lat, e.latlng.lng);
     });
 
+    // Invalidate size on mount
+    setTimeout(() => map.invalidateSize(), 250);
+
     return () => {
       map.remove();
       mapInstanceRef.current = null;
     };
   }, [mapLoaded]);
 
-  // 3. Update view & vector layers smoothly WITHOUT re-creating map instance
+  // 3. Switch Base Map Tiles smoothly
+  useEffect(() => {
+    if (!mapLoaded || !mapInstanceRef.current || !tileLayerRef.current) return;
+    const L = (window as any).L;
+    if (!L) return;
+
+    const map = mapInstanceRef.current;
+    if (tileLayerRef.current) map.removeLayer(tileLayerRef.current);
+    if (labelLayerRef.current) map.removeLayer(labelLayerRef.current);
+
+    if (baseMapType === "satellite") {
+      tileLayerRef.current = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19, attribution: "Esri Satellite" }
+      ).addTo(map);
+      labelLayerRef.current = L.tileLayer(
+        "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19, opacity: 0.85 }
+      ).addTo(map);
+    } else if (baseMapType === "streets") {
+      tileLayerRef.current = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        { maxZoom: 19, attribution: "OpenStreetMap" }
+      ).addTo(map);
+    } else {
+      // CartoDB Voyager Hybrid
+      tileLayerRef.current = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        { maxZoom: 19, attribution: "CartoDB Voyager" }
+      ).addTo(map);
+    }
+
+    if (layerGroupRef.current) {
+      layerGroupRef.current.bringToFront();
+    }
+  }, [baseMapType, mapLoaded]);
+
+  // 4. Smooth Pan / Fly to New Center
+  useEffect(() => {
+    if (!mapLoaded || !mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+    map.flyTo(center, 15, { duration: 1.2, easeLinearity: 0.25 });
+  }, [center, mapLoaded]);
+
+  // 5. Update Field Polygons, Drawing Nodes, and Pins
   useEffect(() => {
     if (!mapLoaded || !mapInstanceRef.current || !layerGroupRef.current) return;
     const L = (window as any).L;
     if (!L) return;
 
-    const map = mapInstanceRef.current;
     const layerGroup = layerGroupRef.current;
-
-    // Smooth pan center
-    map.setView(center, map.getZoom(), { animate: true });
-
-    // Clear vector layers only
     layerGroup.clearLayers();
 
-    // Render Field Polygons
+    // A. Render Registered Field Polygons
     savedFields.forEach((field) => {
       if (field.polygon && field.polygon.length >= 3) {
         const isActive = field.id === activeFieldId;
-        const color = isActive ? "#10B981" : field.color || "#F59E0B";
+        const baseColor = isActive ? "#10B981" : field.color || "#F59E0B";
 
-        let fillColor = color;
-        let fillOpacity = isActive ? 0.45 : 0.25;
+        let fillColor = baseColor;
+        let fillOpacity = isActive ? 0.55 : 0.3;
 
         if (activeLayer === "temp") {
-          fillColor = isActive ? "#EF4444" : "#F59E0B";
-          fillOpacity = 0.55;
+          fillColor = isActive ? "#EF4444" : "#F97316";
+          fillOpacity = 0.6;
         } else if (activeLayer === "rain") {
           fillColor = "#3B82F6";
-          fillOpacity = 0.4;
+          fillOpacity = 0.55;
         } else if (activeLayer === "soil") {
-          fillColor = "#D97706";
-          fillOpacity = 0.45;
+          fillColor = "#8B5CF6";
+          fillOpacity = 0.55;
         } else if (activeLayer === "crop_health") {
           fillColor = isActive ? "#10B981" : "#84CC16";
           fillOpacity = 0.5;
         }
 
         const polygonObj = L.polygon(field.polygon, {
-          color: color,
-          weight: isActive ? 3.5 : 2,
+          color: isActive ? "#059669" : baseColor,
+          weight: isActive ? 4 : 2,
+          dashArray: isActive ? undefined : "4, 4",
           fillColor: fillColor,
           fillOpacity: fillOpacity,
         });
 
+        // Interactive Popup & Tooltip
         polygonObj.bindTooltip(
-          `<b>${field.name}</b><br>${field.crop} · ${field.areaAcres} Acres<br>Health: ${field.healthScore || 92}%`,
-          { permanent: false, direction: "top" }
+          `<div class="text-xs font-sans">
+            <strong class="text-slate-900 block font-bold">${field.name}</strong>
+            <span class="text-emerald-700 font-bold">${field.crop} (${field.cropVariety || "JS-335"})</span> · 
+            <span>${field.areaAcres} Acres</span>
+          </div>`,
+          { permanent: false, direction: "top", className: "field-map-tooltip" }
         );
 
         polygonObj.on("click", () => {
@@ -146,18 +208,34 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
         });
 
         layerGroup.addLayer(polygonObj);
+
+        // Center Marker Badge for Field
+        const centerIcon = L.divIcon({
+          className: "field-center-badge",
+          html: `<div style="background:${isActive ? "#059669" : "#1E293B"}; color:white; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:800; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.4); white-space:nowrap; display:flex; align-items:center; gap:4px">
+            <span>🌱 ${field.name}</span>
+            <span style="color:#A7F3D0">(${field.areaAcres} Ac)</span>
+          </div>`,
+        });
+
+        const centerMarker = L.marker(field.center, { icon: centerIcon });
+        centerMarker.on("click", () => {
+          if (onSelectField) onSelectField(field);
+        });
+        layerGroup.addLayer(centerMarker);
       }
     });
 
-    // Render Drawn Nodes
+    // B. Render Drawn Nodes for Polygon Creation
     if (drawnNodes.length > 0) {
       drawnNodes.forEach((node, idx) => {
         const circle = L.circleMarker(node, {
-          radius: 6,
-          color: "#F59E0B",
+          radius: 7,
+          color: "#FFFFFF",
+          weight: 2,
           fillColor: "#F59E0B",
           fillOpacity: 1,
-        }).bindTooltip(`Point ${idx + 1}`, { permanent: true, direction: "top" });
+        }).bindTooltip(`Vertex ${idx + 1}`, { permanent: true, direction: "top" });
         layerGroup.addLayer(circle);
       });
 
@@ -165,21 +243,42 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
         const line = L.polyline(drawnNodes, { color: "#F59E0B", weight: 3, dashArray: "6, 6" });
         layerGroup.addLayer(line);
       }
+
+      if (drawnNodes.length >= 3) {
+        const previewPoly = L.polygon(drawnNodes, {
+          color: "#F59E0B",
+          weight: 2,
+          fillColor: "#FBBF24",
+          fillOpacity: 0.35,
+        });
+        layerGroup.addLayer(previewPoly);
+      }
     }
 
-    // Render Pins
+    // C. Render Observation Pins
     pinsList.forEach((pin) => {
       const pinIcon = L.divIcon({
         className: "custom-pin-marker",
-        html: `<div style="background:#EF4444;color:white;padding:3px 6px;border-radius:8px;font-size:10px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.4)">📌 ${pin.note}</div>`,
+        html: `<div style="background:#EF4444; color:white; padding:3px 7px; border-radius:8px; font-size:10px; font-weight:bold; border:1.5px solid white; box-shadow:0 3px 6px rgba(0,0,0,0.35); display:flex; align-items:center; gap:3px">
+          <span>📍</span> <span>${pin.note}</span>
+        </div>`,
       });
       const marker = L.marker([pin.lat, pin.lon], { icon: pinIcon }).bindPopup(
-        `<b>Observation Pin</b><br>${pin.note}<br><small>${pin.date}</small>`
+        `<div style="font-family:sans-serif; font-size:12px; line-height:1.4">
+          <strong style="color:#0F172A">Observation Point</strong><br/>
+          <span>${pin.note}</span><br/>
+          <small style="color:#64748B">${pin.date}</small>
+        </div>`
       );
       layerGroup.addLayer(marker);
     });
 
-  }, [mapLoaded, center, savedFields, activeFieldId, isDrawingMode, drawnNodes, activeLayer, pinsList, onMapClick, onSelectField]);
+  }, [mapLoaded, savedFields, activeFieldId, isDrawingMode, drawnNodes, activeLayer, pinsList, onSelectField]);
 
-  return <div ref={mapContainerRef} className="h-full w-full bg-slate-900 z-0 relative isolate overflow-hidden [&_.leaflet-container]:!z-1 [&_.leaflet-pane]:!z-1" />;
+  return (
+    <div
+      ref={mapContainerRef}
+      className="h-full w-full bg-slate-950 z-0 relative isolate overflow-hidden rounded-2xl [&_.leaflet-container]:!z-1 [&_.leaflet-pane]:!z-1"
+    />
+  );
 });
