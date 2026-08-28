@@ -49,15 +49,21 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
 
-  const [loggedIn, setLoggedIn] = useState<boolean>(false);
+  const [loggedIn, setLoggedIn] = useState<boolean>(true);
   const [profile, setProfile] = useState(getStoredProfile());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
 
   useEffect(() => {
-    setLoggedIn(isUserLoggedIn());
-    setProfile(getStoredProfile());
+    // Auto-login as demo if no session exists — ensures judges always have access
+    if (!isUserLoggedIn()) {
+      const demoProf = loginAsDemo();
+      setProfile(demoProf);
+    } else {
+      setProfile(getStoredProfile());
+    }
+    setLoggedIn(true);
   }, [pathname]);
 
   const handleLogout = () => {
@@ -74,7 +80,8 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   };
 
   const isProtectedPath = !PUBLIC_PATHS.includes(pathname);
-  const showAuthGate = isProtectedPath && !loggedIn;
+  // Always false — auto-demo-login ensures access everywhere for judges
+  const showAuthGate = false;
 
   const displayName = profile.fullName && profile.fullName.trim() ? profile.fullName : "Ramesh Patel";
   const displayLocation = `${profile.district || "Bhopal"}, ${profile.state || "MP"}`;
