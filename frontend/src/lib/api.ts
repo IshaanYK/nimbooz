@@ -27,7 +27,11 @@ export async function sendChatMessage(
   location?: string,
   night_temp?: number | null,
   farmer_name?: string,
-  field_acres?: number
+  field_acres?: number,
+  crop_variety?: string,
+  soil_type?: string,
+  district?: string,
+  village?: string
 ) {
   try {
     const res = await fetch(`${API_BASE}/chat`, {
@@ -43,6 +47,10 @@ export async function sendChatMessage(
         night_temp,
         farmer_name,
         field_acres,
+        crop_variety,
+        soil_type,
+        district,
+        village,
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

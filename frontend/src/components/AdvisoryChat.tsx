@@ -54,6 +54,8 @@ export interface Message {
   provider?: string;
   imageUrl?: string;
   whyRecommendation?: string;
+  dosageSummary?: string;
+  totalProfitGain?: string;
   confidenceScore?: number;
   followUpQuestions?: string[];
 }
@@ -300,7 +302,11 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           weather.locationName || locationLabel,
           weather.temperature,
           farmerName,
-          profile.fieldAreaAcres || 12.5
+          profile.fieldAreaAcres || 12.5,
+          profile.cropVariety || "JS-335",
+          profile.soilType || "Black Vertisol Clay",
+          profile.district || "Bhopal",
+          profile.village || "Fanda Kalan"
         );
 
         replyText = res?.reply || res?.response || "";
@@ -308,6 +314,23 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         confScore = res?.confidence_score || 95;
         followUps = res?.follow_up_questions && res.follow_up_questions.length > 0 ? res.follow_up_questions : followUps;
         providerUsed = res?.provider_used || res?.provider || "Google Gemini 2.5 Flash";
+
+        const botMsg: Message = {
+          id: `bot-${Date.now()}`,
+          sender: "bot",
+          text: replyText,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          provider: providerUsed,
+          whyRecommendation: whyReason,
+          dosageSummary: res?.dosage_summary,
+          totalProfitGain: res?.total_profit_gain,
+          confidenceScore: confScore,
+          followUpQuestions: followUps,
+        };
+
+        setMessages((prev) => [...prev, botMsg]);
+        speakResponse(replyText);
+        return;
       }
     } catch (err) {
       console.warn("Chat error, using localized response:", err);
@@ -476,6 +499,39 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
               )}
 
               <p className="whitespace-pre-line font-body">{msg.text}</p>
+
+              {/* Exact Dosage & Total Farm Profit Badges */}
+              {(msg.dosageSummary || msg.totalProfitGain) && msg.sender === "bot" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  {msg.dosageSummary && (
+                    <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-2 flex items-center gap-2">
+                      <span className="text-base">🧪</span>
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-mono font-bold text-amber-800 uppercase block leading-none">
+                          {language === "hi" ? "दवा की मात्रा" : "Exact Dosage"}
+                        </span>
+                        <span className="text-xs font-black text-amber-950 truncate block">
+                          {msg.dosageSummary}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {msg.totalProfitGain && (
+                    <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-2 flex items-center gap-2">
+                      <span className="text-base">💰</span>
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-mono font-bold text-emerald-800 uppercase block leading-none">
+                          {language === "hi" ? "कुल शुद्ध लाभ" : "Net Farm Gain"}
+                        </span>
+                        <span className="text-xs font-black text-emerald-950 truncate block">
+                          {msg.totalProfitGain}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Explainable Rationale ("Why this recommendation?") */}
               {msg.whyRecommendation && msg.sender === "bot" && (

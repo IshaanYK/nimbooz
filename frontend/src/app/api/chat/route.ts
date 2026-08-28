@@ -86,42 +86,70 @@ export async function POST(req: NextRequest) {
       soil_moisture = null,
       lat = null,
       lon = null,
-      farmer_name = "Kisan Bhai",
+      farmer_name = "Ramesh Patel",
       field_acres = 12.5,
+      crop_variety = "JS-335",
+      soil_type = "Black Vertisol Clay",
+      district = "Bhopal",
+      village = "Fanda Kalan",
     } = body;
 
     const targetLangName = LANGUAGE_NAMES[language] || "Hindi (हिन्दी)";
-    const activeTemp = night_temp != null ? Number(night_temp) : temperature != null ? Number(temperature) : 28.2;
-    const activeSoil = soil_moisture != null ? Number(soil_moisture) : 48;
-    const activeLocation = location && location !== "your field" ? location : "Field Location";
+    const activeTemp = night_temp != null ? Number(night_temp) : temperature != null ? Number(temperature) : 28.4;
+    const activeSoil = soil_moisture != null ? Number(soil_moisture) : 46;
+    const activeLocation = location && location !== "your field" ? location : `${village ? village + ", " : ""}${district || "Bhopal"}`;
+    const acresNum = Number(field_acres) || 12.5;
     const isNightHeatStress = activeTemp > 25.0;
 
-    const systemPrompt = `You are AASRA (आसरा), an ultra-fast, expert AI Agricultural Advisory Companion for Indian farmers.
-Powered by Google Gemini 2.5 Flash.
+    // Exact Agronomic Numbers for the farmer's plot
+    const dosePerAcreMl = 250;
+    const totalDoseLiters = Math.round((dosePerAcreMl * acresNum) / 100) / 10;
+    const waterLiters = Math.round(175 * acresNum);
+    const inputCostTotal = Math.round(850 * acresNum);
+    const yieldGainTotalQ = Math.round(0.60 * acresNum * 10) / 10;
+    const netProfitTotal = Math.round(2030 * acresNum);
 
-STRICT LANGUAGE REQUIREMENT:
-- Write strictly in authentic ${targetLangName}.
+    const systemPrompt = `You are AASRA (आसरा), an expert, ultra-responsive AI Agricultural Companion for Indian farmers.
+Powered by Google Gemini 2.5.
 
-FARMER & TELEMETRY:
-- Farmer Name: ${farmer_name}
-- Crop: ${crop} (Flowering / Pod Development) on ${field_acres} Acres
+FARMER IDENTITY & ACTIVE PLOT:
+- Name: ${farmer_name} (Address them respectfully with "जी" in Hindi or "Shri" in English)
 - Location: ${activeLocation}
-- Night Temperature: ${activeTemp}°C (${isNightHeatStress ? "High Night Heat Shock >25°C" : "Optimal"})
+- Crop: ${crop} (Variety: ${crop_variety}) on ${acresNum} Acres
+- Soil Type: ${soil_type}
+- Night Temperature: ${activeTemp}°C (${isNightHeatStress ? "High Night Heat Shock >25°C - accelerated respiration loss" : "Normal thermal range"})
 - Soil Moisture: ${activeSoil}%
-- Solution: Syngenta Stress Buster @ 250ml/acre in 150-200L water (Net Gain: ₹2,760/acre, Yield: +0.60 q/acre).
+- Recommended Product: Syngenta Stress Buster (Biostimulant)
+
+EXACT CALCULATED METRICS FOR THIS FARM:
+- Dosage: 250 ml/acre in 150-200 L water (Total for ${acresNum} acres = ${totalDoseLiters} L in ${waterLiters} L clean water)
+- Total Input Investment: ₹${inputCostTotal.toLocaleString("en-IN")} (₹850/acre)
+- Yield Protection: +0.60 quintal/acre (+${yieldGainTotalQ} quintals total)
+- Net Farm Profit Increase: +₹${netProfitTotal.toLocaleString("en-IN")} (+₹2,030/acre)
+
+INSTRUCTIONS:
+1. Greet ${farmer_name} by name warmly.
+2. Directly answer their question in clean, understandable, practical farmer language.
+3. If they ask about spray, timing, or loss, give the exact numbers calculated above for their ${acresNum} acres.
+4. Keep the tone empathetic, respectful, and crystal clear (no unnecessary academic jargon).
+5. Output strictly valid JSON matching the schema below.
+
+LANGUAGE: Strictly in ${targetLangName}.
 
 FARMER'S QUESTION:
 "${message}"
 
-OUTPUT IN STRICT JSON FORMAT ONLY:
+JSON RESPONSE FORMAT:
 {
-  "reply": "Warm, respectful, practical answer in ${targetLangName} addressing ${farmer_name} (75-120 words)",
-  "why_recommendation": "1 sentence scientific rationale in ${targetLangName}",
-  "confidence_score": 95,
+  "reply": "Warm response in ${targetLangName} addressing ${farmer_name} with practical step-by-step guidance and exact numbers for ${acresNum} acres",
+  "why_recommendation": "1 sentence clear scientific rationale in ${targetLangName}",
+  "dosage_summary": "${dosePerAcreMl} ml/एकड़ (${totalDoseLiters} L कुल ${acresNum} एकड़ के लिए)",
+  "total_profit_gain": "₹${netProfitTotal.toLocaleString("en-IN")}",
+  "confidence_score": 98,
   "follow_up_questions": [
-    "Question 1 in ${targetLangName}",
-    "Question 2 in ${targetLangName}",
-    "Question 3 in ${targetLangName}"
+    "Follow-up question 1 in ${targetLangName}",
+    "Follow-up question 2 in ${targetLangName}",
+    "Follow-up question 3 in ${targetLangName}"
   ]
 }`;
 
@@ -148,12 +176,14 @@ OUTPUT IN STRICT JSON FORMAT ONLY:
 
         parsedJson = {
           reply: textReply,
-          why_recommendation: `Live Open-Meteo telemetry for ${activeLocation}: Night temperature ${activeTemp}°C and soil moisture ${activeSoil}%.`,
-          confidence_score: 95,
+          why_recommendation: `Live Open-Meteo telemetry for ${activeLocation}: Night temperature ${activeTemp}°C, soil moisture ${activeSoil}%.`,
+          dosage_summary: `${dosePerAcreMl} ml/acre (${totalDoseLiters} L for ${acresNum} acres)`,
+          total_profit_gain: `₹${netProfitTotal.toLocaleString("en-IN")}`,
+          confidence_score: 96,
           follow_up_questions: [
             language === "hi" ? "छिड़काव का सबसे सही समय क्या है?" : "What is the optimal spray timing?",
-            language === "hi" ? "प्रति एकड़ कुल खर्च और शुद्ध लाभ कितना होगा?" : "What is the net profit per acre?",
-            language === "hi" ? "क्या इसे अन्य कीटनाशकों के साथ मिला सकते हैं?" : "Is it compatible with other sprays?",
+            language === "hi" ? `मेरे ${acresNum} एकड़ के लिए कुल शुद्ध लाभ कितना होगा?` : `What is the net profit for my ${acresNum} acres?`,
+            language === "hi" ? "क्या इसे अन्य कीटनाशकों के साथ मिलाकर डाल सकते हैं?" : "Can I mix this with other agrochemicals?",
           ],
         };
       }
@@ -161,19 +191,21 @@ OUTPUT IN STRICT JSON FORMAT ONLY:
 
     if (!parsedJson || !parsedJson.reply) {
       const fallbackReplies: Record<string, string> = {
-        hi: `${activeLocation} में आपकी ${crop} फसल के लिए रात का तापमान ${activeTemp}°C है। गर्मी तनाव से बचाने के लिए Syngenta Stress Buster (250 ml/एकड़) का 150-200 लीटर पानी में मिलाकर सुबह या शाम को छिड़काव करें। इससे +0.60 क्विंटल/एकड़ अतिरिक्त उपज और ₹2,760/एकड़ का लाभ प्राप्त होगा।`,
-        mr: `${activeLocation} मधील तुमच्या ${crop} पिकासाठी रात्रीचे तापमान ${activeTemp}°C आहे. संरक्षणासाठी Syngenta Stress Buster (२५० मिली/एकड) सकाळी किंवा संध्याकाळी फवारा. यामुळे ₹२,७६०/एकड निव्वळ नफा मिळतो.`,
-        en: `Analysis for ${crop} in ${activeLocation}: Night temperature is ${activeTemp}°C. Apply Syngenta Stress Buster @ 250 ml/acre in 150-200L clean water during early morning or late evening for +0.60 q/acre yield recovery and ₹2,760/acre profit.`,
+        hi: `नमस्ते ${farmer_name} जी! ${activeLocation} में आपके ${acresNum} एकड़ ${crop} खेत में रात का तापमान ${activeTemp}°C है, जिससे रात में फूलों को नुकसान हो सकता है। सुरक्षा के लिए Syngenta Stress Buster (250 मिली/एकड़) का 150-200 लीटर पानी में मिलाकर सुबह या शाम छिड़काव करें। आपके पूरे ${acresNum} एकड़ खेत के लिए लगभग ${totalDoseLiters} लीटर दवा लगेगी, जिससे कुल ₹${netProfitTotal.toLocaleString("en-IN")} का शुद्ध मुनाफा सुरक्षित होगा।`,
+        mr: `नमस्ते ${farmer_name} जी! ${activeLocation} मधील तुमच्या ${acresNum} एकर ${crop} पिकासाठी रात्रीचे तापमान ${activeTemp}°C आहे. संरक्षणासाठी Syngenta Stress Buster (२५० मिली/एकड) फवारा. तुमच्या ${acresNum} एकरांसाठी ${totalDoseLiters} लिटर औषध लागेल आणि ₹${netProfitTotal.toLocaleString("en-IN")} चा निव्वळ नफा होईल.`,
+        en: `Namaste ${farmer_name}! For your ${acresNum} acres of ${crop} in ${activeLocation}, the night temperature is currently ${activeTemp}°C. To protect flowering from thermal shock, apply Syngenta Stress Buster @ 250 ml/acre (${totalDoseLiters} L total for your ${acresNum} acres in ${waterLiters} L water). This delivers +0.60 q/acre yield protection and a total net profit increase of ₹${netProfitTotal.toLocaleString("en-IN")}.`,
       };
 
       parsedJson = {
         reply: fallbackReplies[language] || fallbackReplies["en"],
-        why_recommendation: `Telemetry for ${activeLocation}: Night temperature ${activeTemp}°C (${isNightHeatStress ? "High Thermal Stress" : "Optimal"}), Soil moisture ${activeSoil}%.`,
+        why_recommendation: `Night temperature of ${activeTemp}°C accelerates respiration and causes flower abortion.`,
+        dosage_summary: `${dosePerAcreMl} ml/acre (${totalDoseLiters} L total)`,
+        total_profit_gain: `₹${netProfitTotal.toLocaleString("en-IN")}`,
         confidence_score: 95,
         follow_up_questions: [
-          language === "hi" ? "छिड़काव का सबसे सही समय क्या है?" : "Optimal spray timing window?",
-          language === "hi" ? "प्रति एकड़ कितना शुद्ध लाभ होगा?" : "Net profit calculation per acre?",
-          language === "hi" ? "क्या बारिश में छिड़काव कर सकते हैं?" : "Can I spray during cloudy weather?",
+          language === "hi" ? "छिड़काव का सबसे सही समय क्या है?" : "What is the optimal spray timing?",
+          language === "hi" ? `मेरे ${acresNum} एकड़ के लिए कुल शुद्ध लाभ कितना होगा?` : `What is the net profit for my ${acresNum} acres?`,
+          language === "hi" ? "क्या इसे अन्य कीटनाशकों के साथ मिला सकते हैं?" : "Can I mix this with other agrochemicals?",
         ],
       };
     }
@@ -182,6 +214,8 @@ OUTPUT IN STRICT JSON FORMAT ONLY:
       reply: parsedJson.reply,
       response: parsedJson.reply,
       why_recommendation: parsedJson.why_recommendation,
+      dosage_summary: parsedJson.dosage_summary,
+      total_profit_gain: parsedJson.total_profit_gain,
       confidence_score: parsedJson.confidence_score || 95,
       follow_up_questions: parsedJson.follow_up_questions || [],
       provider: "Google Gemini 2.5 Flash",

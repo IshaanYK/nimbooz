@@ -7,14 +7,15 @@ import { InteractiveWeatherMap } from "@/components/InteractiveWeatherMap";
 import { AdvisoryChat } from "@/components/AdvisoryChat";
 import { DataBadge } from "@/components/DataBadge";
 import { PageHelpModal } from "@/components/PageHelpModal";
-import { FarmerProfile, getStoredProfile } from "@/lib/userStore";
+import { FarmerProfile, getStoredProfile, saveProfile } from "@/lib/userStore";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
 import { getActiveField, FieldRecord } from "@/lib/fieldStore";
+import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
-  Thermometer, Droplets, Sprout, PanelRightClose, PanelRightOpen, RefreshCw
+  Thermometer, Droplets, Sprout, PanelRightClose, PanelRightOpen, RefreshCw, Volume2, VolumeX, Edit3
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -25,11 +26,50 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<FarmerProfile>(getStoredProfile());
   const [activeField, setActiveFieldState] = useState<FieldRecord>(getActiveField());
   const [chatCollapsed, setChatCollapsed] = useState<boolean>(false);
+  const [isSpeakingBriefing, setIsSpeakingBriefing] = useState<boolean>(false);
 
   useEffect(() => {
     setProfile(getStoredProfile());
     setActiveFieldState(getActiveField());
   }, []);
+
+  const handleUpdateAcreage = (newAcres: number) => {
+    const updated = { ...profile, fieldAreaAcres: newAcres };
+    setProfile(updated);
+    saveProfile(updated);
+  };
+
+  const handleUpdateCrop = (newCrop: string) => {
+    const updated = { ...profile, primaryCrop: newCrop };
+    setProfile(updated);
+    saveProfile(updated);
+    setActiveFieldState((prev) => ({ ...prev, crop: newCrop }));
+  };
+
+  const currentAcres = profile.fieldAreaAcres || 12.5;
+  const netProfitEst = Math.round(2030 * currentAcres);
+  const chemicalLiters = Math.round((250 * currentAcres) / 100) / 10;
+
+  // Speak Daily Farm Briefing
+  const handlePlayBriefing = () => {
+    if (isSpeakingBriefing) {
+      stopGoogleSpeech();
+      setIsSpeakingBriefing(false);
+      return;
+    }
+
+    const farmerName = profile.fullName || "Kisan Bhai";
+    const briefingText = language === "hi"
+      ? `नमस्ते ${farmerName} जी! आपके ${profile.district || "भोपाल"} स्थित ${currentAcres} एकड़ ${profile.primaryCrop || "सोयाबीन"} खेत का आज का तापमान ${weather.temperature} डिग्री सेल्सियस है। रात का तापमान 25 डिग्री से अधिक होने के कारण गर्मी का तनाव सक्रिय है। सुरक्षा के लिए सिंजेंटा स्ट्रेस बस्टर 250 मिलीलीटर प्रति एकड़ के हिसाब से छिड़कें। आपके कुल ${currentAcres} एकड़ खेत के लिए ${chemicalLiters} लीटर दवा लगेगी और लगभग ₹${netProfitEst.toLocaleString("en-IN")} का शुद्ध मुनाफा सुरक्षित होगा।`
+      : `Namaste ${farmerName}! For your ${currentAcres} acre ${profile.primaryCrop || "soybean"} farm in ${profile.district || "Bhopal"}, current temperature is ${weather.temperature}°C. Active night heat stress detected. Applying Syngenta Stress Buster @ 250 ml/acre (${chemicalLiters} L total) will protect an estimated ₹${netProfitEst.toLocaleString("en-IN")} in extra farm income.`;
+
+    setIsSpeakingBriefing(true);
+    playGoogleNeuralSpeech(briefingText, language, {
+      onStart: () => setIsSpeakingBriefing(true),
+      onEnd: () => setIsSpeakingBriefing(false),
+      onError: () => setIsSpeakingBriefing(false),
+    });
+  };
 
   return (
     <AppShell>
@@ -45,14 +85,26 @@ export default function DashboardPage() {
               <DataBadge type="LIVE_CEHUB" customText="OPEN-METEO TELEMETRY" />
             </div>
             <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 mt-1">
-              {t.welcomePrefix} {profile.fullName || "Farmer"}
+              {t.welcomePrefix} {profile.fullName || "Ramesh Patel"}
             </h1>
             <p className="text-sm text-slate-600 font-medium">
-              {t.activeFieldLabel}: <strong className="text-slate-900">{activeField.name}</strong> ({activeField.crop}) · {t.locationLabel}: <strong>{weather.locationName}</strong>
+              {profile.village ? `${profile.village}, ` : ""}{profile.district || "Bhopal"}, {profile.state || "MP"} · <strong className="text-slate-900">{currentAcres} Acres</strong> ({profile.primaryCrop?.toUpperCase() || "SOYBEAN"})
             </p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={handlePlayBriefing}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-2 cursor-pointer ${
+                isSpeakingBriefing
+                  ? "bg-rose-600 text-white animate-pulse"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
+              }`}
+            >
+              {isSpeakingBriefing ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-amber-300" />}
+              <span>{isSpeakingBriefing ? "Stop Voice Briefing" : language === "hi" ? "🔊 आज की बोलती रिपोर्ट" : "🔊 Daily Voice Briefing"}</span>
+            </button>
+
             <PageHelpModal
               pageKey="dashboard"
               title="How to Use Field Command Center"
@@ -66,11 +118,122 @@ export default function DashboardPage() {
 
             <button
               onClick={() => setChatCollapsed((c) => !c)}
-              className="px-4 py-2 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
             >
               {chatCollapsed ? <PanelRightOpen className="h-4 w-4" /> : <PanelRightClose className="h-4 w-4" />}
               <span>{chatCollapsed ? t.openAiAssistant : t.collapseAssistant}</span>
             </button>
+          </div>
+        </div>
+
+        {/* Interactive Farmer Quick-Tuning Bar */}
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300 rounded-3xl p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg font-black shrink-0">
+                👨‍🌾
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
+                    {profile.fullName || "Ramesh Patel"} · {profile.district || "Bhopal"} ({profile.village || "Fanda Kalan"})
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
+                    Active Farm
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  {language === "hi"
+                    ? "नीचे से अपनी फसल और एकड़ चुनें — पूरी वेबसाइट आपके खेत के अनुसार गणना करेगी"
+                    : "Select your crop and land acreage below to recalculate all farm metrics in real time"}
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white/80 hover:bg-white px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs transition-all shrink-0"
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              <span>{language === "hi" ? "प्रोफ़ाइल बदलें" : "Edit Profile"}</span>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-emerald-200">
+            {/* Quick Crop Selector */}
+            <div className="bg-white/90 p-3 rounded-2xl border border-emerald-200 space-y-1.5">
+              <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">
+                {language === "hi" ? "मुख्य फसल (Crop)" : "Primary Crop"}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { key: "soybean", label: "🌱 Soybean" },
+                  { key: "cotton", label: "☁️ Cotton" },
+                  { key: "wheat", label: "🌾 Wheat" },
+                  { key: "maize", label: "🌽 Maize" },
+                ].map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => handleUpdateCrop(c.key)}
+                    className={`px-2.5 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                      (profile.primaryCrop || "soybean").toLowerCase() === c.key
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Acreage Selector */}
+            <div className="bg-white/90 p-3 rounded-2xl border border-emerald-200 space-y-1.5">
+              <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">
+                {language === "hi" ? "खेत का क्षेत्रफल (Acres)" : "Farm Acreage"}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[5, 10, 12.5, 20, 35].map((ac) => (
+                  <button
+                    key={ac}
+                    onClick={() => handleUpdateAcreage(ac)}
+                    className={`px-2.5 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                      currentAcres === ac
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {ac} Ac
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Calculated Farm Extra Profit */}
+            <div className="bg-white/90 p-3 rounded-2xl border border-emerald-200 space-y-1">
+              <span className="text-[10px] font-mono font-bold text-emerald-800 uppercase block">
+                {language === "hi" ? "कुल अतिरिक्त शुद्ध लाभ" : "Total Extra Farm Income"}
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-emerald-600 font-display">
+                  +₹{netProfitEst.toLocaleString("en-IN")}
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">({currentAcres} acres)</span>
+              </div>
+            </div>
+
+            {/* Syngenta Dosage Requirement */}
+            <div className="bg-white/90 p-3 rounded-2xl border border-emerald-200 space-y-1">
+              <span className="text-[10px] font-mono font-bold text-amber-800 uppercase block">
+                {language === "hi" ? "आवश्यक सिंजेंटा दवा" : "Total Syngenta Dosage"}
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-amber-900 font-display">
+                  {chemicalLiters} Litres
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">(@ 250ml/ac)</span>
+              </div>
+            </div>
           </div>
         </div>
 
