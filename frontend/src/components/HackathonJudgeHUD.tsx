@@ -17,6 +17,7 @@ import {
   Radio,
   FileText,
   ShieldCheck,
+  Mic,
 } from "lucide-react";
 
 export const HackathonJudgeHUD: React.FC = () => {
@@ -94,8 +95,8 @@ export const HackathonJudgeHUD: React.FC = () => {
             </div>
           </div>
 
-          {/* 4 PS Compliance Matrix */}
-          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 no-scrollbar">
+          {/* 4 PS Compliance Matrix & 1-Click Scenario Launchers */}
+          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 no-scrollbar">
             {PS_CHECKLIST.map((ps) => (
               <Link
                 key={ps.id}
@@ -120,6 +121,43 @@ export const HackathonJudgeHUD: React.FC = () => {
                 </div>
               </Link>
             ))}
+          </div>
+
+          {/* Quick Jury Scenario Jump Strip */}
+          <div className="bg-amber-950/40 border border-amber-500/30 p-2.5 rounded-2xl space-y-1 text-xs">
+            <span className="text-[10px] font-mono font-bold text-amber-300 uppercase block">
+              1-Click Mentor Test Scenarios:
+            </span>
+            <div className="grid grid-cols-2 gap-1.5 font-mono text-[11px]">
+              <Link
+                href="/assistant"
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-center flex items-center justify-center gap-1 font-bold"
+              >
+                <Mic className="h-3 w-3 text-emerald-400" /> PS-04 Voice AI
+              </Link>
+              <Link
+                href="/plant-intelligence"
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-center flex items-center justify-center gap-1 font-bold"
+              >
+                <Cpu className="h-3 w-3 text-sky-400" /> PS-02 Stress
+              </Link>
+              <Link
+                href="/product"
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-center flex items-center justify-center gap-1 font-bold"
+              >
+                <ShieldCheck className="h-3 w-3 text-purple-400" /> PS-03 CropFit
+              </Link>
+              <Link
+                href="/robi"
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-center flex items-center justify-center gap-1 font-bold"
+              >
+                <Award className="h-3 w-3 text-amber-400" /> PS-07 ROBI
+              </Link>
+            </div>
           </div>
 
           {/* Live Production Proof Footnote */}

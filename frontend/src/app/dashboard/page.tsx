@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { InteractiveWeatherMap } from "@/components/InteractiveWeatherMap";
-import { AdvisoryChat } from "@/components/AdvisoryChat";
 import { DataBadge } from "@/components/DataBadge";
 import { PageHelpModal } from "@/components/PageHelpModal";
 import { FarmerProfile, getStoredProfile, saveProfile } from "@/lib/userStore";
@@ -18,7 +17,7 @@ import { MandiPriceTicker } from "@/components/MandiPriceTicker";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
-  Thermometer, Droplets, Sprout, PanelRightClose, PanelRightOpen, RefreshCw, Volume2, VolumeX, Edit3
+  Thermometer, Droplets, Sprout, RefreshCw, Volume2, VolumeX, Edit3, ShieldCheck
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -28,7 +27,6 @@ export default function DashboardPage() {
 
   const [profile, setProfile] = useState<FarmerProfile>(getStoredProfile());
   const [activeField, setActiveFieldState] = useState<FieldRecord>(getActiveField());
-  const [chatCollapsed, setChatCollapsed] = useState<boolean>(false);
   const [isSpeakingBriefing, setIsSpeakingBriefing] = useState<boolean>(false);
 
   useEffect(() => {
@@ -121,13 +119,13 @@ export default function DashboardPage() {
               ]}
             />
 
-            <button
-              onClick={() => setChatCollapsed((c) => !c)}
+            <Link
+              href="/assistant"
               className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
             >
-              {chatCollapsed ? <PanelRightOpen className="h-4 w-4" /> : <PanelRightClose className="h-4 w-4" />}
-              <span>{chatCollapsed ? t.openAiAssistant : t.collapseAssistant}</span>
-            </button>
+              <Mic className="h-4 w-4 text-emerald-400" />
+              <span>{t.openAiAssistant}</span>
+            </Link>
           </div>
         </div>
 
@@ -253,203 +251,213 @@ export default function DashboardPage() {
         {/* 🌟 1. Today's Farmer Action Verdict & 1-Tap Voice Briefing */}
         <KisanActionVerdict />
 
-        {/* Dual-Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Full Width Overwatch Layout */}
+        <div className="space-y-8">
           
-          {/* Left Column */}
-          <div className={`space-y-8 transition-all duration-300 ${chatCollapsed ? "lg:col-span-12" : "lg:col-span-7"}`}>
-            
-            {/* Interactive Satellite Map */}
-            <InteractiveWeatherMap
-              lat={activeField.center[0]}
-              lon={activeField.center[1]}
-              crop={activeField.crop}
-              onFieldSelected={(f) => setActiveFieldState(f)}
-            />
+          {/* Interactive Satellite Map */}
+          <InteractiveWeatherMap
+            lat={activeField.center[0]}
+            lon={activeField.center[1]}
+            crop={activeField.crop}
+            onFieldSelected={(f) => setActiveFieldState(f)}
+          />
 
-            {/* Live Real-Time Telemetry & Sensor Card */}
-            <div className="stripe-card p-6 space-y-4 rounded-3xl border border-slate-200">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
-                      100% REAL OPEN-METEO LIVE SENSORS
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-500">
-                      {weather.lastUpdated}
-                    </span>
-                  </div>
-                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2 font-display">
-                    <Sun className="h-5 w-5 text-amber-500" />
-                    <span>{t.liveTelemetryTitle} — {weather.locationName}</span>
-                  </h3>
+          {/* Live Real-Time Telemetry & Sensor Card */}
+          <div className="stripe-card p-6 space-y-4 rounded-3xl border border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
+                    100% REAL OPEN-METEO LIVE SENSORS
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">
+                    {weather.lastUpdated}
+                  </span>
                 </div>
-
-                <button
-                  onClick={() => refetch(true)}
-                  className="px-3 py-1.5 text-xs font-mono font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  <span>Sync GPS</span>
-                </button>
+                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2 font-display">
+                  <Sun className="h-5 w-5 text-amber-500" />
+                  <span>{t.liveTelemetryTitle} — {weather.locationName}</span>
+                </h3>
               </div>
 
-              {/* 6 Real Telemetry Metric Cells */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
-                
-                {/* 1. Day / Ambient Temp */}
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
-                  <span className="text-slate-500 block text-[10px] font-bold">AMBIENT TEMP</span>
-                  <span className="text-2xl font-black text-slate-900">{weather.temperature}°C</span>
-                  <span className="text-[10px] text-slate-500 block">Feels like {weather.apparentTemperature}°C</span>
-                </div>
-
-                {/* 2. Real Night Mean Temp */}
-                <div className={`p-3.5 rounded-2xl border space-y-0.5 ${
-                  weather.isNightHeatStress
-                    ? "bg-rose-50/80 border-rose-200 text-rose-950"
-                    : "bg-emerald-50/80 border-emerald-200 text-emerald-950"
-                }`}>
-                  <span className="text-[10px] font-bold block opacity-75">NIGHT TEMP (20-06h)</span>
-                  <span className="text-2xl font-black">{weather.nightTemperature || weather.temperature}°C</span>
-                  <span className="text-[10px] block opacity-75">
-                    {weather.isNightHeatStress ? "⚠️ Thermal Stress (>25°C)" : "✅ Optimal"}
-                  </span>
-                </div>
-
-                {/* 3. Real Measured Volumetric Soil Moisture */}
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
-                  <span className="text-slate-500 block text-[10px] font-bold">SOIL MOISTURE (0-7cm)</span>
-                  <span className="text-2xl font-black text-emerald-600">{weather.soilMoistureEst}%</span>
-                  <span className="text-[10px] text-slate-500 block">Volumetric Water Content</span>
-                </div>
-
-                {/* 4. Real Measured Soil Temp */}
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
-                  <span className="text-slate-500 block text-[10px] font-bold">SOIL TEMP</span>
-                  <span className="text-2xl font-black text-amber-600">{weather.soilTemperatureReal || 28.2}°C</span>
-                  <span className="text-[10px] text-slate-500 block">Surface Layer (0cm)</span>
-                </div>
-
-                {/* 5. Real Precipitation & Rain Status */}
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
-                  <span className="text-slate-500 block text-[10px] font-bold">RAIN / PRECIP</span>
-                  <span className="text-2xl font-black text-blue-600">{weather.precipitation} mm</span>
-                  <span className="text-[10px] text-slate-500 block">
-                    {weather.isRaining ? "🌧️ Active Rain" : `Rain Prob: ${weather.precipitationProbability}%`}
-                  </span>
-                </div>
-
-                {/* 6. Wind Speed & Spray Suitability */}
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
-                  <span className="text-slate-500 block text-[10px] font-bold">WIND SPEED</span>
-                  <span className="text-2xl font-black text-slate-800">{weather.windSpeed} km/h</span>
-                  <span className="text-[10px] text-slate-500 block">
-                    {weather.windSpeed <= 15 ? "✅ Safe for Spray" : "⚠️ Drift Warning"}
-                  </span>
-                </div>
-
-              </div>
-
-              {/* Stress Degree-Hours Alert if active */}
-              {weather.isNightHeatStress && (
-                <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl text-rose-900 text-xs font-mono flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0" />
-                    <span>
-                      {t.nightHeatStressWarning} (Risk: {weather.heatStressPercent}%): Real nocturnal degree-hours = +{weather.nightStressDegreeHours} °C·h above 25°C threshold.
-                    </span>
-                  </div>
-                </div>
-              )}
+              <button
+                onClick={() => refetch(true)}
+                className="px-3 py-1.5 text-xs font-mono font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Sync GPS</span>
+              </button>
             </div>
 
-            {/* 3 Quick Impact Stripe Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {/* 6 Real Telemetry Metric Cells */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 font-mono text-xs">
               
-              <div className="stripe-card p-5 space-y-2">
-                <div className="flex justify-between items-start">
-                  <div className="h-10 w-10 rounded-xl bg-emerald-50 text-[#10B981] flex items-center justify-center">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
-                    {activeField.areaAcres} Acres
-                  </span>
-                </div>
-                <h4 className="font-extrabold text-sm text-slate-900">{activeField.name}</h4>
-                <p className="text-xs text-slate-500">{activeField.crop} ({activeField.growthStage})</p>
-                <Link href="/fields" className="text-xs font-bold text-[#10B981] flex items-center gap-1 hover:underline pt-1">
-                  {t.viewMapLayers} <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+              {/* 1. Day / Ambient Temp */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
+                <span className="text-slate-500 block text-[10px] font-bold">AMBIENT TEMP</span>
+                <span className="text-2xl font-black text-slate-900">{weather.temperature}°C</span>
+                <span className="text-[10px] text-slate-500 block">Feels like {weather.apparentTemperature}°C</span>
               </div>
 
-              <div className="stripe-card p-5 space-y-2">
-                <div className="flex justify-between items-start">
-                  <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5" />
-                  </div>
-                  <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
-                    PS-07
-                  </span>
-                </div>
-                <h4 className="font-extrabold text-sm text-slate-900">{t.robiAttributionTitle}</h4>
-                <p className="text-xs text-slate-500">{t.robiDesc}</p>
-                <Link href="/impact" className="text-xs font-bold text-emerald-600 flex items-center gap-1 hover:underline pt-1">
-                  {t.calculateRobi} <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+              {/* 2. Real Night Mean Temp */}
+              <div className={`p-3.5 rounded-2xl border space-y-0.5 ${
+                weather.isNightHeatStress
+                  ? "bg-rose-50/80 border-rose-200 text-rose-950"
+                  : "bg-emerald-50/80 border-emerald-200 text-emerald-950"
+              }`}>
+                <span className="text-[10px] font-bold block opacity-75">NIGHT TEMP (20-06h)</span>
+                <span className="text-2xl font-black">{weather.nightTemperature || weather.temperature}°C</span>
+                <span className="text-[10px] block opacity-75">
+                  {weather.isNightHeatStress ? "⚠️ Thermal Stress (>25°C)" : "✅ Optimal"}
+                </span>
               </div>
 
-              <div className="stripe-card p-5 space-y-2">
-                <div className="flex justify-between items-start">
-                  <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Sliders className="h-5 w-5" />
-                  </div>
-                  <span className="text-[10px] font-mono font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
-                    Simulator
-                  </span>
-                </div>
-                <h4 className="font-extrabold text-sm text-slate-900">{t.whatIfTitle}</h4>
-                <p className="text-xs text-slate-500">{t.whatIfSubtitle}</p>
-                <Link href="/what-if" className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline pt-1">
-                  {t.runSimulation} <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+              {/* 3. Real Measured Volumetric Soil Moisture */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
+                <span className="text-slate-500 block text-[10px] font-bold">SOIL MOISTURE (0-7cm)</span>
+                <span className="text-2xl font-black text-emerald-600">{weather.soilMoistureEst}%</span>
+                <span className="text-[10px] text-slate-500 block">Volumetric Water</span>
+              </div>
+
+              {/* 4. Real Measured Soil Temp */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
+                <span className="text-slate-500 block text-[10px] font-bold">SOIL TEMP</span>
+                <span className="text-2xl font-black text-amber-600">{weather.soilTemperatureReal || 28.2}°C</span>
+                <span className="text-[10px] text-slate-500 block">Surface Layer</span>
+              </div>
+
+              {/* 5. Real Precipitation & Rain Status */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
+                <span className="text-slate-500 block text-[10px] font-bold">RAIN / PRECIP</span>
+                <span className="text-2xl font-black text-blue-600">{weather.precipitation} mm</span>
+                <span className="text-[10px] text-slate-500 block">
+                  {weather.isRaining ? "🌧️ Active Rain" : `Prob: ${weather.precipitationProbability}%`}
+                </span>
+              </div>
+
+              {/* 6. Wind Speed & Spray Suitability */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-0.5">
+                <span className="text-slate-500 block text-[10px] font-bold">WIND SPEED</span>
+                <span className="text-2xl font-black text-slate-800">{weather.windSpeed} km/h</span>
+                <span className="text-[10px] text-slate-500 block">
+                  {weather.windSpeed <= 15 ? "✅ Safe for Spray" : "⚠️ Drift Warning"}
+                </span>
               </div>
 
             </div>
 
-            {/* Verified Syngenta Authorized Dealer Locator Section */}
-            <SyngentaDealerLocator
-              district={profile.district || "Bhopal"}
-              farmerName={profile.fullName || "Ramesh Patel"}
-              crop={profile.primaryCrop || "Soybean"}
-              fieldAcres={currentAcres}
-              productName="Syngenta Quantis & Stress Buster"
-            />
+            {/* Stress Degree-Hours Alert if active */}
+            {weather.isNightHeatStress && (
+              <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl text-rose-900 text-xs font-mono flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0" />
+                  <span>
+                    {t.nightHeatStressWarning} (Risk: {weather.heatStressPercent}%): Real nocturnal degree-hours = +{weather.nightStressDegreeHours} °C·h above 25°C threshold.
+                  </span>
+                </div>
+                <Link
+                  href="/assistant"
+                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shrink-0"
+                >
+                  Ask AI Solution →
+                </Link>
+              </div>
+            )}
+          </div>
 
-            {/* Daily APMC Mandi Commodity Rates Ticker */}
-            <MandiPriceTicker />
+          {/* 4 Core Hackathon Problem Statement Pillar Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            
+            {/* PS-04 AI Assistant Card */}
+            <div className="stripe-card p-5 space-y-3 border-2 border-emerald-300 bg-gradient-to-b from-white to-emerald-50/30 rounded-3xl">
+              <div className="flex justify-between items-start">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                  <Mic className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-mono font-black bg-emerald-100 text-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  PS-04 AI Voice
+                </span>
+              </div>
+              <div>
+                <h4 className="font-extrabold text-base text-slate-900 font-display">AASRA Voice Studio</h4>
+                <p className="text-xs text-slate-600 mt-1">12 Indian languages, voice-first agronomist, crop leaf camera diagnostics, and live sensor citations.</p>
+              </div>
+              <Link href="/assistant" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 hover:text-emerald-900 pt-2">
+                Open AI Studio <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            {/* PS-02 Plant Intelligence Card */}
+            <div className="stripe-card p-5 space-y-3 rounded-3xl border border-slate-200">
+              <div className="flex justify-between items-start">
+                <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-mono font-black bg-blue-100 text-blue-950 px-2.5 py-0.5 rounded-full border border-blue-300">
+                  PS-02 Stress
+                </span>
+              </div>
+              <div>
+                <h4 className="font-extrabold text-base text-slate-900 font-display">14-Day Plant Stress Early Warning</h4>
+                <p className="text-xs text-slate-600 mt-1">Predictive thermal heat respiration models & CE Hub GDD tracking before visual symptoms appear.</p>
+              </div>
+              <Link href="/plant-intelligence" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-700 hover:text-blue-900 pt-2">
+                Inspect Predictions <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            {/* PS-03 Syngenta Matcher Card */}
+            <div className="stripe-card p-5 space-y-3 rounded-3xl border border-slate-200">
+              <div className="flex justify-between items-start">
+                <div className="h-10 w-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-mono font-black bg-purple-100 text-purple-950 px-2.5 py-0.5 rounded-full border border-purple-300">
+                  PS-03 CropFit
+                </span>
+              </div>
+              <div>
+                <h4 className="font-extrabold text-base text-slate-900 font-display">Syngenta CropFit Solution</h4>
+                <p className="text-xs text-slate-600 mt-1">Quantis & Isabion biological prescriptions with exact dosage calculated for {currentAcres} acres.</p>
+              </div>
+              <Link href="/product" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple-700 hover:text-purple-900 pt-2">
+                View Prescriptions <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            {/* PS-07 ROBI Financial Return Card */}
+            <div className="stripe-card p-5 space-y-3 rounded-3xl border border-slate-200">
+              <div className="flex justify-between items-start">
+                <div className="h-10 w-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-mono font-black bg-amber-100 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300">
+                  PS-07 ROBI
+                </span>
+              </div>
+              <div>
+                <h4 className="font-extrabold text-base text-slate-900 font-display">Return on Biologicals (ROBI)</h4>
+                <p className="text-xs text-slate-600 mt-1">Weather-adjusted yield attribution proving +₹{netProfitEst.toLocaleString("en-IN")} extra net income.</p>
+              </div>
+              <Link href="/impact" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-800 hover:text-amber-950 pt-2">
+                Calculate ROI Proof <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
 
           </div>
 
-          {/* Right Column: Collapsible AASRA AI Voice Assistant */}
-          {!chatCollapsed && (
-            <div className="lg:col-span-5 space-y-4">
-              <div className="stripe-card p-6 sticky top-24 space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2 font-display">
-                    <Mic className="h-5 w-5 text-amber-500 animate-pulse" />
-                    {t.askAasraTitle}
-                  </h3>
-                  <button onClick={() => setChatCollapsed(true)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 cursor-pointer">
-                    <PanelRightClose className="h-4 w-4" />
-                  </button>
-                </div>
+          {/* Verified Syngenta Authorized Dealer Locator Section */}
+          <SyngentaDealerLocator
+            district={profile.district || "Bhopal"}
+            farmerName={profile.fullName || "Ramesh Patel"}
+            crop={profile.primaryCrop || "Soybean"}
+            fieldAcres={currentAcres}
+            productName="Syngenta Quantis & Stress Buster"
+          />
 
-                <AdvisoryChat currentField={activeField.name} crop={activeField.crop} />
-              </div>
-            </div>
-          )}
+          {/* Daily APMC Mandi Commodity Rates Ticker */}
+          <MandiPriceTicker />
 
         </div>
 
