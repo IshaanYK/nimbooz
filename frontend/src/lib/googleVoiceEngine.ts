@@ -42,6 +42,9 @@ let speechSynthesisTimer: any = null;
 export function cleanTextForNaturalSpeech(rawText: string): string {
   if (!rawText) return "";
   let clean = rawText
+    .replace(/^\s*\{\s*"reply"\s*:\s*"/i, "")
+    .replace(/"\s*,\s*"why_recommendation"[\s\S]*$/i, "")
+    .replace(/["{}]/g, "")
     .replace(/[*_#`~🔴🟢🌾🌧️☀️🌤️⛅☁️🌫️🌦️⛈️❄️🌨️🌩️📌🎯💡⚡⚠️✅✕]/g, "")
     .replace(/\(.*?\)/g, "") // Remove parenthetical technical notes
     .replace(/₹/g, "rupees ")
@@ -85,7 +88,7 @@ export async function playGoogleNeuralSpeech(
       const audioUrl = `data:audio/mp3;base64,${res.audio_base64}`;
       const audio = new Audio(audioUrl);
       currentAudio = audio;
-      audio.playbackRate = 0.95; // Calm, empathetic human cadence
+      audio.playbackRate = 1.0; // Natural, lively human conversational rate
 
       audio.onended = () => {
         currentAudio = null;
@@ -138,7 +141,7 @@ export function speakBrowserSpeechFallback(
 
     const utterance = new SpeechSynthesisUtterance(cleanedText);
     utterance.lang = config.code;
-    utterance.rate = 0.94; // Calm, intelligible, relaxed pace
+    utterance.rate = 1.0; // Humanized, comfortable conversational speed
     utterance.pitch = 1.0;
 
     // Pick highest quality Google Neural or Microsoft Natural voice

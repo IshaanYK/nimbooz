@@ -253,7 +253,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           setLiveSpeechTranscript(completeSentence);
         }
 
-        // Silence timeout debounce (2.2 seconds of pause before auto-sending)
+        // Silence timeout debounce (3.5 seconds of pause before auto-sending so farmer can speak full sentence comfortably)
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(() => {
           const textToSend = (accumulatedTranscriptRef.current + interimText).trim();
@@ -265,7 +265,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             accumulatedTranscriptRef.current = "";
             setLiveSpeechTranscript("");
           }
-        }, 2200);
+        }, 3500);
       };
 
       recognition.onerror = (event: any) => {
@@ -324,6 +324,23 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     }
   };
 
+  // Helper to sanitize any raw JSON tokens from display text
+  const sanitizeDisplayReply = (raw: string): string => {
+    if (!raw) return "";
+    let clean = String(raw).trim();
+    if (clean.startsWith("{") && clean.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(clean);
+        if (parsed.reply) return parsed.reply;
+      } catch {}
+    }
+    return clean
+      .replace(/^\s*\{\s*"reply"\s*:\s*"/i, "")
+      .replace(/"\s*,\s*"why_recommendation"[\s\S]*$/i, "")
+      .replace(/["{}]/g, "")
+      .trim();
+  };
+
   // Process Text or Multimodal Image Message
   const processUserMessage = async (queryText: string) => {
     if (!queryText.trim() && !selectedImage) return;
@@ -356,7 +373,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       if (currentImg) {
         // Multimodal Gemini 2.5 Flash Vision Scanner
         const visionRes = await analyzeCropLeafImage(currentImg, crop, language);
-        replyText = visionRes?.diagnosis || "Leaf scan completed. Chlorosis and thermal stress detected.";
+        replyText = sanitizeDisplayReply(visionRes?.diagnosis || "Leaf scan completed. Chlorosis and thermal stress detected.");
         whyReason = visionRes?.why_recommendation || "Visual markers indicate foliar respiration stress due to night heat.";
         confScore = visionRes?.confidence_score || 95;
         followUps = visionRes?.follow_up_questions || followUps;
@@ -379,7 +396,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           effectiveVillage
         );
 
-        replyText = res?.reply || res?.response || "";
+        replyText = sanitizeDisplayReply(res?.reply || res?.response || "");
         whyReason = res?.why_recommendation || `Open-Meteo telemetry for ${effectiveLocation}: Temp ${weather.temperature}°C, Soil moisture ${weather.soilMoistureEst}%.`;
         confScore = res?.confidence_score || 95;
         followUps = res?.follow_up_questions && res.follow_up_questions.length > 0 ? res.follow_up_questions : followUps;

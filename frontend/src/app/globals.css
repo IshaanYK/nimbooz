@@ -1,5 +1,46 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 @import "tailwindcss";
+
+/* Strict Leaflet Map Container Scoping to Prevent Any Overflow */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  z-index: 1 !important;
+  border-radius: inherit !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
+}
+
+.leaflet-pane {
+  z-index: 2 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 3 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 4 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 5 !important;
+}
+
+.leaflet-control-container {
+  position: relative;
+  z-index: 10 !important;
+}
+
+.leaflet-top, .leaflet-bottom {
+  z-index: 10 !important;
+}
 
 @layer base {
   :root {

@@ -112,10 +112,19 @@ STRICT INSTRUCTIONS:
     let responsePayload: any = null;
     if (geminiResult && geminiResult.data) {
       if (typeof geminiResult.data === "object") {
-        if (geminiResult.data.reply && typeof geminiResult.data.reply === "string" && geminiResult.data.reply.trim().startsWith("{")) {
-          try {
-            responsePayload = JSON.parse(geminiResult.data.reply);
-          } catch {
+        let rawReply = geminiResult.data.reply;
+        if (typeof rawReply === "string") {
+          // Unpack nested JSON if model nested it
+          if (rawReply.trim().startsWith("{") && rawReply.trim().endsWith("}")) {
+            try {
+              const inner = JSON.parse(rawReply.trim());
+              if (inner && typeof inner === "object") {
+                responsePayload = { ...geminiResult.data, ...inner };
+              }
+            } catch {
+              responsePayload = geminiResult.data;
+            }
+          } else {
             responsePayload = geminiResult.data;
           }
         } else {
@@ -125,8 +134,17 @@ STRICT INSTRUCTIONS:
     }
 
     if (responsePayload && (responsePayload.reply || responsePayload.dosage_summary)) {
+      // Strip any raw JSON keys from text if leaked
+      let cleanReplyText = String(responsePayload.reply || "");
+      cleanReplyText = cleanReplyText
+        .replace(/^\s*\{\s*"reply"\s*:\s*"/i, "")
+        .replace(/"\s*,\s*"why_recommendation"[\s\S]*$/i, "")
+        .replace(/"\s*\}\s*$/i, "")
+        .trim();
+
       return NextResponse.json({
         ...responsePayload,
+        reply: cleanReplyText || responsePayload.reply,
         source: "GOOGLE_GEMINI_2_5_FLASH_LIVE",
         model_used: geminiResult?.model || "gemini-2.5-flash",
         telemetry_used: telemetry,

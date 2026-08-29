@@ -244,7 +244,7 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   const currentDrawnArea = calculatePolygonAreaAcres(drawnNodes);
 
   return (
-    <div className="bg-white text-slate-900 rounded-3xl border border-slate-200 p-4 sm:p-6 space-y-4 shadow-sm relative font-sans overflow-hidden">
+    <div className="bg-white text-slate-900 rounded-3xl border border-slate-200 p-4 sm:p-6 space-y-4 shadow-sm relative font-sans overflow-hidden isolate">
       
       {/* 1. Header & Live Search Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -452,7 +452,7 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
       </div>
 
       {/* 4. The Leaflet Map Container */}
-      <div className="h-[460px] sm:h-[520px] w-full rounded-2xl overflow-hidden border border-slate-300 relative shadow-inner">
+      <div className="h-[460px] sm:h-[520px] w-full rounded-2xl overflow-hidden border border-slate-300 relative shadow-inner isolate z-0">
         <LeafletMapInner
           center={currentCenter}
           savedFields={savedFields}
