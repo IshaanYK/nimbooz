@@ -278,11 +278,25 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setWeather((prev) => ({ ...prev, isLoading: true }));
     if (typeof window === "undefined") return;
 
+    // Check if user has saved farm location in profile
+    let targetLat = DEFAULT_WEATHER.lat;
+    let targetLon = DEFAULT_WEATHER.lon;
+    try {
+      const raw = localStorage.getItem("aasra_farmer_profile");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.gpsLocation?.lat && parsed.gpsLocation?.lon) {
+          targetLat = parsed.gpsLocation.lat;
+          targetLon = parsed.gpsLocation.lon;
+        }
+      }
+    } catch (_) {}
+
     const hasDeniedGps = localStorage.getItem("aasra_gps_denied") === "true";
 
-    // If user previously turned off / denied permission and forceGps is false, DO NOT prompt!
+    // If user previously turned off / denied permission and forceGps is false, use profile coordinates!
     if (hasDeniedGps && !forceGps) {
-      fetchWeather(DEFAULT_WEATHER.lat, DEFAULT_WEATHER.lon);
+      fetchWeather(targetLat, targetLon);
       return;
     }
 
@@ -293,16 +307,15 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
           fetchWeather(pos.coords.latitude, pos.coords.longitude);
         },
         (err) => {
-          // Store permission denial in localStorage so browser NEVER asks again automatically
           if (err.code === 1) {
             localStorage.setItem("aasra_gps_denied", "true");
           }
-          fetchWeather(DEFAULT_WEATHER.lat, DEFAULT_WEATHER.lon);
+          fetchWeather(targetLat, targetLon);
         },
-        { timeout: 5000, maximumAge: 600000 }
+        { timeout: 6000, maximumAge: 300000 }
       );
     } else {
-      fetchWeather(DEFAULT_WEATHER.lat, DEFAULT_WEATHER.lon);
+      fetchWeather(targetLat, targetLon);
     }
   }, [fetchWeather]);
 

@@ -1,5 +1,6 @@
 /**
  * AASRA User Store & Profile Storage
+ * Strictly real farmer profiles and authenticated sessions.
  */
 
 export interface FarmerProfile {
@@ -17,7 +18,6 @@ export interface FarmerProfile {
   communicationMode?: string;
   voiceResponses?: boolean;
   notificationPref?: string;
-  isDemoUser?: boolean;
   gpsLocation?: { lat: number; lon: number };
   farmerType: string;
   farmingExperience?: string;
@@ -45,53 +45,25 @@ export const INDIAN_LANGUAGES = [
   { code: "ml", name: "Malayalam", native: "മലയാളം" },
   { code: "bn", name: "Bengali", native: "বাংলা" },
   { code: "or", name: "Odia", native: "ଓଡ଼ିଆ" },
-  { code: "as", name: "Assamese", native: "অসমীয়া" },
+  { code: "as", name: "Assamese", native: "অसमীয়া" },
   { code: "en", name: "English", native: "English" },
 ];
-
-export const DEMO_FARMER_PROFILE: FarmerProfile = {
-  fullName: "Ramesh Patel",
-  mobileNumber: "+91 98260 14890",
-  language: "hi",
-  state: "Madhya Pradesh",
-  district: "Bhopal",
-  village: "Fanda Kalan",
-  fieldName: "Bhopal North Agro Plot",
-  fieldAreaHa: 5.0,
-  fieldAreaAcres: 12.5,
-  areaUnit: "Acres",
-  experienceYears: "14+",
-  gpsLocation: { lat: 23.2599, lon: 77.4126 },
-  farmerType: "Medium Commercial",
-  farmingExperience: "14+",
-  primaryCrop: "soybean",
-  sowingDate: "2026-06-15",
-  cropVariety: "JS-335 (Broadleaf Soybean)",
-  irrigationType: "Drip + Monsoon Rainfed",
-  soilType: "Black Vertisol Deep Clay (High Retentive)",
-  preferredCommunication: "Voice + Text",
-  voiceResponsesEnabled: true,
-  helpTopics: ["Heat Stress", "Spray Timing", "Yield Attribution", "Cost Reduction"],
-  notificationPreference: "High-Priority Weather Alerts",
-  dataConsent: true,
-  isDemoUser: true,
-};
 
 export const EMPTY_FARMER_PROFILE: FarmerProfile = {
   fullName: "",
   mobileNumber: "",
   language: "hi",
-  state: "Madhya Pradesh",
-  district: "Bhopal",
+  state: "",
+  district: "",
   village: "",
-  fieldName: "Primary Farm Plot",
-  fieldAreaHa: 2.5,
+  fieldName: "",
+  fieldAreaHa: 2.0,
   experienceYears: "5+",
-  gpsLocation: { lat: 23.2599, lon: 77.4126 },
-  farmerType: "Medium",
+  gpsLocation: undefined,
+  farmerType: "Individual Farmer",
   farmingExperience: "5+",
-  primaryCrop: "soybean",
-  fieldAreaAcres: 6.0,
+  primaryCrop: "Soybean",
+  fieldAreaAcres: 5.0,
   sowingDate: "2026-06-15",
   cropVariety: "JS-335",
   irrigationType: "Rainfed + Borewell",
@@ -106,26 +78,32 @@ export const EMPTY_FARMER_PROFILE: FarmerProfile = {
 export function isUserLoggedIn(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return localStorage.getItem("aasra_is_logged_in") === "true";
+    const isLoggedIn = localStorage.getItem("aasra_is_logged_in") === "true";
+    const raw = localStorage.getItem("aasra_farmer_profile");
+    if (isLoggedIn && raw) {
+      const parsed = JSON.parse(raw);
+      return !!(parsed && parsed.fullName && parsed.fullName.trim().length > 0);
+    }
+    return false;
   } catch (e) {
     return false;
   }
 }
 
 export function getStoredProfile(): FarmerProfile {
-  if (typeof window === "undefined") return DEMO_FARMER_PROFILE;
+  if (typeof window === "undefined") return EMPTY_FARMER_PROFILE;
   try {
     const raw = localStorage.getItem("aasra_farmer_profile");
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.fullName && parsed.fullName.trim().length > 0) {
+      if (parsed && typeof parsed === "object") {
         return { ...EMPTY_FARMER_PROFILE, ...parsed };
       }
     }
   } catch (e) {
-    console.error("Failed to read farmer profile from cache", e);
+    console.error("Failed to read farmer profile from storage", e);
   }
-  return DEMO_FARMER_PROFILE;
+  return EMPTY_FARMER_PROFILE;
 }
 
 export function saveProfile(profile: FarmerProfile): void {
@@ -134,7 +112,7 @@ export function saveProfile(profile: FarmerProfile): void {
     localStorage.setItem("aasra_farmer_profile", JSON.stringify(profile));
     localStorage.setItem("aasra_is_logged_in", "true");
   } catch (e) {
-    console.error("Failed to save farmer profile to cache", e);
+    console.error("Failed to save farmer profile", e);
   }
 }
 
@@ -147,20 +125,13 @@ export function loginUser(): void {
   }
 }
 
-export function loginAsDemo(): FarmerProfile {
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem("aasra_farmer_profile", JSON.stringify(DEMO_FARMER_PROFILE));
-      localStorage.setItem("aasra_is_logged_in", "true");
-    } catch (e) {}
-  }
-  return DEMO_FARMER_PROFILE;
-}
-
 export function logoutUser(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem("aasra_is_logged_in");
+    localStorage.removeItem("aasra_farmer_profile");
+    localStorage.removeItem("aasra_farmer_fields_v3");
+    localStorage.removeItem("aasra_active_field_id_v3");
   } catch (e) {
     console.error("Failed to log out user", e);
   }

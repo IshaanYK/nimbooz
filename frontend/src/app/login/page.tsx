@@ -5,9 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { loginUser, loginAsDemo, saveProfile, EMPTY_FARMER_PROFILE, INDIAN_LANGUAGES } from "@/lib/userStore";
-import { saveFieldToBackend } from "@/lib/api";
-import { Phone, ArrowRight, ShieldCheck, CheckCircle2, Lock, KeyRound, Mail, Sparkles, User } from "lucide-react";
+import { loginUser, saveProfile, getStoredProfile, EMPTY_FARMER_PROFILE, INDIAN_LANGUAGES } from "@/lib/userStore";
+import { Phone, ArrowRight, ShieldCheck, CheckCircle2, Lock, KeyRound, Mail, Sparkles, User, UserPlus } from "lucide-react";
 
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -40,24 +39,17 @@ export default function LoginPage() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const existing = getStoredProfile();
     const newProfile = {
       ...EMPTY_FARMER_PROFILE,
-      fullName: fullName.trim() || `Farmer (${mobileNumber.slice(-4)})`,
-      mobileNumber,
+      ...existing,
+      fullName: fullName.trim() || existing.fullName || `Farmer (${mobileNumber.slice(-4)})`,
+      mobileNumber: mobileNumber || existing.mobileNumber,
       language: selectedLanguage,
     };
     loginUser();
     saveProfile(newProfile);
     setLanguage(selectedLanguage);
-    // Sync field to backend API database
-    try {
-      await saveFieldToBackend({
-        name: `${newProfile.fullName}'s Primary Farm`,
-        crop: newProfile.primaryCrop,
-        areaHa: newProfile.fieldAreaHa,
-        center: [23.2599, 77.4126],
-      });
-    } catch (_) {}
     setLoading(false);
     router.push("/dashboard");
   };
@@ -65,24 +57,18 @@ export default function LoginPage() {
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const displayName = email.split("@")[0] || "Field Manager";
+    const displayName = email.split("@")[0] || "Farmer";
     const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+    const existing = getStoredProfile();
     const newProfile = {
       ...EMPTY_FARMER_PROFILE,
-      fullName: formattedName,
+      ...existing,
+      fullName: existing.fullName || formattedName,
       language: selectedLanguage,
     };
     loginUser();
     saveProfile(newProfile);
     setLanguage(selectedLanguage);
-    try {
-      await saveFieldToBackend({
-        name: `${newProfile.fullName}'s Farm`,
-        crop: newProfile.primaryCrop,
-        areaHa: newProfile.fieldAreaHa,
-        center: [23.2599, 77.4126],
-      });
-    } catch (_) {}
     setLoading(false);
     router.push("/dashboard");
   };
@@ -101,166 +87,164 @@ export default function LoginPage() {
           </span>
         </Link>
 
-        <Link href="/signup" className="text-xs font-extrabold text-slate-600 hover:text-[#10B981]">
-          {t.needAccount}
+        <Link href="/signup" className="text-xs font-extrabold text-slate-600 hover:text-[#10B981] flex items-center gap-1.5">
+          <UserPlus className="h-3.5 w-3.5" />
+          <span>New Farmer? Sign Up</span>
         </Link>
       </header>
 
       {/* Main Login Form Container */}
-      <main className="max-w-lg mx-auto w-full my-8 relative z-10 space-y-6">
+      <main className="max-w-md mx-auto w-full my-8 relative z-10 space-y-6">
         
-        {/* 1-Click Instant Farmer Demo Login Banner */}
-        <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-sm">
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-mono font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              Quick Test Access
-            </span>
-            <h3 className="font-extrabold text-sm text-emerald-950 font-display">
-              1-Click Demo: Ramesh Patel
-            </h3>
-            <p className="text-[11px] text-emerald-800 font-medium">
-              12.5 Acres Soybean Farm in Bhopal, MP
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              const demoProf = loginAsDemo();
-              saveProfile(demoProf);
-              setLanguage(demoProf.language || "hi");
-              router.push("/dashboard");
-            }}
-            className="px-4 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
-          >
-            <Sparkles className="h-4 w-4 text-amber-300" />
-            <span>Launch</span>
-          </button>
-        </div>
-
         {/* Regular Login Form Card */}
         <div className="bg-white border border-slate-200 shadow-md rounded-2xl p-6 sm:p-8 space-y-6">
-          <div>
-            <span className="text-xs font-mono font-bold text-slate-500 uppercase">{t.portalSignIn}</span>
-            <h2 className="text-2xl font-black font-display text-slate-900 mt-1">{t.signInToFarm}</h2>
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black font-display text-slate-900">
+              {t.portalSignIn || "Farmer Portal Login"}
+            </h1>
             <p className="text-xs sm:text-sm text-slate-600 font-medium">
-              {t.signInDesc}
+              Access your field telemetry, thermal stress warnings, and AI advice
             </p>
           </div>
 
-          {/* Tab Selector */}
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+          {/* Auth Method Selector Tabs */}
+          <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
             <button
               type="button"
               onClick={() => setAuthMethod("otp")}
-              className={`flex-1 py-2.5 rounded-lg transition-all ${
+              className={`py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 authMethod === "otp"
-                  ? "bg-white text-[#10B981] font-black shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              {t.mobileOtpCode}
+              <Phone className="h-3.5 w-3.5 text-[#10B981]" />
+              <span>Mobile OTP</span>
             </button>
+
             <button
               type="button"
               onClick={() => setAuthMethod("password")}
-              className={`flex-1 py-2.5 rounded-lg transition-all ${
+              className={`py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 authMethod === "password"
-                  ? "bg-white text-[#10B981] font-black shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              {t.emailPassword}
+              <KeyRound className="h-3.5 w-3.5 text-blue-600" />
+              <span>Password / Email</span>
             </button>
           </div>
 
           {/* OTP FORM */}
           {authMethod === "otp" && (
             <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                  {t.fullNameLabel}
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Suresh Kumar"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 pl-10 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
-                  />
-                </div>
-              </div>
+              {!otpSent ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      {t.fullNameLabel || "Your Full Name"}
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Enter your name"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                  {t.mobileNumberLabel}
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
-                  <input
-                    type="tel"
-                    required
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 pl-10 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      {t.mobileNumberLabel}
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                      <input
+                        type="tel"
+                        required
+                        value={mobileNumber}
+                        onChange={(e) => setMobileNumber(e.target.value)}
+                        placeholder="98765 43210"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                      />
+                    </div>
+                  </div>
 
-              {otpSent && (
-                <div>
-                  <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                    Enter 4-Digit OTP Code
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={4}
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    placeholder="1 2 3 4"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-center text-lg font-mono font-bold text-slate-900 tracking-widest focus:border-[#10B981] outline-none"
-                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  >
+                    <span>{loading ? "Sending..." : "Send Verification OTP"}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-center">
+                    <span className="text-xs text-emerald-800 font-bold block">
+                      OTP Sent to +91 {mobileNumber}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-mono">
+                      (Enter any 4-digit code to log in)
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Enter 4-Digit OTP
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={4}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      placeholder="1 2 3 4"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-center text-xl font-mono font-black tracking-widest text-slate-900 focus:border-[#10B981] outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Verify &amp; Open Farm Dashboard</span>
+                  </button>
                 </div>
               )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>{loading ? "Verifying..." : otpSent ? t.verifyOpenDashboard : t.sendMobileOtp}</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
             </form>
           )}
 
-          {/* PASSWORD FORM */}
+          {/* PASSWORD / EMAIL FORM */}
           {authMethod === "password" && (
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div>
                 <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                  {t.emailLabel}
+                  Email or Username
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
                   <input
-                    type="email"
+                    type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ramesh@aasra.farm"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 pl-10 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                    placeholder="farmer@kisan.in"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                  {t.passwordLabel}
+                  Password
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
@@ -270,7 +254,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 pl-10 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
                   />
                 </div>
               </div>
@@ -278,20 +262,36 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
               >
-                <span>{loading ? "Authenticating..." : t.signInWithPassword}</span>
+                <span>{loading ? "Logging in..." : "Log In to Dashboard"}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>
           )}
+
+          {/* Registration Redirect Footer */}
+          <div className="border-t border-slate-200 pt-4 text-center">
+            <p className="text-xs text-slate-600 font-medium">
+              Don't have a farm registered?{" "}
+              <Link href="/signup" className="text-[#10B981] font-black hover:underline">
+                Sign Up &amp; Map Real Farm
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Security badge */}
+        <div className="flex items-center justify-center gap-2 text-xs font-mono text-slate-500">
+          <ShieldCheck className="h-4 w-4 text-[#10B981]" />
+          <span>Encrypted with Syngenta Krishi Digital Security</span>
         </div>
 
       </main>
 
-      {/* Footer */}
-      <footer className="max-w-5xl mx-auto w-full text-center py-4 text-xs text-slate-500 font-mono">
-        © 2026 AASRA — Syngenta Biologicals Yield Overwatch Platform
+      {/* Simple Footer */}
+      <footer className="max-w-5xl mx-auto w-full text-center text-xs text-slate-400 py-4 relative z-10">
+        © 2026 AASRA (Syngenta Hackathon). All Rights Reserved.
       </footer>
     </div>
   );

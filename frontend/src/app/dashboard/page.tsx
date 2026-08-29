@@ -62,9 +62,11 @@ export default function DashboardPage() {
     }
 
     const farmerName = profile.fullName || "Kisan Bhai";
+    const districtName = profile.district || weather.district || (language === "hi" ? "आपके क्षेत्र" : "Your Region");
+    const cropName = profile.primaryCrop || (language === "hi" ? "सोयाबीन" : "crop");
     const briefingText = language === "hi"
-      ? `नमस्ते ${farmerName} जी! आपके ${profile.district || "भोपाल"} स्थित ${currentAcres} एकड़ ${profile.primaryCrop || "सोयाबीन"} खेत का आज का तापमान ${weather.temperature} डिग्री सेल्सियस है। रात का तापमान 25 डिग्री से अधिक होने के कारण गर्मी का तनाव सक्रिय है। सुरक्षा के लिए सिंजेंटा स्ट्रेस बस्टर 250 मिलीलीटर प्रति एकड़ के हिसाब से छिड़कें। आपके कुल ${currentAcres} एकड़ खेत के लिए ${chemicalLiters} लीटर दवा लगेगी और लगभग ₹${netProfitEst.toLocaleString("en-IN")} का शुद्ध मुनाफा सुरक्षित होगा।`
-      : `Namaste ${farmerName}! For your ${currentAcres} acre ${profile.primaryCrop || "soybean"} farm in ${profile.district || "Bhopal"}, current temperature is ${weather.temperature}°C. Active night heat stress detected. Applying Syngenta Stress Buster @ 250 ml/acre (${chemicalLiters} L total) will protect an estimated ₹${netProfitEst.toLocaleString("en-IN")} in extra farm income.`;
+      ? `नमस्ते ${farmerName} जी! आपके ${districtName} स्थित ${currentAcres} एकड़ ${cropName} खेत का आज का तापमान ${weather.temperature} डिग्री सेल्सियस है। ${weather.isNightHeatStress ? "रात का तापमान 25 डिग्री से अधिक होने के कारण गर्मी का तनाव सक्रिय है। सुरक्षा के लिए सिंजेंटा स्ट्रेस बस्टर 250 मिलीलीटर प्रति एकड़ के हिसाब से छिड़कें।" : "मौसम फसल के लिए अनुकूल है।"} आपके कुल ${currentAcres} एकड़ खेत के लिए ${chemicalLiters} लीटर दवा लगेगी और लगभग ₹${netProfitEst.toLocaleString("en-IN")} का शुद्ध मुनाफा सुरक्षित होगा।`
+      : `Namaste ${farmerName}! For your ${currentAcres} acre ${cropName} farm in ${districtName}, current temperature is ${weather.temperature}°C. ${weather.isNightHeatStress ? "Active night heat stress detected. Applying Syngenta Stress Buster @ 250 ml/acre will protect your yield." : "Favorable weather conditions today."} Estimated protected net value is ₹${netProfitEst.toLocaleString("en-IN")}.`;
 
     setIsSpeakingBriefing(true);
     playGoogleNeuralSpeech(briefingText, language, {
@@ -88,10 +90,10 @@ export default function DashboardPage() {
               <DataBadge type="LIVE_CEHUB" customText="OPEN-METEO TELEMETRY" />
             </div>
             <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 mt-1">
-              {t.welcomePrefix} {profile.fullName || "Ramesh Patel"}
+              {t.welcomePrefix} {profile.fullName || "Kisan Sathi"}
             </h1>
             <p className="text-sm text-slate-600 font-medium">
-              {profile.village ? `${profile.village}, ` : ""}{profile.district || "Bhopal"}, {profile.state || "MP"} · <strong className="text-slate-900">{currentAcres} Acres</strong> ({profile.primaryCrop?.toUpperCase() || "SOYBEAN"})
+              {profile.village ? `${profile.village}, ` : ""}{profile.district || weather.district || "Live GPS Location"}{profile.state ? `, ${profile.state}` : ""} · <strong className="text-slate-900">{currentAcres} Acres</strong> ({profile.primaryCrop?.toUpperCase() || "FARM CROP"})
             </p>
           </div>
 

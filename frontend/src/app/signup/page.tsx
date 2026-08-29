@@ -1,16 +1,33 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { saveProfile, EMPTY_FARMER_PROFILE, INDIAN_LANGUAGES, FarmerProfile } from "@/lib/userStore";
+import { saveFarmerField, setActiveField, FieldRecord } from "@/lib/fieldStore";
 import { saveFieldToBackend } from "@/lib/api";
 import { reverseGeocode } from "@/context/WeatherContext";
-import { User, MapPin, Sprout, Settings, ArrowRight, ArrowLeft, CheckCircle2, Navigation, Mic, Globe } from "lucide-react";
+import {
+  User, MapPin, Sprout, Settings, ArrowRight, ArrowLeft, CheckCircle2, Navigation, Mic, Globe,
+  Search, ShieldCheck, Sparkles, AlertCircle, Check
+} from "lucide-react";
 
 import { useLanguage } from "@/context/LanguageContext";
+
+const POPULAR_AGRI_HUBS = [
+  { name: "Bhopal (Fanda Kalan)", district: "Bhopal", state: "Madhya Pradesh", lat: 23.2599, lon: 77.4126, soil: "Black Cotton Soil" },
+  { name: "Pune (Haveli / Baramati)", district: "Pune", state: "Maharashtra", lat: 18.5204, lon: 73.8567, soil: "Black Clayey Soil" },
+  { name: "Indore (Sanwer / Depalpur)", district: "Indore", state: "Madhya Pradesh", lat: 22.7196, lon: 75.8577, soil: "Deep Vertisol Clay" },
+  { name: "Ludhiana (Jagraon / Samrala)", district: "Ludhiana", state: "Punjab", lat: 30.9010, lon: 75.8573, soil: "Alluvial Loam" },
+  { name: "Nashik (Niphad / Dindori)", district: "Nashik", state: "Maharashtra", lat: 19.9975, lon: 73.7898, soil: "Red & Black Loam" },
+  { name: "Ujjain (Ghatiya / Badnagar)", district: "Ujjain", state: "Madhya Pradesh", lat: 23.1765, lon: 75.7885, soil: "Black Cotton Soil" },
+  { name: "Nagpur (Katol / Saoner)", district: "Nagpur", state: "Maharashtra", lat: 21.1458, lon: 79.0882, soil: "Black Clay Soil" },
+  { name: "Rajkot (Gondal / Jetpur)", district: "Rajkot", state: "Gujarat", lat: 22.3039, lon: 70.8022, soil: "Medium Black Soil" },
+  { name: "Karnal (Gharaunda)", district: "Karnal", state: "Haryana", lat: 29.6857, lon: 76.9905, soil: "Fertile Alluvial" },
+  { name: "Guntur (Tenali / Bapatla)", district: "Guntur", state: "Andhra Pradesh", lat: 16.3067, lon: 80.4365, soil: "Black Heavy Clay" },
+];
 
 export default function SignupPage() {
   const router = useRouter();
@@ -18,39 +35,33 @@ export default function SignupPage() {
   const [step, setStep] = useState<number>(1);
 
   // Form State
-  const [formData, setFormData] = useState<FarmerProfile>({ ...EMPTY_FARMER_PROFILE, language: language || "hi", fullName: "" });
+  const [formData, setFormData] = useState<FarmerProfile>({
+    ...EMPTY_FARMER_PROFILE,
+    language: language || "hi",
+    fullName: "",
+    mobileNumber: "",
+    state: "",
+    district: "",
+    village: "",
+    primaryCrop: "Soybean",
+    fieldAreaAcres: 5.0,
+    fieldAreaHa: 2.0,
+    sowingDate: "2026-06-15",
+    cropVariety: "JS-335 (Broadleaf Soybean)",
+    irrigationType: "Drip + Monsoon Rainfed",
+    soilType: "Black Cotton Soil",
+  });
+
   const [gpsDetected, setGpsDetected] = useState<boolean>(false);
   const [loadingGps, setLoadingGps] = useState<boolean>(false);
   const [fieldReady, setFieldReady] = useState<boolean>(false);
+  const [searchDistrictQuery, setSearchDistrictQuery] = useState<string>("");
+  const [isSearchingGeocode, setIsSearchingGeocode] = useState<boolean>(false);
 
-  const handleNext = () => {
-    if (step < 4) setStep(step + 1);
-  };
-
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1);
-  };
-
-  const handleFinish = async () => {
-    saveProfile(formData);
-    setLanguage(formData.language);
-    setFieldReady(true);
-    try {
-      await saveFieldToBackend({
-        name: formData.fieldName || `${formData.fullName}'s Farm`,
-        crop: formData.primaryCrop,
-        areaHa: formData.fieldAreaHa || 2.5,
-        center: [formData.gpsLocation?.lat || 23.2599, formData.gpsLocation?.lon || 77.4126],
-      });
-    } catch (_) {}
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 1200);
-  };
-
+  // Auto-detect GPS when reaching step 2
   const detectLocation = () => {
     setLoadingGps(true);
-    if ("geolocation" in navigator) {
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const lat = pos.coords.latitude;
@@ -60,10 +71,10 @@ export default function SignupPage() {
           setFormData((prev) => ({
             ...prev,
             gpsLocation: { lat, lon },
-            state: geo.state || prev.state || "State",
-            district: geo.district || prev.district || "Field District",
-            village: geo.village || prev.village || "Local Village",
-            fieldName: `${geo.district || "My"} Farm Plot`,
+            state: geo.state || prev.state || "India",
+            district: geo.district || prev.district || "My District",
+            village: geo.village || prev.village || "My Village",
+            fieldName: `${geo.village || geo.district || "Main"} Farm Plot`,
           }));
           setLoadingGps(false);
           setGpsDetected(true);
@@ -71,13 +82,138 @@ export default function SignupPage() {
         (err) => {
           console.warn("GPS lookup denied or unavailable:", err);
           setLoadingGps(false);
-          setGpsDetected(true);
-        }
+        },
+        { timeout: 8000 }
       );
     } else {
       setLoadingGps(false);
-      setGpsDetected(true);
     }
+  };
+
+  const handleSearchCustomLocation = async () => {
+    if (!searchDistrictQuery.trim()) return;
+    setIsSearchingGeocode(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchDistrictQuery)}&format=json&limit=1`, {
+        headers: { "User-Agent": "AASRA-Agri-App/1.0" },
+      });
+      if (res.ok) {
+        const results = await res.json();
+        if (results && results.length > 0) {
+          const match = results[0];
+          const lat = parseFloat(match.lat);
+          const lon = parseFloat(match.lon);
+          const geo = await reverseGeocode(lat, lon);
+
+          setFormData((prev) => ({
+            ...prev,
+            gpsLocation: { lat, lon },
+            state: geo.state || prev.state,
+            district: geo.district || searchDistrictQuery,
+            village: geo.village || prev.village,
+            fieldName: `${geo.village || geo.district || searchDistrictQuery} Farm Plot`,
+          }));
+          setGpsDetected(true);
+        }
+      }
+    } catch (e) {
+      console.warn("Custom location search failed:", e);
+    } finally {
+      setIsSearchingGeocode(false);
+    }
+  };
+
+  const handleSelectPresetHub = (hub: typeof POPULAR_AGRI_HUBS[0]) => {
+    setFormData((prev) => ({
+      ...prev,
+      gpsLocation: { lat: hub.lat, lon: hub.lon },
+      state: hub.state,
+      district: hub.district,
+      village: hub.name.split("(")[1]?.replace(")", "") || "",
+      soilType: hub.soil,
+      fieldName: `${hub.district} Farm Plot`,
+    }));
+    setGpsDetected(true);
+  };
+
+  const handleNext = () => {
+    if (step === 1) {
+      if (!formData.fullName.trim()) {
+        alert("Please enter your full name");
+        return;
+      }
+      if (!formData.mobileNumber.trim() || formData.mobileNumber.trim().length < 10) {
+        alert("Please enter a valid 10-digit mobile number");
+        return;
+      }
+      // Auto-trigger GPS detection as farmer moves to Location step
+      if (!gpsDetected) {
+        detectLocation();
+      }
+    }
+    if (step < 4) setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const handleFinish = async () => {
+    const lat = formData.gpsLocation?.lat || 23.2599;
+    const lon = formData.gpsLocation?.lon || 77.4126;
+    const acres = formData.fieldAreaAcres || 5.0;
+    const ha = Math.round((acres / 2.471) * 100) / 100;
+
+    const finalProfile: FarmerProfile = {
+      ...formData,
+      fieldAreaHa: ha,
+      gpsLocation: { lat, lon },
+    };
+
+    saveProfile(finalProfile);
+    setLanguage(finalProfile.language);
+    setFieldReady(true);
+
+    // Create real field polygon around real farmer coordinates
+    const offset = 0.0025;
+    const initialField: FieldRecord = {
+      id: `field_${Date.now()}`,
+      name: finalProfile.fieldName || `${finalProfile.fullName}'s Farm Plot`,
+      crop: finalProfile.primaryCrop,
+      cropVariety: finalProfile.cropVariety || "High Yield Certified",
+      areaAcres: acres,
+      areaHa: ha,
+      center: [lat, lon],
+      polygon: [
+        [lat + offset, lon - offset],
+        [lat + offset * 1.2, lon + offset],
+        [lat - offset, lon + offset * 1.1],
+        [lat - offset * 1.1, lon - offset * 0.9],
+      ],
+      sowingDate: finalProfile.sowingDate || "2026-06-15",
+      growthStage: "R2 Flowering Stage",
+      soilType: finalProfile.soilType || "Black Cotton Soil",
+      irrigationType: finalProfile.irrigationType || "Rainfed + Borewell",
+      color: "#10B981",
+      healthScore: 94,
+      pins: [],
+    };
+
+    saveFarmerField(initialField);
+    setActiveField(initialField.id);
+
+    try {
+      await saveFieldToBackend({
+        name: initialField.name,
+        crop: initialField.crop,
+        areaHa: initialField.areaHa,
+        center: initialField.center,
+      });
+    } catch (_) {}
+
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1000);
   };
 
   return (
@@ -90,7 +226,7 @@ export default function SignupPage() {
             <Image src="/images/aasra_logo.png" alt="AASRA" fill className="object-contain p-0.5" priority />
           </div>
           <span className="text-xs font-mono font-bold tracking-wider text-[#10B981] uppercase hidden sm:inline">
-            {t.brandName} · {t.btnStartFarm}
+            {t.brandName} · Real Farm Registration
           </span>
         </Link>
 
@@ -106,17 +242,19 @@ export default function SignupPage() {
         <div className="grid grid-cols-4 gap-2 mb-8 bg-white p-2 rounded-xl border border-slate-200 shadow-sm text-center">
           {[
             { id: 1, label: "01. ABOUT YOU", icon: User },
-            { id: 2, label: "02. LOCATION", icon: MapPin },
-            { id: 3, label: "03. FIELD MAP", icon: Sprout },
-            { id: 4, label: "04. PREFERENCES", icon: Settings },
+            { id: 2, label: "02. REAL LOCATION", icon: MapPin },
+            { id: 3, label: "03. CROP & FIELD", icon: Sprout },
+            { id: 4, label: "04. CONFIRM", icon: Settings },
           ].map((s) => (
             <button
               key={s.id}
-              onClick={() => setStep(s.id)}
+              onClick={() => step > s.id && setStep(s.id)}
               className={`py-3 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
                 step === s.id
                   ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900"
+                  : step > s.id
+                  ? "text-emerald-700 bg-emerald-50/50"
+                  : "text-slate-400"
               }`}
             >
               <s.icon className="h-4 w-4" />
@@ -126,7 +264,7 @@ export default function SignupPage() {
         </div>
 
         {/* Form Wizard Cards */}
-        <div className="bg-white border border-slate-200 shadow-md rounded-2xl p-6 sm:p-10 space-y-6">
+        <div className="bg-white border border-slate-200 shadow-md rounded-3xl p-6 sm:p-10 space-y-6">
           <AnimatePresence mode="wait">
             
             {/* STEP 1: ABOUT YOU */}
@@ -140,39 +278,41 @@ export default function SignupPage() {
               >
                 <div>
                   <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    STEP 01 / FARMER PROFILE
+                    STEP 01 / FARMER IDENTITY
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
                     {t.tellUsAboutYourself}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    {t.aboutYouDesc}
+                    Register your name and mobile number to receive localized AI crop advice and weather alerts.
                   </p>
                 </div>
 
                 <div className="space-y-5">
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.fullNameLabel}
+                      {t.fullNameLabel} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
+                      required
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      placeholder="e.g. Ramesh Patel"
+                      placeholder="e.g. Ramesh Patel, Gurpreet Singh, Suresh Jadhav"
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100 outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.mobileNumberLabel}
+                      {t.mobileNumberLabel} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="tel"
+                      required
                       value={formData.mobileNumber}
                       onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
-                      placeholder="+91 98765 43210"
+                      placeholder="e.g. +91 98260 14890"
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100 outline-none"
                     />
                   </div>
@@ -235,7 +375,7 @@ export default function SignupPage() {
               </motion.div>
             )}
 
-            {/* STEP 2: LOCATION */}
+            {/* STEP 2: REAL LOCATION */}
             {step === 2 && (
               <motion.div
                 key="step2"
@@ -246,32 +386,98 @@ export default function SignupPage() {
               >
                 <div>
                   <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    STEP 02 / FARM LOCATION
+                    STEP 02 / REAL FARM LOCATION &amp; GPS
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    {t.whereIsFarmLocated}
+                    Where is your farm located?
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    {t.locationDesc}
+                    We connect live Open-Meteo &amp; Syngenta satellite telemetry to your exact coordinates.
                   </p>
                 </div>
 
-                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+                {/* 1-Tap Real GPS Auto-Detection */}
+                <div className="bg-emerald-50 border-2 border-emerald-300 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                   <div className="space-y-1">
-                    <span className="font-extrabold text-sm text-slate-900 block">{t.usePhoneGps}</span>
-                    <span className="text-xs text-slate-500 font-mono">Automatically sets exact Lat/Lon coordinates</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-sm text-emerald-950 block">Auto-Detect Real Farm GPS</span>
+                      {gpsDetected && (
+                        <span className="text-[10px] font-mono font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full">
+                          ✓ GPS LOCKED
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-emerald-800 font-medium block">
+                      {formData.gpsLocation
+                        ? `Exact Coordinates: ${formData.gpsLocation.lat.toFixed(4)}° N, ${formData.gpsLocation.lon.toFixed(4)}° E`
+                        : "Click below to read live device GPS coordinates"}
+                    </span>
                   </div>
                   <button
+                    type="button"
                     onClick={detectLocation}
                     disabled={loadingGps}
-                    className="px-4 py-2 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs flex items-center gap-2 cursor-pointer"
+                    className="px-5 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs shrink-0"
                   >
                     <Navigation className="h-4 w-4" />
-                    <span>{loadingGps ? "Locating..." : gpsDetected ? "GPS Locked" : "Fetch Location"}</span>
+                    <span>{loadingGps ? "Detecting GPS..." : gpsDetected ? "Refresh GPS" : "Detect My Live Location"}</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Custom Search Bar */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                    Or Search Any Indian City / District / Mandi:
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={searchDistrictQuery}
+                        onChange={(e) => setSearchDistrictQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearchCustomLocation()}
+                        placeholder="e.g. Pune, Ludhiana, Indore, Nashik, Rajkot, Guntur, Karnal..."
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSearchCustomLocation}
+                      disabled={isSearchingGeocode}
+                      className="px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shrink-0"
+                    >
+                      {isSearchingGeocode ? "Searching..." : "Set Location"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Popular Agricultural Hubs Quick Selection */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider">
+                    Popular Agricultural Regions (1-Tap Select):
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    {POPULAR_AGRI_HUBS.map((hub) => (
+                      <button
+                        key={hub.district}
+                        type="button"
+                        onClick={() => handleSelectPresetHub(hub)}
+                        className={`p-2.5 rounded-xl border text-left transition-all text-xs cursor-pointer ${
+                          formData.district.toLowerCase() === hub.district.toLowerCase()
+                            ? "bg-emerald-50 border-[#10B981] text-emerald-900 font-extrabold shadow-xs"
+                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <div className="font-bold truncate">{hub.district}</div>
+                        <div className="text-[10px] text-slate-500 truncate">{hub.state}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Current Location Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-200">
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
                       {t.stateLabel}
@@ -280,30 +486,34 @@ export default function SignupPage() {
                       type="text"
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      placeholder="e.g. Madhya Pradesh"
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.districtLabel}
+                      {t.districtLabel} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
+                      required
                       value={formData.district}
                       onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                      placeholder="e.g. Bhopal"
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.villageLabel}
+                      {t.villageLabel} / Mandi
                     </label>
                     <input
                       type="text"
                       value={formData.village}
                       onChange={(e) => setFormData({ ...formData, village: e.target.value })}
+                      placeholder="e.g. Fanda Kalan"
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
                     />
                   </div>
@@ -329,7 +539,7 @@ export default function SignupPage() {
               </motion.div>
             )}
 
-            {/* STEP 3: FIELD MAP & CROP */}
+            {/* STEP 3: CROP & FIELD MAP */}
             {step === 3 && (
               <motion.div
                 key="step3"
@@ -340,13 +550,13 @@ export default function SignupPage() {
               >
                 <div>
                   <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    STEP 03 / CROP & FIELD BOUNDARY
+                    STEP 03 / PRIMARY CROP &amp; FIELD AREA
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    {t.primaryCropFieldArea}
+                    Crop &amp; Farm Characteristics
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    {t.primaryCropDesc}
+                    Configure crop physiology parameters to calculate real heat stress resilience and Syngenta CropFit dosages.
                   </p>
                 </div>
 
@@ -360,11 +570,14 @@ export default function SignupPage() {
                       onChange={(e) => setFormData({ ...formData, primaryCrop: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none cursor-pointer"
                     >
-                      <option value="soybean">Soybean (सोयाबीन)</option>
-                      <option value="rice">Rice / Paddy (धान)</option>
-                      <option value="cotton">Cotton (कपास)</option>
-                      <option value="wheat">Wheat (गेहूँ)</option>
-                      <option value="maize">Maize (मक्का)</option>
+                      <option value="Soybean">Soybean (सोयाबीन)</option>
+                      <option value="Rice">Rice / Paddy (धान)</option>
+                      <option value="Cotton">Cotton (कपास)</option>
+                      <option value="Wheat">Wheat (गेहूँ)</option>
+                      <option value="Maize">Maize (मक्का)</option>
+                      <option value="Mustard">Mustard (सरसों)</option>
+                      <option value="Gram">Gram / Chickpea (चना)</option>
+                      <option value="Sugarcane">Sugarcane (गन्ना)</option>
                     </select>
                   </div>
 
@@ -374,9 +587,10 @@ export default function SignupPage() {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
-                      value={formData.fieldAreaAcres || 4.2}
-                      onChange={(e) => setFormData({ ...formData, fieldAreaAcres: parseFloat(e.target.value) || 4.2 })}
+                      step="0.5"
+                      min="0.5"
+                      value={formData.fieldAreaAcres || 5.0}
+                      onChange={(e) => setFormData({ ...formData, fieldAreaAcres: parseFloat(e.target.value) || 5.0 })}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
                     />
                   </div>
@@ -391,6 +605,38 @@ export default function SignupPage() {
                       onChange={(e) => setFormData({ ...formData, sowingDate: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Crop Variety / Seed
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.cropVariety}
+                      onChange={(e) => setFormData({ ...formData, cropVariety: e.target.value })}
+                      placeholder="e.g. JS-335, Basmati 1121, BT Cotton"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                      Irrigation &amp; Soil Type
+                    </label>
+                    <select
+                      value={formData.soilType}
+                      onChange={(e) => setFormData({ ...formData, soilType: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none cursor-pointer"
+                    >
+                      <option value="Black Cotton Soil">Black Cotton Soil (Deep Vertisol)</option>
+                      <option value="Alluvial Loam">Alluvial Loam (Indo-Gangetic)</option>
+                      <option value="Red Sandy Loam">Red Sandy Loam (Deccan / South)</option>
+                      <option value="Laterite Soil">Laterite Soil (Coastal / Heavy Rain)</option>
+                      <option value="Clayey Loam">Clayey Loam (High Moisture Retentive)</option>
+                    </select>
                   </div>
                 </div>
 
@@ -414,7 +660,7 @@ export default function SignupPage() {
               </motion.div>
             )}
 
-            {/* STEP 4: PREFERENCES & COMPLETE */}
+            {/* STEP 4: CONFIRMATION & LAUNCH */}
             {step === 4 && (
               <motion.div
                 key="step4"
@@ -428,25 +674,43 @@ export default function SignupPage() {
                     STEP 04 / FINAL CONFIRMATION
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    {t.reviewSetupFarm}
+                    Review Your Real Farm Profile
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    {t.reviewDesc}
+                    Confirm your details to generate your live GIS boundary and start AI farm monitoring.
                   </p>
                 </div>
 
-                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3 font-mono text-xs">
-                  <div className="flex justify-between border-b border-slate-200 pb-2">
-                    <span className="text-slate-500">Farmer Name:</span>
-                    <span className="font-bold text-slate-900">{formData.fullName}</span>
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-3 font-sans text-xs">
+                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
+                    <span className="text-slate-500 font-medium">Farmer Name:</span>
+                    <span className="font-black text-slate-900 text-sm">{formData.fullName}</span>
                   </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-2">
-                    <span className="text-slate-500">Location:</span>
-                    <span className="font-bold text-slate-900">{formData.village}, {formData.district}, {formData.state}</span>
+                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
+                    <span className="text-slate-500 font-medium">Mobile Number:</span>
+                    <span className="font-bold text-slate-900 font-mono">{formData.mobileNumber}</span>
                   </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-2">
-                    <span className="text-slate-500">Primary Crop:</span>
-                    <span className="font-bold text-emerald-700">{formData.primaryCrop?.toUpperCase()} ({formData.fieldAreaAcres} Acres)</span>
+                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
+                    <span className="text-slate-500 font-medium">Real Farm Location:</span>
+                    <span className="font-bold text-slate-900">
+                      {formData.village ? `${formData.village}, ` : ""}{formData.district || "District"}, {formData.state || "State"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
+                    <span className="text-slate-500 font-medium">GPS Coordinates:</span>
+                    <span className="font-mono text-emerald-800 font-bold">
+                      {formData.gpsLocation ? `${formData.gpsLocation.lat.toFixed(4)}° N, ${formData.gpsLocation.lon.toFixed(4)}° E` : "Auto-Resolved Coordinates"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
+                    <span className="text-slate-500 font-medium">Crop &amp; Landholding:</span>
+                    <span className="font-black text-emerald-800">
+                      {formData.primaryCrop?.toUpperCase()} · {formData.fieldAreaAcres} Acres ({formData.cropVariety})
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-medium">Soil &amp; Irrigation:</span>
+                    <span className="font-medium text-slate-700">{formData.soilType}</span>
                   </div>
                 </div>
 
@@ -461,10 +725,10 @@ export default function SignupPage() {
 
                   <button
                     onClick={handleFinish}
-                    className="px-8 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-8 py-4 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>{fieldReady ? "Initializing Overwatch..." : t.completeSetupLaunch}</span>
+                    <span>{fieldReady ? "Generating Farm Boundary..." : "Complete Setup & Launch Dashboard"}</span>
                   </button>
                 </div>
               </motion.div>

@@ -112,15 +112,17 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   // GPS Auto-Locate State
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
-  // Sync saved fields on mount
+  // Sync saved fields on mount & real location
   useEffect(() => {
     const list = getSavedFields();
     setSavedFields(list);
-    if (list.length > 0) {
+    if (list.length > 0 && list[0].center) {
       setActiveFieldState(list[0]);
       setCurrentCenter(list[0].center);
+    } else if (weather.lat && weather.lon) {
+      setCurrentCenter([weather.lat, weather.lon]);
     }
-  }, []);
+  }, [weather.lat, weather.lon]);
 
   // Geocoding live search handler with debouncing
   useEffect(() => {

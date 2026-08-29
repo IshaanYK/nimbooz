@@ -69,6 +69,21 @@ export default function SettingsPage() {
     if (e) e.preventDefault();
     saveProfile(profile);
     setLanguage(profile.language);
+    if (profile.gpsLocation) {
+      try {
+        const rawFields = localStorage.getItem("aasra_farmer_fields_v3");
+        if (rawFields) {
+          const fields = JSON.parse(rawFields);
+          if (Array.isArray(fields) && fields.length > 0) {
+            fields[0].center = [profile.gpsLocation.lat, profile.gpsLocation.lon];
+            fields[0].crop = profile.primaryCrop || fields[0].crop;
+            fields[0].areaAcres = profile.fieldAreaAcres || fields[0].areaAcres;
+            localStorage.setItem("aasra_farmer_fields_v3", JSON.stringify(fields));
+          }
+        }
+      } catch (_) {}
+      refetchWeather(true);
+    }
     showSaveNotification();
   };
 

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { getTranslation } from "@/lib/translations";
-import { isUserLoggedIn, getStoredProfile, logoutUser, loginAsDemo, INDIAN_LANGUAGES } from "@/lib/userStore";
+import { isUserLoggedIn, getStoredProfile, logoutUser, INDIAN_LANGUAGES } from "@/lib/userStore";
 import { Footer } from "@/components/Footer";
 import { HackathonJudgeHUD } from "@/components/HackathonJudgeHUD";
 import {
@@ -33,9 +33,10 @@ import {
   Layers,
   PhoneCall,
   Home,
+  UserPlus,
 } from "lucide-react";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/how-it-works", "/product", "/impact-story"];
+const PUBLIC_PATHS = ["/login", "/signup", "/how-it-works", "/product", "/impact-story"];
 
 const PS_MODULES = [
   { id: "PS-02", name: "14-Day Stress Engine", path: "/plant-intelligence", icon: Activity, color: "text-blue-700 bg-blue-50 border-blue-300" },
@@ -49,43 +50,37 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
 
-  const [loggedIn, setLoggedIn] = useState<boolean>(true);
+  const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [profile, setProfile] = useState(getStoredProfile());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
 
   useEffect(() => {
-    // Auto-login as demo if no session exists — ensures judges always have access
-    if (!isUserLoggedIn()) {
-      const demoProf = loginAsDemo();
-      setProfile(demoProf);
-    } else {
-      setProfile(getStoredProfile());
-    }
-    setLoggedIn(true);
+    const isAuthed = isUserLoggedIn();
+    setLoggedIn(isAuthed);
+    setProfile(getStoredProfile());
   }, [pathname]);
 
   const handleLogout = () => {
     logoutUser();
     setLoggedIn(false);
     setProfileDropdownOpen(false);
-    router.push("/login");
-  };
-
-  const handleQuickDemoLogin = () => {
-    const demoProf = loginAsDemo();
-    setProfile(demoProf);
-    setLoggedIn(true);
+    router.push("/signup");
   };
 
   const isProtectedPath = !PUBLIC_PATHS.includes(pathname);
-  // Always false — auto-demo-login ensures access everywhere for judges
-  const showAuthGate = false;
+  const showAuthGate = !loggedIn && isProtectedPath;
 
-  const displayName = profile.fullName && profile.fullName.trim() ? profile.fullName : "Ramesh Patel";
-  const displayLocation = `${profile.district || "Bhopal"}, ${profile.state || "MP"}`;
-  const displayCrop = `${profile.fieldAreaAcres || 12.5} Acres · ${profile.primaryCrop || "Soybean"} (${profile.cropVariety || "JS-335"})`;
+  const displayName = profile.fullName && profile.fullName.trim() ? profile.fullName : "Farmer Profile";
+  const displayLocation = profile.village && profile.district
+    ? `${profile.village}, ${profile.district}`
+    : profile.district
+    ? `${profile.district}, ${profile.state || "India"}`
+    : "Live GPS Location";
+  const displayCrop = profile.fieldAreaAcres
+    ? `${profile.fieldAreaAcres} Acres · ${profile.primaryCrop || "Crop"}`
+    : `${profile.primaryCrop || "Crop"}`;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] selection:bg-[#10B981] selection:text-white font-sans pb-16 md:pb-0">
@@ -95,7 +90,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           {/* Logo Brand */}
-          <Link href={loggedIn ? "/dashboard" : "/"} className="flex items-center gap-2.5 group cursor-pointer shrink-0">
+          <Link href={loggedIn ? "/dashboard" : "/signup"} className="flex items-center gap-2.5 group cursor-pointer shrink-0">
             <div className="relative h-8 w-28 bg-slate-50 p-1 rounded-xl border border-slate-200 shadow-xs group-hover:scale-105 transition-transform">
               <Image src="/images/aasra_logo.png" alt="AASRA Logo" fill className="object-contain p-0.5" priority />
             </div>
@@ -106,7 +101,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </Link>
 
           {/* AUTHENTICATED NAVIGATION TABS */}
-          {loggedIn && (
+          {loggedIn ? (
             <nav className="hidden xl:flex items-center gap-1 text-xs font-bold text-slate-700">
               <Link
                 href="/dashboard"
@@ -140,8 +135,8 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <Leaf className="h-4 w-4 text-emerald-600" />
-                <span>{t.navPlantAi}</span>
+                <Activity className="h-4 w-4 text-blue-600" />
+                <span>Plant Health AI</span>
               </Link>
 
               <Link
@@ -152,7 +147,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <Sliders className="h-4 w-4 text-blue-600" />
+                <Sliders className="h-4 w-4 text-sky-600" />
                 <span>{t.navWhatIf}</span>
               </Link>
 
@@ -171,13 +166,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <Link
                 href="/fields"
                 className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all whitespace-nowrap ${
-                  pathname === "/fields"
+                  pathname.startsWith("/fields")
                     ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-xs"
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <MapPin className="h-4 w-4 text-emerald-600" />
-                <span>Farm GIS</span>
+                <Layers className="h-4 w-4 text-purple-600" />
+                <span>{t.navFields || "My Fields"}</span>
               </Link>
 
               <Link
@@ -188,114 +183,131 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                     : "hover:text-[#10B981] hover:bg-slate-100"
                 }`}
               >
-                <Globe className="h-4 w-4 text-sky-500" />
+                <MapPin className="h-4 w-4 text-rose-500" />
                 <span>{t.navWeather}</span>
+              </Link>
+            </nav>
+          ) : (
+            <nav className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-700">
+              <Link href="/product" className="py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+                Product Architecture
+              </Link>
+              <Link href="/how-it-works" className="py-2 px-3 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+                How It Works
               </Link>
             </nav>
           )}
 
-          {/* Right Header Actions */}
+          {/* Right Action Cluster */}
           <div className="flex items-center gap-2.5">
             
-            {/* 12 Indian Languages Dropdown */}
-            <div className="relative notranslate" translate="no">
+            {/* Language Selector Dropdown */}
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-400 text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-xs notranslate"
+                className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-xl border border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-white text-xs font-bold text-slate-700 transition-all cursor-pointer shadow-2xs notranslate"
                 translate="no"
               >
-                <Globe className="h-4 w-4 text-[#10B981]" />
+                <Globe className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                 <span className="notranslate font-extrabold" translate="no">
                   {INDIAN_LANGUAGES.find((l) => l.code === language)?.native || "हिन्दी"}
                 </span>
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                <ChevronDown className="h-3 w-3 text-slate-400" />
               </button>
 
               {langDropdownOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-50 grid grid-cols-2 gap-1 font-sans text-xs notranslate animate-in fade-in"
-                  translate="no"
-                >
-                  <div className="col-span-2 px-2 py-1 text-[10px] font-mono font-bold text-slate-400 border-b border-slate-100 mb-1 notranslate" translate="no">
-                    SELECT LANGUAGE / भाषा चुनें
+                <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl border border-slate-200 shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150 notranslate" translate="no">
+                  <div className="px-3 py-1 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                    Select Language ({INDIAN_LANGUAGES.length})
                   </div>
-                  {INDIAN_LANGUAGES.map((lang) => (
-                    <button
-                      key={lang.code}
-                      type="button"
-                      onClick={() => {
-                        setLanguage(lang.code);
-                        setLangDropdownOpen(false);
-                      }}
-                      className={`flex flex-col items-start px-2.5 py-1.5 rounded-xl text-left transition-all notranslate ${
-                        language === lang.code
-                          ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200"
-                          : "hover:bg-slate-50 text-slate-700 font-medium"
-                      }`}
-                      translate="no"
-                    >
-                      <span className="text-xs font-bold notranslate" translate="no">{lang.native}</span>
-                      <span className="text-[10px] text-slate-400 notranslate" translate="no">{lang.name}</span>
-                    </button>
-                  ))}
+                  <div className="max-h-60 overflow-y-auto">
+                    {INDIAN_LANGUAGES.map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => {
+                          setLanguage(lang.code);
+                          setLangDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-colors notranslate ${
+                          language === lang.code
+                            ? "bg-emerald-50 text-emerald-800 font-black"
+                            : "text-slate-700 hover:bg-slate-50 font-medium"
+                        }`}
+                        translate="no"
+                      >
+                        <span className="font-bold">{lang.native}</span>
+                        <span className="text-[10px] text-slate-400">{lang.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Profile Avatar / Login Button */}
-            {loggedIn ? (
+            {/* Profile Dropdown or Login / Sign-up CTA Buttons */}
+            {loggedIn && profile.fullName ? (
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 p-1 sm:px-3 sm:py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-xs"
+                  className="flex items-center gap-2 py-1 px-2 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/80 transition-all cursor-pointer shadow-2xs"
                 >
-                  <div className="h-7 w-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                    {displayName.charAt(0)}
+                  <div className="h-7 w-7 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                    {profile.fullName.charAt(0).toUpperCase()}
                   </div>
-                  <div className="hidden lg:flex flex-col items-start text-left">
-                    <span className="text-xs font-extrabold text-slate-900 truncate max-w-[120px]">{displayName}</span>
-                    <span className="text-[9px] text-emerald-600 font-mono font-bold">{profile.district || "Bhopal"} Farm</span>
+                  <div className="hidden lg:flex flex-col text-left leading-none pr-1">
+                    <span className="text-xs font-black text-slate-900 truncate max-w-[110px]">{displayName}</span>
+                    <span className="text-[10px] font-mono text-emerald-800 truncate max-w-[110px]">{displayLocation}</span>
                   </div>
                   <ChevronDown className="h-3.5 w-3.5 text-slate-400 hidden sm:block" />
                 </button>
 
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-50 text-xs font-medium divide-y divide-slate-100 animate-in fade-in">
-                    <div className="px-3 py-2.5 space-y-0.5">
-                      <p className="font-black text-slate-900">{displayName}</p>
-                      <p className="text-[11px] text-slate-500 font-mono">{displayLocation}</p>
-                      <p className="text-[10px] text-emerald-600 font-bold font-mono">{displayCrop}</p>
+                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-3xl border border-slate-200 shadow-2xl p-4 z-50 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                      <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center shadow-sm shrink-0">
+                        {profile.fullName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-xs font-extrabold text-slate-900 truncate">{displayName}</h4>
+                          <span className="text-[9px] font-mono font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded">VERIFIED</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-mono truncate">{profile.mobileNumber || "Farmer Registered"}</p>
+                        <p className="text-[10px] text-emerald-700 font-bold truncate">📍 {displayLocation}</p>
+                      </div>
                     </div>
 
-                    <div className="py-1">
+                    <div className="space-y-1 text-xs font-bold text-slate-700">
                       <Link
                         href="/settings"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-emerald-700 transition-colors font-bold"
+                        className="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-100 transition-colors"
                       >
-                        <Settings className="h-4 w-4 text-[#10B981]" />
-                        <span>Settings & Profile</span>
+                        <Settings className="h-4 w-4 text-slate-500" />
+                        <span>Farm Profile &amp; Location Settings</span>
                       </Link>
+
                       <Link
                         href="/fields"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-emerald-700 transition-colors font-bold"
+                        className="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-100 transition-colors"
                       >
-                        <MapPin className="h-4 w-4 text-[#10B981]" />
-                        <span>My Farm Fields</span>
+                        <Layers className="h-4 w-4 text-slate-500" />
+                        <span>My Farm Plots ({displayCrop})</span>
                       </Link>
                     </div>
 
-                    <div className="pt-1">
+                    <div className="pt-2 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors font-bold cursor-pointer"
+                        className="w-full flex items-center justify-center gap-2 p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-black transition-colors cursor-pointer"
                       >
-                        <LogOut className="h-4 w-4" />
-                        <span>{t.navLogout}</span>
+                        <LogOut className="h-3.5 w-3.5" />
+                        <span>{t.navLogout || "Sign Out"}</span>
                       </button>
                     </div>
                   </div>
@@ -303,14 +315,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleQuickDemoLogin}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-all cursor-pointer shadow-xs"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>1-Click Demo</span>
-                </button>
                 <Link
                   href="/login"
                   className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 border border-slate-200 transition-all"
@@ -319,9 +323,10 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#10B981] hover:bg-emerald-600 shadow-xs transition-all"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#10B981] hover:bg-emerald-600 shadow-xs transition-all flex items-center gap-1"
                 >
-                  {t.navGetStarted}
+                  <UserPlus className="h-3.5 w-3.5" />
+                  <span>{t.navGetStarted}</span>
                 </Link>
               </div>
             )}
@@ -337,7 +342,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </div>
         </div>
 
-        {/* 🌟 PROBLEM STATEMENT GLOBAL QUICK-NAV STRIP (PS-01 to PS-07) */}
+        {/* Problem Statement Quick-Nav Strip */}
         <div className="bg-slate-900 text-white px-4 sm:px-6 py-2 overflow-x-auto no-scrollbar border-t border-slate-800 flex items-center gap-2">
           <div className="flex items-center gap-1.5 shrink-0 pr-3 border-r border-slate-800 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
             <Layers className="h-3.5 w-3.5 text-emerald-400" />
@@ -358,135 +363,73 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                       : "bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-slate-500"
                   }`}
                 >
-                  <span className="font-extrabold text-emerald-300">{ps.id}:</span>
-                  <span>{ps.name}</span>
+                  <IconComp className="h-3 w-3" />
+                  <span>{ps.id}: {ps.name}</span>
                 </Link>
               );
             })}
           </div>
         </div>
 
-        {/* Personalized Active Farmer Telemetry Banner */}
-        {loggedIn && (
-          <div className="bg-emerald-50/90 border-t border-b border-emerald-200/80 px-4 sm:px-6 py-2 text-xs font-medium text-emerald-950 flex items-center justify-between overflow-x-auto no-scrollbar gap-4">
-            <div className="flex items-center gap-2 shrink-0">
-              <Sprout className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span className="font-extrabold text-emerald-900">{displayName}</span>
-              <span className="text-emerald-700 font-mono text-[11px]">({displayLocation})</span>
-              <span className="text-slate-300">|</span>
-              <span className="text-emerald-800 font-mono font-bold text-[11px]">{displayCrop}</span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] font-mono text-emerald-800 shrink-0">
-              <span className="bg-white/80 px-2 py-0.5 rounded-md border border-emerald-200 font-bold">
-                🌾 Active Soil: {profile.soilType || "Black Vertisol Clay"}
-              </span>
-              <Link href="/settings" className="text-emerald-700 hover:underline font-bold">
-                Edit Profile →
-              </Link>
-            </div>
-          </div>
-        )}
-
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="xl:hidden bg-white border-b border-slate-200 p-4 space-y-1.5 text-xs font-bold shadow-xl divide-y divide-slate-100">
-            <div className="space-y-1 pb-2">
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <LayoutDashboard className="h-4 w-4 text-[#10B981]" />
-                <span>{t.navDashboard}</span>
+          <div className="xl:hidden bg-white border-b border-slate-200 p-4 space-y-3 animate-in slide-in-from-top-2 duration-150 shadow-xl">
+            {loggedIn && profile.fullName ? (
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
+                <div>
+                  <div className="font-extrabold text-xs text-slate-900">{displayName}</div>
+                  <div className="text-[10px] text-emerald-800 font-mono">📍 {displayLocation}</div>
+                </div>
+                <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="text-xs text-emerald-700 font-bold hover:underline">
+                  Settings
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 pb-2">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="p-2.5 text-center text-xs font-bold border border-slate-200 rounded-xl">
+                  {t.navLogin}
+                </Link>
+                <Link href="/signup" onClick={() => setMobileMenuOpen(false)} className="p-2.5 text-center text-xs font-bold bg-[#10B981] text-white rounded-xl">
+                  {t.navGetStarted}
+                </Link>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-800">
+              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
+                <LayoutDashboard className="h-4 w-4 text-[#10B981]" /> Dashboard
               </Link>
-              <Link
-                href="/assistant"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <Mic className="h-4 w-4 text-amber-500" />
-                <span>{t.navAdvisory} (PS-04 Voice & Vision AI)</span>
+              <Link href="/assistant" onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
+                <Mic className="h-4 w-4 text-amber-500" /> AI Voice &amp; Vision
               </Link>
-              <Link
-                href="/plant-intelligence"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] bg-emerald-50 border border-emerald-200 text-emerald-800 font-black"
-              >
-                <Leaf className="h-4 w-4 text-emerald-600" />
-                <span>{t.navPlantAi} (PS-02 14-Day Forecast)</span>
+              <Link href="/plant-intelligence" onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
+                <Activity className="h-4 w-4 text-blue-600" /> Plant Health AI
               </Link>
-              <Link
-                href="/what-if"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <Sliders className="h-4 w-4 text-blue-600" />
-                <span>{t.navWhatIf} (PS-06 Scenario Simulator)</span>
+              <Link href="/what-if" onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
+                <Sliders className="h-4 w-4 text-sky-600" /> What-If
               </Link>
-              <Link
-                href="/impact"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <span>{t.navRobi} (PS-07 ROBI Yield Proof)</span>
+              <Link href="/impact" onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-emerald-600" /> ROBI Impact
               </Link>
-              <Link
-                href="/product"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <Package className="h-4 w-4 text-purple-600" />
-                <span>CropFit Products (PS-03)</span>
+              <Link href="/fields" onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
+                <Layers className="h-4 w-4 text-purple-600" /> My Fields
               </Link>
-              <Link
-                href="/fields"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <MapPin className="h-4 w-4 text-emerald-600" />
-                <span>Farm GIS & GeoJSON (PS-01)</span>
+              <Link href="/weather" onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-rose-500" /> Weather
               </Link>
-              <Link
-                href="/weather"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-xl min-h-[44px] hover:bg-slate-100 text-slate-800"
-              >
-                <Globe className="h-4 w-4 text-sky-500" />
-                <span>{t.navWeather} (Satellite Feed)</span>
+              <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
+                <Settings className="h-4 w-4 text-slate-600" /> Settings
               </Link>
             </div>
 
-            {!loggedIn && (
-              <div className="pt-3 flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleQuickDemoLogin();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full py-3 rounded-xl text-xs font-black text-emerald-900 bg-emerald-100 border border-emerald-300 flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="h-4 w-4 text-emerald-600" />
-                  <span>Instant 1-Click Demo Login</span>
-                </button>
-                <div className="flex gap-2">
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 border border-slate-200"
-                  >
-                    {t.navLogin}
-                  </Link>
-                  <Link
-                    href="/signup"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-white bg-[#10B981] hover:bg-emerald-600 shadow-xs"
-                  >
-                    {t.navGetStarted}
-                  </Link>
-                </div>
-              </div>
+            {loggedIn && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full p-2.5 text-center text-xs font-bold text-rose-700 bg-rose-50 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" /> Sign Out
+              </button>
             )}
           </div>
         )}
@@ -503,45 +446,31 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
               <div className="space-y-2">
                 <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full uppercase tracking-wider">
-                  Authentication Required
+                  Registration Required
                 </span>
                 <h2 className="text-2xl font-black font-display text-slate-900">
-                  Farmer Portal Access
+                  Register Your Real Farm
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                  Please log in or start an instant demo session to access your farm telemetry, What-If simulations, and Google AI voice assistance.
+                  Please sign up with your real name, crop, and location to access live satellite weather telemetry, thermal stress early warnings, and AI recommendations.
                 </p>
               </div>
 
-              {/* 1-Click Instant Demo Login */}
-              <button
-                type="button"
-                onClick={handleQuickDemoLogin}
-                className="w-full py-4 px-4 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-sm shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer group"
-              >
-                <Sparkles className="h-5 w-5 text-amber-300 group-hover:rotate-12 transition-transform" />
-                <span>1-Click Demo Login (Ramesh Patel)</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-
-              <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-slate-200"></div>
-                <span className="flex-shrink mx-3 text-[11px] font-mono text-slate-400 font-bold uppercase">or standard sign in</span>
-                <div className="flex-grow border-t border-slate-200"></div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <Link
-                  href={`/login?redirect=${encodeURIComponent(pathname)}`}
-                  className="py-3 px-3 rounded-xl border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 text-xs font-extrabold transition-all text-center"
+                  href="/signup"
+                  className="w-full py-4 px-4 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {t.navLogin || "Sign In"}
+                  <UserPlus className="h-4 w-4" />
+                  <span>Create Real Farmer Account</span>
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
+
                 <Link
-                  href={`/signup?redirect=${encodeURIComponent(pathname)}`}
-                  className="py-3 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold transition-all text-center shadow-xs"
+                  href="/login"
+                  className="w-full py-3 px-4 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-1.5"
                 >
-                  {t.navGetStarted || "Register"}
+                  <span>Already Registered? Sign In</span>
                 </Link>
               </div>
 
@@ -555,62 +484,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           children
         )}
       </main>
-
-      {/* 📱 PERSISTENT MOBILE BOTTOM NAVIGATION BAR FOR FARMERS */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2 flex items-center justify-around shadow-lg">
-        <Link
-          href={loggedIn ? "/dashboard" : "/"}
-          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
-            pathname === "/dashboard" || pathname === "/" ? "text-emerald-600 font-black" : "text-slate-500"
-          }`}
-        >
-          <Home className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Home</span>
-        </Link>
-
-        <Link
-          href="/assistant"
-          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
-            pathname === "/assistant" ? "text-amber-600 font-black" : "text-slate-500"
-          }`}
-        >
-          <div className="relative">
-            <Mic className="h-5 w-5 text-amber-500" />
-            <span className="absolute -top-1 -right-1.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
-          </div>
-          <span className="text-[10px] font-bold">PS-04 Voice</span>
-        </Link>
-
-        <Link
-          href="/plant-intelligence"
-          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
-            pathname === "/plant-intelligence" ? "text-blue-600 font-black" : "text-slate-500"
-          }`}
-        >
-          <Activity className="h-5 w-5" />
-          <span className="text-[10px] font-bold">PS-02 Stress</span>
-        </Link>
-
-        <Link
-          href="/product"
-          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
-            pathname === "/product" ? "text-purple-600 font-black" : "text-slate-500"
-          }`}
-        >
-          <Package className="h-5 w-5" />
-          <span className="text-[10px] font-bold">PS-03 CropFit</span>
-        </Link>
-
-        <Link
-          href="/impact"
-          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
-            pathname === "/impact" ? "text-emerald-600 font-black" : "text-slate-500"
-          }`}
-        >
-          <TrendingUp className="h-5 w-5" />
-          <span className="text-[10px] font-bold">PS-07 ROBI</span>
-        </Link>
-      </nav>
 
       <Footer />
       <HackathonJudgeHUD />
