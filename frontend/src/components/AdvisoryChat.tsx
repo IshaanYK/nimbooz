@@ -5,8 +5,9 @@
  * Powered 100% by Google AI:
  * - Google Gemini 2.5 Flash / Flash Lite Multi-Turn Reasoning
  * - Google Gemini 2.5 Flash Vision Multimodal Leaf Diagnostics
- * - Google Chirp 3 HD & Neural Voice Streaming Audio
- * - Mobile-First Touch Ergonomics & Camera Scanner
+ * - Google Chirp 3 HD & Neural Voice Streaming Audio (calm 0.94x human pace)
+ * - Continuous Real-Time Speech Recognition with full sentence capture
+ * - Real User Location Grounding + Localized Syngenta Deals & Mandi Offers
  */
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -43,15 +44,20 @@ import {
   MapPin as MapPinIcon,
   Navigation,
   ExternalLink,
+  Tag,
+  Percent,
+  Gift,
 } from "lucide-react";
 import { sendChatMessage, analyzeCropLeafImage } from "@/lib/api";
 import { DataBadge } from "./DataBadge";
 import { getStoredProfile, INDIAN_LANGUAGES } from "@/lib/userStore";
 import {
   getNearbySyngentaDealers,
+  getLocalizedSyngentaDeals,
   generateWhatsAppOrderLink,
   getLiveGoogleMapsDealerSearchUrl,
   SYNGENTA_OFFICIAL_CONTACTS,
+  SYNGENTA_LOCAL_DEALS,
 } from "@/lib/syngentaDealers";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
@@ -71,6 +77,7 @@ export interface Message {
   confidenceScore?: number;
   followUpQuestions?: string[];
   telemetryUsed?: any;
+  locationUsed?: string;
 }
 
 interface AdvisoryChatProps {
@@ -104,28 +111,33 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   const { language, setLanguage } = useLanguage();
   const { weather, refetch: refetchWeather } = useWeather();
   const t = getTranslation(language);
-  const locationLabel = weather.locationName || currentField || "your field";
+
+  // Dynamic user location detection from GPS / Weather Context
+  const profile = getStoredProfile();
+  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : "Ramesh Patel";
+  const effectiveDistrict = weather.district || profile?.district || "Bhopal";
+  const effectiveVillage = weather.village || profile?.village || "Local Farm Plot";
+  const effectiveLocation = weather.locationName || `${effectiveVillage}, ${effectiveDistrict}` || currentField;
+
+  const nearbyDealers = getNearbySyngentaDealers(effectiveDistrict, weather.lat, weather.lon);
+  const localizedDeals = getLocalizedSyngentaDeals(effectiveDistrict, crop);
 
   const bcp47 = LANG_TO_BCP47[language] || "hi-IN";
   const langObj = INDIAN_LANGUAGES.find((l) => l.code === language);
   const langName = langObj?.native || language;
 
-  const [chirpVoice, setChirpVoice] = useState<"hi-IN-Chirp3-HD-Kore" | "hi-IN-Chirp3-HD-Charon">("hi-IN-Chirp3-HD-Kore");
   const [openWhyId, setOpenWhyId] = useState<string | null>(null);
   const [openDealersId, setOpenDealersId] = useState<string | null>(null);
-
-  const profile = getStoredProfile();
-  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : "Ramesh Patel";
-  const activeDistrict = profile?.district || "Bhopal";
-  const nearbyDealers = getNearbySyngentaDealers(activeDistrict);
+  const [openDealsId, setOpenDealsId] = useState<string | null>(null);
+  const [liveSpeechTranscript, setLiveSpeechTranscript] = useState<string>("");
 
   // Welcome message generator
   const buildWelcome = useCallback((): Message => {
     const p = getStoredProfile();
     const name = p?.fullName && p.fullName.trim() ? p.fullName : "Ramesh Patel";
     const welcomeText = language === "hi"
-      ? `नमस्ते ${name} जी! मैं आसरा हूँ, आपका AI कृषि साथी। आपके ${locationLabel} खेत के लिए लाइव मौसम डेटा सक्रिय है। आप मुझसे छिड़काव समय, खुराक या गर्मी तनाव के बारे में कभी भी पूछ सकते हैं।`
-      : `Namaste ${name}! I am AASRA, your AI Agricultural Companion. Live telemetry for your farm in ${locationLabel} is active. Ask me about heat stress, spray timing, or biostimulant dosage.`;
+      ? `नमस्ते ${name} जी! मैं आसरा हूँ, आपका AI कृषि साथी। आपके क्षेत्र (${effectiveLocation}) के लिए लाइव मौसम और सिंजेंटा अधिकृत डीलर नेटवर्क सक्रिय है। आप मुझसे छिड़काव समय, दवा की खुराक, रोग निदान या नजदीकी सिंजेंटा ऑफर्स के बारे में पूछ सकते हैं।`
+      : `Namaste ${name}! I am AASRA, your AI Agricultural Companion. Live telemetry and Syngenta dealer network for ${effectiveLocation} are active. Ask me about heat stress, spray windows, biostimulant dosage, or local Syngenta offers.`;
 
     return {
       id: "welcome-1",
@@ -133,11 +145,12 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       text: welcomeText,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       provider: "Google Gemini 2.5 Flash",
-      whyRecommendation: `Live Open-Meteo telemetry for ${locationLabel} recorded night temperature ${weather.temperature}°C with ${weather.isNightHeatStress ? "active heat stress" : "favorable conditions"}.`,
+      whyRecommendation: `Live Open-Meteo telemetry for ${effectiveLocation} recorded night temperature ${weather.temperature}°C with ${weather.isNightHeatStress ? "active thermal stress alert" : "favorable vegetative conditions"}.`,
       confidenceScore: 96,
       followUpQuestions: [t.quickQ1, t.quickQ2, t.quickQ3],
+      locationUsed: effectiveLocation,
     };
-  }, [t.quickQ1, t.quickQ2, t.quickQ3, locationLabel, weather.temperature, weather.isNightHeatStress, language]);
+  }, [t.quickQ1, t.quickQ2, t.quickQ3, effectiveLocation, weather.temperature, weather.isNightHeatStress, language]);
 
   const [messages, setMessages] = useState<Message[]>([buildWelcome()]);
   const [input, setInput] = useState("");
@@ -147,6 +160,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
+  const accumulatedTranscriptRef = useRef<string>("");
+  const silenceTimerRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,7 +190,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, voiceState]);
+  }, [messages, voiceState, liveSpeechTranscript]);
 
   // Safe Spray Window Advisory Calculation
   const isSprayWindowSafe = weather.windSpeed < 15 && weather.precipitation === 0 && weather.temperature < 33;
@@ -187,7 +202,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       : `High temperature (${weather.temperature}°C)`
     : "Ideal conditions for foliar bio-spray (Early morning / Late evening)";
 
-  // Google STT Input
+  // Full-Sentence Continuous Speech-to-Text Input
   const startListening = () => {
     if (typeof window === "undefined") return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -197,6 +212,9 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     }
 
     stopGoogleSpeech();
+    accumulatedTranscriptRef.current = "";
+    setLiveSpeechTranscript("");
+
     try {
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch (_) {}
@@ -205,7 +223,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
       recognition.lang = bcp47;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
@@ -213,16 +232,47 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       };
 
       recognition.onresult = (event: any) => {
-        const transcriptStr = event.results[0][0].transcript;
-        if (transcriptStr && transcriptStr.trim()) {
-          setInput(transcriptStr);
-          processUserMessage(transcriptStr);
+        let interimText = "";
+        let finalChunk = "";
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalChunk += event.results[i][0].transcript + " ";
+          } else {
+            interimText += event.results[i][0].transcript;
+          }
         }
+
+        if (finalChunk) {
+          accumulatedTranscriptRef.current += finalChunk;
+        }
+
+        const completeSentence = (accumulatedTranscriptRef.current + interimText).trim();
+        if (completeSentence) {
+          setInput(completeSentence);
+          setLiveSpeechTranscript(completeSentence);
+        }
+
+        // Silence timeout debounce (2.2 seconds of pause before auto-sending)
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+          const textToSend = (accumulatedTranscriptRef.current + interimText).trim();
+          if (recognitionRef.current) {
+            try { recognitionRef.current.stop(); } catch (_) {}
+          }
+          if (textToSend) {
+            processUserMessage(textToSend);
+            accumulatedTranscriptRef.current = "";
+            setLiveSpeechTranscript("");
+          }
+        }, 2200);
       };
 
       recognition.onerror = (event: any) => {
         console.warn("STT Error:", event.error);
-        setVoiceState("IDLE");
+        if (event.error !== "no-speech") {
+          setVoiceState("IDLE");
+        }
       };
 
       recognition.onend = () => {
@@ -237,13 +287,20 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   };
 
   const stopListening = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch (_) {}
     }
     setVoiceState("IDLE");
+    const textToSend = input.trim() || accumulatedTranscriptRef.current.trim();
+    if (textToSend) {
+      processUserMessage(textToSend);
+      accumulatedTranscriptRef.current = "";
+      setLiveSpeechTranscript("");
+    }
   };
 
-  // Google Chirp 3: HD Voice Speech Output
+  // Google Speech Synthesis (calm, natural human speed)
   const speakResponse = useCallback((textToSpeak: string) => {
     setVoiceState("RESPONDING");
     playGoogleNeuralSpeech(textToSpeak, language, {
@@ -271,6 +328,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   const processUserMessage = async (queryText: string) => {
     if (!queryText.trim() && !selectedImage) return;
 
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const userMsg: Message = {
       id: `user-${Date.now()}`,
@@ -282,6 +340,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setLiveSpeechTranscript("");
     const currentImg = selectedImage;
     setSelectedImage(null);
     setImagePreviewUrl(null);
@@ -303,30 +362,25 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         followUps = visionRes?.follow_up_questions || followUps;
         providerUsed = visionRes?.provider || "Google Gemini 2.5 Flash Vision";
       } else {
-        // Chat API Call with full conversation history & telemetry context
-        const historyPayload = messages.slice(-4).map((m) => ({
-          sender: m.sender,
-          text: m.text,
-        }));
-
+        // Chat API Call with full location, telemetry, & crop context
         const res = await sendChatMessage(
           queryText,
           weather.lat,
           weather.lon,
           crop,
           language,
-          weather.locationName || locationLabel,
+          effectiveLocation,
           weather.temperature,
           farmerName,
           profile.fieldAreaAcres || 12.5,
           profile.cropVariety || "JS-335",
           profile.soilType || "Black Vertisol Clay",
-          profile.district || "Bhopal",
-          profile.village || "Fanda Kalan"
+          effectiveDistrict,
+          effectiveVillage
         );
 
         replyText = res?.reply || res?.response || "";
-        whyReason = res?.why_recommendation || `Open-Meteo telemetry for ${locationLabel}: Temp ${weather.temperature}°C, Soil moisture ${weather.soilMoistureEst}%.`;
+        whyReason = res?.why_recommendation || `Open-Meteo telemetry for ${effectiveLocation}: Temp ${weather.temperature}°C, Soil moisture ${weather.soilMoistureEst}%.`;
         confScore = res?.confidence_score || 95;
         followUps = res?.follow_up_questions && res.follow_up_questions.length > 0 ? res.follow_up_questions : followUps;
         providerUsed = res?.model_used ? `Google ${res.model_used}` : (res?.source === "GOOGLE_GEMINI_2_5_FLASH_LIVE" ? "Google Gemini 2.5 Flash" : "Google Gemini 2.5");
@@ -343,6 +397,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           confidenceScore: confScore,
           followUpQuestions: followUps,
           telemetryUsed: res?.telemetry_used,
+          locationUsed: effectiveLocation,
         };
 
         setMessages((prev) => [...prev, botMsg]);
@@ -351,8 +406,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       }
     } catch (err) {
       console.warn("Chat error, using localized response:", err);
-      replyText = `Analysis for ${crop}: Temperature is ${weather.temperature}°C. Apply Syngenta Stress Buster @ 250ml/acre to protect against night heat stress.`;
-      whyReason = "Open-Meteo telemetry indicates elevated temperature during flowering.";
+      replyText = `Analysis for ${crop} in ${effectiveDistrict}: Current temperature is ${weather.temperature}°C. Apply Syngenta Quantis / Stress Buster @ 250ml/acre to protect against night heat respiration loss.`;
+      whyReason = `Open-Meteo telemetry for ${effectiveDistrict} indicates elevated temperature during flowering.`;
     }
 
     const botMsg: Message = {
@@ -364,6 +419,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       whyRecommendation: whyReason,
       confidenceScore: confScore,
       followUpQuestions: followUps,
+      locationUsed: effectiveLocation,
     };
 
     setMessages((prev) => [...prev, botMsg]);
@@ -371,9 +427,9 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-lg flex flex-col h-[650px] sm:h-[740px] max-h-[85vh] sm:max-h-none overflow-hidden font-body text-slate-900 w-full relative">
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-lg flex flex-col h-[650px] sm:h-[760px] max-h-[88vh] sm:max-h-none overflow-hidden font-body text-slate-900 w-full relative">
       
-      {/* Hidden File Input for Multimodal Camera / Image Scanner (Mobile Camera Supported) */}
+      {/* Hidden File Input for Multimodal Camera / Image Scanner */}
       <input
         type="file"
         ref={fileInputRef}
@@ -383,7 +439,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         className="hidden"
       />
 
-      {/* Header (Clean, High Contrast, Responsive) */}
+      {/* Header */}
       <div className="p-3.5 sm:p-4 border-b border-slate-200 bg-white text-slate-900 flex items-center justify-between font-accent shadow-xs shrink-0">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-600 text-white flex items-center justify-center shadow-xs font-bold shrink-0">
@@ -394,8 +450,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
               <h3 className="text-xs sm:text-sm font-black font-display text-slate-900 truncate">
                 AASRA Multilingual Voice Companion
               </h3>
-              <span className="inline-flex text-[10px] font-mono font-black bg-amber-100 text-amber-950 px-2 py-0.5 rounded-md border border-amber-300">
-                PS-04 (100% GOOGLE AI)
+              <span className="inline-flex text-[10px] font-mono font-black bg-emerald-100 text-emerald-950 px-2 py-0.5 rounded-md border border-emerald-300">
+                📍 {effectiveDistrict}
               </span>
             </div>
             <p className="text-[10px] sm:text-[11px] text-slate-500 truncate notranslate" translate="no">
@@ -424,7 +480,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         </div>
       </div>
 
-      {/* Safe Spray Window Header Strip */}
+      {/* Safe Spray Window Strip */}
       <div className={`px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-accent border-b flex items-center justify-between shrink-0 ${
         isSprayWindowSafe ? "bg-emerald-50/90 border-emerald-200 text-emerald-900" : "bg-amber-50/90 border-amber-200 text-amber-900"
       }`}>
@@ -436,33 +492,38 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           <span className="font-body text-slate-700 truncate">{sprayAdvisoryReason}</span>
         </div>
         <div className="text-[10px] text-slate-500 font-mono hidden md:block shrink-0">
-          {weather.temperature}°C | {weather.windSpeed} km/h | {weather.soilMoistureEst}% Moisture
+          {weather.temperature}°C | {weather.windSpeed} km/h | {effectiveDistrict}
         </div>
       </div>
 
-      {/* Voice State Banner & Audio Waveform Visualizer */}
+      {/* Live Voice State Banner & Audio Waveform Visualizer */}
       {voiceState !== "IDLE" && (
         <div className="bg-emerald-700 text-white px-3.5 py-2 sm:py-2.5 flex items-center justify-between text-xs font-accent border-b border-emerald-800 shrink-0 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             {voiceState === "LISTENING" && (
               <>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <span className="h-3 w-1 bg-white animate-bounce"></span>
                   <span className="h-4 w-1 bg-white/80 animate-bounce delay-100"></span>
                   <span className="h-2 w-1 bg-white animate-bounce delay-200"></span>
                 </div>
-                <span className="font-bold text-white text-xs">{t.listenLabel} ({langName})...</span>
+                <div className="truncate">
+                  <span className="font-bold text-white text-xs">{t.listenLabel} ({langName})...</span>
+                  {liveSpeechTranscript && (
+                    <span className="text-emerald-200 ml-2 italic text-[11px]">"{liveSpeechTranscript}"</span>
+                  )}
+                </div>
               </>
             )}
             {voiceState === "PROCESSING" && (
               <>
-                <Loader2 className="w-4 h-4 text-white animate-spin" />
+                <Loader2 className="w-4 h-4 text-white animate-spin shrink-0" />
                 <span className="font-bold text-white text-xs">Google Gemini 2.5 Flash Reasoning...</span>
               </>
             )}
             {voiceState === "RESPONDING" && (
               <>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <span className="h-3 w-1 bg-white animate-bounce"></span>
                   <span className="h-5 w-1 bg-amber-300 animate-bounce delay-75"></span>
                   <span className="h-4 w-1 bg-white animate-bounce delay-150"></span>
@@ -472,15 +533,25 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             )}
           </div>
 
-          {voiceState === "RESPONDING" && (
-            <button
-              onClick={handleStopSpeaking}
-              className="flex items-center gap-1 text-[11px] bg-rose-600 hover:bg-rose-500 px-3 py-1 rounded-xl font-bold cursor-pointer transition-all shadow-sm"
-            >
-              <VolumeX className="h-3.5 w-3.5 text-white" />
-              <span>{t.btnStopVoice}</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {voiceState === "LISTENING" && (
+              <button
+                onClick={stopListening}
+                className="flex items-center gap-1 text-[11px] bg-emerald-900 hover:bg-emerald-950 px-3 py-1 rounded-xl font-bold cursor-pointer transition-all shadow-sm"
+              >
+                <span>Done Speaking ✓</span>
+              </button>
+            )}
+            {voiceState === "RESPONDING" && (
+              <button
+                onClick={handleStopSpeaking}
+                className="flex items-center gap-1 text-[11px] bg-rose-600 hover:bg-rose-500 px-3 py-1 rounded-xl font-bold cursor-pointer transition-all shadow-sm"
+              >
+                <VolumeX className="h-3.5 w-3.5 text-white" />
+                <span>{t.btnStopVoice}</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -502,7 +573,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             </div>
 
             <div
-              className={`max-w-[88%] sm:max-w-[80%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm space-y-2.5 ${
+              className={`max-w-[88%] sm:max-w-[82%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm space-y-2.5 ${
                 msg.sender === "user"
                   ? "bg-emerald-600 text-white rounded-tr-none font-medium"
                   : "bg-white text-slate-900 border border-slate-200 rounded-tl-none font-normal"
@@ -517,13 +588,13 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
               <p className="whitespace-pre-line font-body">{msg.text}</p>
 
-              {/* Live Google AI & Syngenta CE Hub Grounding Strip */}
+              {/* Real Live Telemetry Strip */}
               {msg.telemetryUsed && msg.sender === "bot" && (
                 <div className="bg-slate-900 text-white rounded-xl p-2.5 space-y-1.5 shadow-2xs text-[10px] font-mono border border-slate-700">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1 text-emerald-400 font-bold">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                      100% REAL LIVE TELEMETRY
+                      100% REAL LIVE TELEMETRY ({effectiveDistrict})
                     </span>
                     <span className="text-slate-400 text-[9px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
                       {msg.provider || "Google Gemini 2.5 Flash"}
@@ -571,7 +642,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 </div>
               )}
 
-              {/* Explainable Rationale ("Why this recommendation?") */}
+              {/* Explainable Rationale */}
               {msg.whyRecommendation && msg.sender === "bot" && (
                 <div className="border border-emerald-200 bg-emerald-50/80 rounded-xl p-2.5 sm:p-3 text-[11px] font-accent space-y-1">
                   <button
@@ -592,19 +663,71 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 </div>
               )}
 
-              {/* Nearby Syngenta Sellers & Contact Information Card */}
+              {/* Live Syngenta Deals in Real User Location */}
+              {msg.sender === "bot" && localizedDeals.length > 0 && (
+                <div className="border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-3 text-[11px] font-accent space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-950">
+                      <Tag className="h-4 w-4 text-amber-700" />
+                      <span>{language === "hi" ? `🔥 सिंजेंटा लाइव ऑफर्स — ${effectiveDistrict}` : `🔥 Live Syngenta Deals in ${effectiveDistrict}`}</span>
+                    </div>
+                    <button
+                      onClick={() => setOpenDealsId(openDealsId === msg.id ? null : msg.id)}
+                      className="text-[10px] font-black text-amber-900 bg-white hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300 cursor-pointer transition-all shadow-2xs"
+                    >
+                      {openDealsId === msg.id ? (language === "hi" ? "छुपाएं ▲" : "Hide ▲") : (language === "hi" ? "ऑफर्स देखें ▼" : "View Deals ▼")}
+                    </button>
+                  </div>
+
+                  {openDealsId === msg.id && (
+                    <div className="space-y-2 pt-1 border-t border-amber-200">
+                      {localizedDeals.map((deal) => {
+                        const targetDealer = nearbyDealers[0];
+                        const waDealLink = targetDealer
+                          ? generateWhatsAppOrderLink(targetDealer, farmerName, crop, profile?.fieldAreaAcres || 12.5, deal.product, deal.title)
+                          : `https://wa.me/918001027964?text=${encodeURIComponent(`नमस्ते! मुझे ${deal.title} (${deal.couponCode}) क्लेम करना है।`)}`;
+
+                        return (
+                          <div key={deal.id} className="bg-white p-2.5 rounded-xl border border-amber-200 space-y-1.5 shadow-2xs">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">{deal.badge}</span>
+                              <span className="text-[9px] font-mono font-bold text-slate-500">{deal.couponCode}</span>
+                            </div>
+                            <h5 className="font-extrabold text-xs text-slate-900">{deal.title}</h5>
+                            <p className="text-[10px] text-emerald-800 font-bold">{deal.discountSummary}</p>
+                            <p className="text-[9px] text-slate-500">{deal.terms}</p>
+                            <div className="pt-1 flex items-center gap-2">
+                              <a
+                                href={waDealLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 bg-[#25D366] hover:bg-[#1EBE5D] text-white py-1 px-2 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 text-center transition-colors"
+                              >
+                                <MessageSquare className="h-3 w-3" />
+                                <span>{language === "hi" ? "व्हाट्सएप पर ऑफर क्लेम करें" : "Claim on WhatsApp"}</span>
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Nearby Syngenta Dealers & Google Maps Directions */}
               {msg.sender === "bot" && (
                 <div className="border border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-3 text-[11px] font-accent space-y-2.5 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-bold text-emerald-950">
                       <Store className="h-4 w-4 text-emerald-700" />
-                      <span>{language === "hi" ? "📍 पास के अधिकृत सिंजेंटा विक्रेता" : "📍 Nearby Syngenta Dealers"} ({activeDistrict})</span>
+                      <span>{language === "hi" ? "📍 पास के अधिकृत सिंजेंटा विक्रेता" : "📍 Nearby Syngenta Dealers"} ({effectiveDistrict})</span>
                     </div>
                     <button
                       onClick={() => setOpenDealersId(openDealersId === msg.id ? null : msg.id)}
                       className="text-[10px] font-black text-emerald-800 bg-white hover:bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-300 cursor-pointer transition-all shadow-2xs"
                     >
-                      {openDealersId === msg.id ? (language === "hi" ? "छुपाएं ▲" : "विक्रेता देखें ▼") : (language === "hi" ? "विक्रेता देखें ▼" : "View Dealers ▼")}
+                      {openDealersId === msg.id ? (language === "hi" ? "छुपाएं ▲" : "Hide ▲") : (language === "hi" ? "विक्रेता देखें ▼" : "View Dealers ▼")}
                     </button>
                   </div>
 
@@ -658,16 +781,16 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                         );
                       })}
 
-                      {/* Google Maps Real Search & Toll-Free Links */}
+                      {/* Google Maps Search & Toll-Free Links */}
                       <div className="flex flex-col sm:flex-row gap-2 pt-1">
                         <a
-                          href={getLiveGoogleMapsDealerSearchUrl(activeDistrict, profile?.state || "Madhya Pradesh")}
+                          href={getLiveGoogleMapsDealerSearchUrl(effectiveDistrict, profile?.state || "India")}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 py-1.5 px-2.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 text-center"
                         >
                           <Navigation className="h-3 w-3 text-blue-600" />
-                          <span>{language === "hi" ? "गूगल मैप पर सभी विक्रेता खोजें" : "Search All Dealers on Google Maps"}</span>
+                          <span>{language === "hi" ? `गूगल मैप पर ${effectiveDistrict} में खोजें` : `Search ${effectiveDistrict} on Maps`}</span>
                         </a>
                         <a
                           href={SYNGENTA_OFFICIAL_CONTACTS.retailerLocatorUrl}
@@ -676,14 +799,14 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                           className="flex-1 bg-emerald-900 hover:bg-emerald-800 text-emerald-200 py-1.5 px-2.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 text-center"
                         >
                           <ExternalLink className="h-3 w-3 text-emerald-400" />
-                          <span>Syngenta Official Retailer Portal</span>
+                          <span>Syngenta Official Portal</span>
                         </a>
                       </div>
 
                       <div className="text-[10px] text-emerald-950 font-bold bg-emerald-100/80 p-2 rounded-lg text-center flex items-center justify-center gap-2 flex-wrap">
-                        <span>📞 Syngenta Kisan Toll-Free: <strong>1800-102-7964</strong></span>
+                        <span>📞 Kisan Toll-Free: <strong>1800-102-7964</strong></span>
                         <span>·</span>
-                        <span>Pesticides Helpline: <strong>1800-200-1310</strong></span>
+                        <span>Helpline: <strong>1800-200-1310</strong></span>
                       </div>
                     </div>
                   ) : (
@@ -729,7 +852,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 )}
               </div>
 
-              {/* Dynamic Follow-Up Questions Chips */}
+              {/* Suggested Follow-Ups */}
               {msg.followUpQuestions && msg.followUpQuestions.length > 0 && msg.sender === "bot" && (
                 <div className="pt-2 flex flex-wrap gap-1.5 font-accent">
                   <span className="text-[9px] text-slate-400 font-bold block w-full">{t.suggestedFollowUps || "Suggested Questions:"}</span>
@@ -751,13 +874,13 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         {voiceState === "PROCESSING" && (
           <div className="flex items-center gap-2 text-xs text-slate-700 bg-white border border-slate-200 p-3 rounded-2xl w-fit shadow-xs font-accent animate-pulse font-bold">
             <Sparkles className="h-4 w-4 text-emerald-600 animate-spin" />
-            <span>Google Gemini 2.5 Flash is analyzing your field telemetry...</span>
+            <span>Google Gemini 2.5 Flash is analyzing your field in {effectiveDistrict}...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Image Preview Thumbnail Bar before sending */}
+      {/* Image Preview Thumbnail */}
       {imagePreviewUrl && (
         <div className="px-4 py-2 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between text-xs font-accent shrink-0">
           <div className="flex items-center gap-2 truncate">
@@ -773,9 +896,9 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         </div>
       )}
 
-      {/* Input Bar (Touch-Optimized for Mobile & Desktop) */}
+      {/* Input Bar */}
       <div className="p-2.5 sm:p-4 border-t border-slate-200 bg-white flex items-center gap-2 shrink-0">
-        {/* Camera / Multimodal Image Upload Button (Mobile-First) */}
+        {/* Camera / Image Upload */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -785,7 +908,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           <Camera className="h-5 w-5" />
         </button>
 
-        {/* STT Mic (Touch-Friendly Large Target) */}
+        {/* STT Mic Button with Live Listening indicator */}
         <button
           type="button"
           onClick={voiceState === "LISTENING" ? stopListening : startListening}
@@ -796,7 +919,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
               ? "bg-slate-100 text-slate-800 hover:bg-emerald-600 hover:text-white border-slate-200"
               : "bg-slate-100 text-slate-400 border-slate-200 opacity-50 cursor-not-allowed"
           }`}
-          title={voiceState === "LISTENING" ? t.btnStopVoice : `${t.listenLabel} (${langName})`}
+          title={voiceState === "LISTENING" ? "Click to Stop & Send" : `${t.listenLabel} (${langName})`}
           disabled={!speechRecognitionSupported && voiceState !== "LISTENING"}
         >
           {voiceState === "LISTENING" ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -807,8 +930,10 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && processUserMessage(input)}
-          placeholder={selectedImage ? "Add optional question for leaf scan..." : t.chatPlaceholder || "Ask about spray timing, dosage, or pests..."}
-          className="flex-1 bg-slate-50 text-xs sm:text-sm text-slate-900 placeholder-slate-400 border border-slate-300 rounded-2xl px-3.5 sm:px-4 py-3 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-body font-medium min-w-0"
+          placeholder={voiceState === "LISTENING" ? "Listening to your speech in real-time..." : (selectedImage ? "Add optional question for leaf scan..." : t.chatPlaceholder || "Ask about spray timing, dosage, or deals...")}
+          className={`flex-1 text-xs sm:text-sm placeholder-slate-400 border rounded-2xl px-3.5 sm:px-4 py-3 focus:outline-none focus:ring-2 font-body font-medium min-w-0 transition-colors ${
+            voiceState === "LISTENING" ? "bg-emerald-50/70 border-emerald-400 focus:ring-emerald-200 text-emerald-950" : "bg-slate-50 text-slate-900 border-slate-300 focus:border-emerald-600 focus:ring-emerald-100"
+          }`}
         />
 
         <button

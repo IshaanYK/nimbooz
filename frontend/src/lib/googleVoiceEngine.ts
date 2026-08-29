@@ -43,9 +43,9 @@ export function cleanTextForNaturalSpeech(rawText: string): string {
   if (!rawText) return "";
   let clean = rawText
     .replace(/[*_#`~🔴🟢🌾🌧️☀️🌤️⛅☁️🌫️🌦️⛈️❄️🌨️🌩️📌🎯💡⚡⚠️✅✕]/g, "")
-    .replace(/\(.*?\)/g, "") // Remove parenthetical notes e.g. (JS-335)
+    .replace(/\(.*?\)/g, "") // Remove parenthetical technical notes
     .replace(/₹/g, "rupees ")
-    .replace(/@/g, "at the rate of ")
+    .replace(/@/g, "at ")
     .replace(/\/acre/g, " per acre")
     .replace(/\/ac/g, " per acre")
     .replace(/\/ha/g, " per hectare")
@@ -54,11 +54,6 @@ export function cleanTextForNaturalSpeech(rawText: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  // Return the first 2-3 essential sentences for instant, crisp voice delivery
-  const sentences = clean.split(/(?<=[.!?।])\s+/);
-  if (sentences.length > 3) {
-    return sentences.slice(0, 3).join(" ");
-  }
   return clean;
 }
 
@@ -90,7 +85,7 @@ export async function playGoogleNeuralSpeech(
       const audioUrl = `data:audio/mp3;base64,${res.audio_base64}`;
       const audio = new Audio(audioUrl);
       currentAudio = audio;
-      audio.playbackRate = 1.05; // Slightly faster, crisp natural cadence
+      audio.playbackRate = 0.95; // Calm, empathetic human cadence
 
       audio.onended = () => {
         currentAudio = null;
@@ -143,8 +138,8 @@ export function speakBrowserSpeechFallback(
 
     const utterance = new SpeechSynthesisUtterance(cleanedText);
     utterance.lang = config.code;
-    utterance.rate = 1.02;
-    utterance.pitch = 1.02;
+    utterance.rate = 0.94; // Calm, intelligible, relaxed pace
+    utterance.pitch = 1.0;
 
     // Pick highest quality Google Neural or Microsoft Natural voice
     const availableVoices = window.speechSynthesis.getVoices();

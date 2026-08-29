@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
       .replace(/\s+/g, " ")
       .trim();
 
-    // Truncate to first 200 characters for instant speech synthesis response
-    const speechChunk = cleanedText.length > 200 ? cleanedText.slice(0, 197) + "..." : cleanedText;
+    // Truncate cleanly up to 800 characters to speak complete agronomic explanations
+    const speechChunk = cleanedText.length > 800 ? cleanedText.slice(0, 795) + "..." : cleanedText;
     const ttsLang = GOOGLE_TTS_LANG_MAP[language] || "hi";
 
     const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${ttsLang}&client=tw-ob&q=${encodeURIComponent(speechChunk)}`;
