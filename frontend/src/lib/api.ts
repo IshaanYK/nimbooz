@@ -195,21 +195,49 @@ export async function analyzeCropLeafImage(imageFile: File, crop: string = "soyb
 
 // ─── PS-02 & PS-03 Plant Intelligence Client ───────────────────────────
 
+const FASTAPI_URL = "http://localhost:8000/api/plant-intelligence";
+const FLASK_URL = "http://localhost:7001";
+
 export async function fetchPlantIntelligenceRegions() {
-  // 1. Try Next.js API route
+  function normalize(data: any) {
+    if (!data) return null;
+    if (data.regions) {
+      if (Array.isArray(data.regions)) {
+        const dict: Record<string, any> = {};
+        data.regions.forEach((r: any) => { dict[r.id || r.name] = r; });
+        return dict;
+      }
+      return data.regions;
+    }
+    return data;
+  }
+
+  // 1. Try FastAPI backend
   try {
-    const res = await fetch(`/api/plant-intelligence/regions`, { cache: "no-store" });
-    if (res.ok) return await res.json();
+    const res = await fetch(`${FASTAPI_URL}/regions`, { cache: "no-store" });
+    if (res.ok) {
+      const data = normalize(await res.json());
+      if (data && Object.keys(data).length > 0) return data;
+    }
   } catch {}
 
-  // 2. Default high-fidelity dataset if offline
+  // 2. Try Next.js API proxy route
+  try {
+    const res = await fetch(`/api/plant-intelligence/regions`, { cache: "no-store" });
+    if (res.ok) {
+      const data = normalize(await res.json());
+      if (data && Object.keys(data).length > 0) return data;
+    }
+  } catch {}
+
+  // 3. Default high-fidelity dataset if offline
   return {
-    madhya_pradesh_malwa: { name: "Malwa & Central MP (Bhopal / Indore / Ujjain)", crops: ["soybean", "wheat", "gram_chickpea", "maize"], lat: 23.2599, lon: 77.4126, soil_type: "Medium to Deep Black Cotton Soil", dominant_stresses: ["Night Heat Stress during Flowering", "Moisture Deficit"] },
-    punjab_ludhiana: { name: "Punjab / Indo-Gangetic Plain (Ludhiana)", crops: ["wheat", "rice", "cotton_bt"], lat: 30.9, lon: 75.86, soil_type: "Alluvial Loam", dominant_stresses: ["Heat Waves (Terminal Heat)", "Waterlogging"] },
-    maharashtra_vidarbha: { name: "Vidarbha / Maharashtra (Amravati / Nagpur)", crops: ["soybean", "cotton_bt", "pigeon_pea"], lat: 20.93, lon: 77.75, soil_type: "Deep Black Vertisol Clay", dominant_stresses: ["Drought Spells", "Night Heat Stress > 25°C"] },
-    gujarat_saurashtra: { name: "Saurashtra / Gujarat (Rajkot / Junagadh)", crops: ["groundnut", "cotton_bt", "sesame"], lat: 21.52, lon: 70.45, soil_type: "Medium Black / Sandy Loam", dominant_stresses: ["Mid-Season Drought", "Soil Salinity"] },
-    andhra_telangana: { name: "Rayalaseema & Telangana (Kurnool / Warangal)", crops: ["chilli", "cotton_bt", "groundnut", "rice"], lat: 14.68, lon: 77.60, soil_type: "Red Sandy Loam", dominant_stresses: ["Severe Drought Deficit", "High Vapor Pressure Deficit"] },
-    jammu_kashmir: { name: "Jammu & Kashmir Valley (Srinagar / Baramulla)", crops: ["apple", "saffron", "mustard"], lat: 34.08, lon: 74.79, soil_type: "Mountain Meadow / Karewa Loam", dominant_stresses: ["Frost / Cold Snap", "Erratic Rainfall"] }
+    punjab: { name: "Punjab / Indo-Gangetic Plain", crops: ["wheat", "rice", "cotton_bt"], lat: 30.9, lon: 75.86, soil_type: "Alluvial Loam", dominant_stresses: ["Heat Waves", "Waterlogging"] },
+    bhopal: { name: "Bhopal / Central India", crops: ["soybean", "wheat", "chickpea"], lat: 23.2599, lon: 77.4126, soil_type: "Medium Black Clay", dominant_stresses: ["Drought", "Heat Waves"] },
+    maharashtra_vidarbha: { name: "Vidarbha / Maharashtra", crops: ["cotton_bt", "soybean", "pigeon_pea"], lat: 20.93, lon: 77.75, soil_type: "Deep Black Clay", dominant_stresses: ["Drought", "Heat Waves"] },
+    gujarat_saurashtra: { name: "Saurashtra / Gujarat", crops: ["groundnut", "cotton_bt", "sesame"], lat: 21.52, lon: 70.45, soil_type: "Medium Black / Sandy Loam", dominant_stresses: ["Drought", "Soil Salinity"] },
+    jammu: { name: "Jammu & Kashmir Valley", crops: ["apple", "saffron", "mustard"], lat: 34.08, lon: 74.79, soil_type: "Mountain Meadow / Karewa", dominant_stresses: ["Frost / Cold Snap", "Erratic Rainfall"] },
+    andhra_telangana: { name: "Rayalaseema / Andhra Pradesh", crops: ["chilli", "groundnut", "rice"], lat: 14.68, lon: 77.60, soil_type: "Red Sandy Loam", dominant_stresses: ["Severe Drought", "High VPD"] }
   };
 }
 
@@ -220,7 +248,17 @@ export async function runPlantIntelligencePipeline(payload: {
   symptoms: string;
   soil_moisture: string;
 }) {
-  // 1. Try Next.js API route
+  // 1. Try FastAPI backend
+  try {
+    const res = await fetch(`${FASTAPI_URL}/run-pipeline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) return await res.json();
+  } catch {}
+
+  // 2. Try Next.js API proxy
   try {
     const res = await fetch(`/api/plant-intelligence/run-pipeline`, {
       method: "POST",
@@ -230,9 +268,9 @@ export async function runPlantIntelligencePipeline(payload: {
     if (res.ok) return await res.json();
   } catch {}
 
-  // 2. Try FastAPI backend if running locally
+  // 3. Try standalone Flask ps02-engine
   try {
-    const res = await fetch(`http://localhost:8000/api/plant-intelligence/run-pipeline`, {
+    const res = await fetch(`${FLASK_URL}/run_pipeline`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -244,7 +282,17 @@ export async function runPlantIntelligencePipeline(payload: {
 }
 
 export async function parseFarmerIntent(text: string) {
-  // 1. Try Next.js route
+  // 1. Try FastAPI
+  try {
+    const res = await fetch(`${FASTAPI_URL}/parse-context`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (res.ok) return await res.json();
+  } catch {}
+
+  // 2. Try Next.js route
   try {
     const res = await fetch(`/api/plant-intelligence/parse-context`, {
       method: "POST",
@@ -254,7 +302,17 @@ export async function parseFarmerIntent(text: string) {
     if (res.ok) return await res.json();
   } catch {}
 
-  // 2. Client-side heuristic fallback
+  // 3. Try Flask
+  try {
+    const res = await fetch(`${FLASK_URL}/parse_context`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (res.ok) return await res.json();
+  } catch {}
+
+  // Client-side heuristic fallback
   const t = text.toLowerCase();
   const parsed = { growth_stage: "Vegetative", symptoms: "None", soil_moisture: "Optimal" };
   if (t.includes("flower") || t.includes("bloom")) parsed.growth_stage = "Flowering";
@@ -279,7 +337,7 @@ export async function submitFarmerYieldFeedback(payload: {
   feedback_notes?: string;
 }) {
   try {
-    const res = await fetch(`/api/plant-intelligence/feedback`, {
+    const res = await fetch(`${FASTAPI_URL}/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

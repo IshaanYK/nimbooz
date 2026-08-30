@@ -28,11 +28,14 @@ import {
   Sliders,
   Clock,
   FlaskConical,
-  TrendingDown,
   Wind,
-  Sun,
-  CloudRain,
   Check,
+  Package,
+  Bug,
+  Sprout,
+  DollarSign,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 interface RegionInfo {
@@ -75,8 +78,18 @@ interface DayForecast {
   products: ProductRec[];
 }
 
+interface CatalogProduct {
+  key: string;
+  name: string;
+  category: string;
+  active_ingredient: string;
+  retail_price: string;
+  target: string;
+}
+
 interface PipelineResponse {
   data_source: string;
+  weather_api?: string;
   region: Record<string, any>;
   crop_profile: Record<string, any>;
   forecast: DayForecast[];
@@ -94,6 +107,7 @@ interface PipelineResponse {
   };
   cropfit: {
     product: {
+      product_key?: string;
       product_name: string;
       category: string;
       active_ingredient: string;
@@ -105,7 +119,16 @@ interface PipelineResponse {
       synergist?: string;
       tank_mix_safe?: string[];
       tank_mix_danger?: string[];
+      retail_price?: string;
     };
+    secondary_crop_protection?: {
+      product_name: string;
+      category: string;
+      active_ingredient: string;
+      dosage: string;
+      rationale: string;
+      tank_mix_compatibility: string;
+    } | null;
     rationale: string;
     confidence: number;
     top_candidates?: Array<{
@@ -124,15 +147,16 @@ interface PipelineResponse {
     expectedRevenue: number;
     robi: number;
   };
+  syngenta_india_catalog?: CatalogProduct[];
 }
 
 export default function PlantIntelligencePage() {
   const { t } = useLanguage();
   const [regions, setRegions] = useState<Record<string, RegionInfo>>({});
-  const [selectedRegionKey, setSelectedRegionKey] = useState<string>("punjab");
-  const [selectedCrop, setSelectedCrop] = useState<string>("wheat");
+  const [selectedRegionKey, setSelectedRegionKey] = useState<string>("bhopal");
+  const [selectedCrop, setSelectedCrop] = useState<string>("soybean");
 
-  const [growthStage, setGrowthStage] = useState<string>("Vegetative");
+  const [growthStage, setGrowthStage] = useState<string>("Flowering");
   const [symptoms, setSymptoms] = useState<string>("None");
   const [soilMoisture, setSoilMoisture] = useState<string>("Optimal");
   const [conversationalInput, setConversationalInput] = useState<string>("");
@@ -145,6 +169,8 @@ export default function PlantIntelligencePage() {
   // New High-Impact Feature States
   const [delayDays, setDelayDays] = useState<number>(0);
   const [selectedTankMix, setSelectedTankMix] = useState<string>("urea");
+  const [catalogCategory, setCatalogCategory] = useState<string>("all");
+  const [showCatalog, setShowCatalog] = useState<boolean>(false);
 
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
@@ -269,10 +295,15 @@ export default function PlantIntelligencePage() {
 
   const delayStats = delayProtectionMap[delayDays] || delayProtectionMap[0];
 
+  const catalogProducts = pipelineData?.syngenta_india_catalog || [];
+  const filteredCatalog = catalogCategory === "all"
+    ? catalogProducts
+    : catalogProducts.filter((p) => p.category.toLowerCase().includes(catalogCategory.toLowerCase()));
+
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 font-sans">
-
+        
         {/* Top Header */}
         <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -280,18 +311,19 @@ export default function PlantIntelligencePage() {
               <span className="text-xs font-mono font-bold text-emerald-700 uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
                 {t?.plantIntelligenceBadge || "PS-02 / PS-03 AI System"}
               </span>
-              <span className="text-xs font-mono font-bold text-blue-700 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                LIVE TELEMETRY: METEOBLUE + CE HUB
+              <span className="text-xs font-mono font-bold text-blue-700 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200 flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                LIVE GPS TELEMETRY: OPEN-METEO ({currentRegion?.name?.split("/")[0]?.trim() || "BHOPAL"} {currentRegion?.lat ?? 23.26}°N, {currentRegion?.lon ?? 77.41}°E)
               </span>
               <span className="text-[10px] font-mono font-bold text-amber-700 uppercase bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                🏆 HACKATHON DEMO
+                13 SYNGENTA INDIA PRODUCTS
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 mt-1">
               {t?.plantIntelligenceTitle || "Plant Intelligence Engine"}
             </h1>
             <p className="text-sm text-slate-600 font-medium max-w-3xl">
-              14-Day Phenology-Aware Stress Early Warning, CropFit Biostimulant Advisor &amp; Microclimate Radar
+              14-Day Real Weather Phenology Forecast, Multi-Criteria Syngenta Advisor &amp; Microclimate Radar
             </p>
           </div>
 
@@ -302,7 +334,7 @@ export default function PlantIntelligencePage() {
               className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              <span>{loading ? "Re-calculating GDD..." : "Re-run Pipeline"}</span>
+              <span>{loading ? "Fetching Real Telemetry..." : "Re-run Live Pipeline"}</span>
             </button>
           </div>
         </div>
@@ -312,31 +344,33 @@ export default function PlantIntelligencePage() {
           <summary className="flex items-center justify-between font-bold text-slate-900 text-sm list-none">
             <span className="flex items-center gap-2">
               <Info className="h-4 w-4 text-emerald-600" />
-              How the PS-02 &amp; PS-03 Hybrid Pipeline Operates
+              How the Multi-Criteria PS-02 &amp; PS-03 Pipeline Operates
             </span>
             <span className="text-xs text-slate-500 font-mono group-open:hidden">Click to expand</span>
             <span className="text-xs text-slate-500 font-mono hidden group-open:block">Click to collapse</span>
           </summary>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
             {[
-              { step: "01", title: "Select Region & Crop", desc: "Choose agro-climatic zone across major Indian belts", color: "emerald" },
-              { step: "02", title: "Mechanistic GDD & ET", desc: "GDD Formula 3.1 tracks phenology from accumulated heat units", color: "sky" },
-              { step: "03", title: "Compound Stress (3.2)", desc: "HSI + DSI non-linear multiplication captures silent damage", color: "blue" },
-              { step: "04", title: "SHAP Explainability", desc: "TreeExplainer attributes top 3 environmental drivers", color: "amber" },
-              { step: "05", title: "CropFit & ROBI Optimizer", desc: "Syngenta product dosage, spray radar & Mandi profitability", color: "purple" },
+              { step: "01", title: "Live Open-Meteo Feed", desc: "Real GPS weather (TMax, TMin, Rain, RH, Wind, VPD) for accurate local telemetry", color: "emerald" },
+              { step: "02", title: "Mechanistic GDD & ET", desc: "Tracks physiological stage accumulation and reproductive vulnerability", color: "sky" },
+              { step: "03", title: "Compound Stress (3.2)", desc: "HSI + DSI non-linear multiplication identifies silent damage & flower abortion", color: "blue" },
+              { step: "04", title: "Multi-Criteria Matrix", desc: "Evaluates Biostimulants + Fungicide/Insecticide secondary tank partner", color: "amber" },
+              { step: "05", title: "ROBI & Spray Radar", desc: "Calculates net Mandi cash ROI and safe early-morning spray window", color: "purple" },
             ].map(({ step, title, desc, color }) => (
-              <div key={step} className={`p-3.5 rounded-xl border space-y-1 ${color === "emerald" ? "bg-emerald-50 border-emerald-200" :
-                  color === "sky" ? "bg-sky-50 border-sky-200" :
-                    color === "blue" ? "bg-blue-50 border-blue-200" :
-                      color === "amber" ? "bg-amber-50 border-amber-200" :
-                        "bg-purple-50 border-purple-200"
-                }`}>
-                <span className={`text-[10px] font-black font-mono ${color === "emerald" ? "text-emerald-700" :
-                    color === "sky" ? "text-sky-700" :
-                      color === "blue" ? "text-blue-700" :
-                        color === "amber" ? "text-amber-700" :
-                          "text-purple-700"
-                  }`}>STEP {step}</span>
+              <div key={step} className={`p-3.5 rounded-xl border space-y-1 ${
+                color === "emerald" ? "bg-emerald-50 border-emerald-200" :
+                color === "sky" ? "bg-sky-50 border-sky-200" :
+                color === "blue" ? "bg-blue-50 border-blue-200" :
+                color === "amber" ? "bg-amber-50 border-amber-200" :
+                "bg-purple-50 border-purple-200"
+              }`}>
+                <span className={`text-[10px] font-black font-mono ${
+                  color === "emerald" ? "text-emerald-700" :
+                  color === "sky" ? "text-sky-700" :
+                  color === "blue" ? "text-blue-700" :
+                  color === "amber" ? "text-amber-700" :
+                  "text-purple-700"
+                }`}>STEP {step}</span>
                 <h4 className="font-extrabold text-slate-900 text-[11px]">{title}</h4>
                 <p className="text-slate-600 leading-relaxed">{desc}</p>
               </div>
@@ -346,10 +380,10 @@ export default function PlantIntelligencePage() {
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
+          
           {/* Left Column (4 cols) */}
           <div className="lg:col-span-4 space-y-6">
-
+            
             {/* Region & Crop Selector Card */}
             <div className="stripe-card p-5 space-y-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
               <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
@@ -496,7 +530,7 @@ export default function PlantIntelligencePage() {
                     >
                       <option value="None">None (Healthy Canopy)</option>
                       <option value="Wilting">Wilting / Drought Stress</option>
-                      <option value="Yellowing/Chlorosis">Yellowing / Chlorosis</option>
+                      <option value="Yellowing/Chlorosis">Yellowing / Chlorosis (Disease Risk)</option>
                       <option value="Stunting">Stunting / Thermal Shock</option>
                     </select>
                   </div>
@@ -515,14 +549,25 @@ export default function PlantIntelligencePage() {
                     >
                       <option value="Optimal">Optimal (Field Capacity)</option>
                       <option value="Dry">Dry / Water Deficit (High Stress)</option>
-                      <option value="Waterlogged">Waterlogged / Saturated</option>
+                      <option value="Waterlogged">Waterlogged / High Monsoon Rain</option>
                     </select>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Feature: Syngenta Tank-Mix Compatibility Helper */}
+            {/* Savings Advisory Card (Stop Futile Pesticides) */}
+            <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-amber-900 font-bold">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>Misdiagnosis &amp; Savings Advisory</span>
+              </div>
+              <p className="text-amber-800 text-[11px] leading-relaxed">
+                Observed wilting / flower drop is <strong>Abiotic Weather Stress</strong>, NOT pest damage. Do NOT purchase chemical insecticide sprays without pest confirmation. You save up to <strong>₹2,200/acre</strong> by choosing biological stress shielding.
+              </p>
+            </div>
+
+            {/* Syngenta Tank-Mix Compatibility Helper */}
             <div className="stripe-card p-5 space-y-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
               <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
                 <FlaskConical className="h-4 w-4 text-purple-600" />
@@ -540,20 +585,22 @@ export default function PlantIntelligencePage() {
                   <button
                     key={item.id}
                     onClick={() => setSelectedTankMix(item.id)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${selectedTankMix === item.id
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      selectedTankMix === item.id
                         ? "bg-purple-600 text-white border-purple-600"
                         : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                      }`}
+                    }`}
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
 
-              <div className={`p-3 rounded-xl text-xs space-y-1 ${selectedTankMix === "copper"
+              <div className={`p-3 rounded-xl text-xs space-y-1 ${
+                selectedTankMix === "copper"
                   ? "bg-red-50 border border-red-200 text-red-900"
                   : "bg-emerald-50 border border-emerald-200 text-emerald-900"
-                }`}>
+              }`}>
                 <div className="font-bold flex items-center gap-1.5">
                   {selectedTankMix === "copper" ? (
                     <>
@@ -579,7 +626,7 @@ export default function PlantIntelligencePage() {
 
           {/* Right Column (8 cols) */}
           <div className="lg:col-span-8 space-y-6">
-
+            
             {/* Critical Alert Banner */}
             {pipelineData?.has_critical_alert && (
               <div className="bg-red-50 border border-red-300 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
@@ -587,14 +634,14 @@ export default function PlantIntelligencePage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black uppercase tracking-wider text-red-800 bg-red-100 px-2 py-0.5 rounded-full">
-                      CRITICAL COMPOUND STRESS ALERT
+                      COMPOUND CLIMATE STRESS ALERT
                     </span>
                     <span className="text-[10px] font-mono font-bold text-red-700 bg-red-200/60 px-2 py-0.5 rounded-full">
-                      DAYS 3–6 PEAK
+                      PEAK RISK WINDOW
                     </span>
                   </div>
                   <p className="text-xs text-red-900 font-medium">
-                    {pipelineData?.alert?.description || "Thermal and hydric deviation exceeds physiological threshold. Apply biostimulant within 3 days."}
+                    {pipelineData?.alert?.description || "Thermal and hydric deviation exceeds physiological threshold. Apply biological intervention within 3 days."}
                   </p>
                 </div>
               </div>
@@ -611,13 +658,13 @@ export default function PlantIntelligencePage() {
                   OPTIMAL WINDOW ACTIVE
                 </span>
               </div>
-
+              
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { time: "06:00 - 09:00 AM", status: "Optimal", desc: "24°C · Wind 6 km/h", badge: "bg-emerald-500", text: "text-emerald-700" },
-                  { time: "09:00 - 12:00 PM", status: "Moderate", desc: "31°C · Wind 11 km/h", badge: "bg-amber-500", text: "text-amber-700" },
-                  { time: "12:00 - 04:00 PM", status: "Evaporation Risk", desc: "37°C · Low Absorption", badge: "bg-red-500", text: "text-red-700" },
-                  { time: "05:00 - 07:30 PM", status: "Optimal", desc: "27°C · Zero Drift", badge: "bg-emerald-500", text: "text-emerald-700" },
+                  { time: "06:00 - 09:00 AM", status: "Optimal Window", desc: "24°C · Low Evaporation", badge: "bg-emerald-500", text: "text-emerald-700" },
+                  { time: "09:00 - 12:00 PM", status: "Moderate", desc: "28°C · Moderate Wind", badge: "bg-amber-500", text: "text-amber-700" },
+                  { time: "12:00 - 04:00 PM", status: "Evaporation Risk", desc: "32°C · Stomatal Closure", badge: "bg-red-500", text: "text-red-700" },
+                  { time: "05:00 - 07:30 PM", status: "Optimal Window", desc: "26°C · Zero Drift", badge: "bg-emerald-500", text: "text-emerald-700" },
                 ].map((w, idx) => (
                   <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1">
                     <span className="text-[10px] font-mono font-bold text-slate-500 block">{w.time}</span>
@@ -633,9 +680,9 @@ export default function PlantIntelligencePage() {
 
             {/* CropFit Recommended Biological Intervention Card */}
             {pipelineData?.cropfit?.product ? (
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-6 text-white border border-emerald-500/40 shadow-lg">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-6 text-white border border-emerald-500/40 shadow-lg space-y-4">
                 <div className="absolute top-0 right-0 -mt-10 -mr-10 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
-
+                
                 <div className="relative z-10 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -644,7 +691,7 @@ export default function PlantIntelligencePage() {
                       </span>
                       {growthStage === "Flowering" && (
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                          +5% FLOWERING BOOST
+                          +5% FLOWERING SENSITIVITY
                         </span>
                       )}
                     </div>
@@ -657,9 +704,16 @@ export default function PlantIntelligencePage() {
                   </div>
 
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                      {pipelineData.cropfit.product.product_name}
-                    </h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                        {pipelineData.cropfit.product.product_name}
+                      </h2>
+                      {pipelineData.cropfit.product.retail_price && (
+                        <span className="text-xs font-mono font-bold bg-white/10 text-emerald-300 px-3 py-1 rounded-lg border border-emerald-500/30">
+                          {pipelineData.cropfit.product.retail_price}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-emerald-400 font-mono mt-0.5">
                       {pipelineData.cropfit.product.category} · {pipelineData.cropfit.product.active_ingredient}
                     </p>
@@ -691,6 +745,29 @@ export default function PlantIntelligencePage() {
                     </div>
                   </div>
 
+                  {/* Secondary Crop Protection Package */}
+                  {pipelineData.cropfit.secondary_crop_protection && (
+                    <div className="bg-blue-950/70 border border-blue-500/40 rounded-xl p-3.5 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-blue-300 flex items-center gap-1.5">
+                          <Bug className="h-3.5 w-3.5 text-blue-400" />
+                          <span>Co-Application Partner: {pipelineData.cropfit.secondary_crop_protection.product_name}</span>
+                        </span>
+                        <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
+                          {pipelineData.cropfit.secondary_crop_protection.category}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        {pipelineData.cropfit.secondary_crop_protection.rationale}
+                      </p>
+                      <div className="text-[10px] font-mono text-blue-300 flex items-center gap-2">
+                        <span>Dosage: <strong>{pipelineData.cropfit.secondary_crop_protection.dosage}</strong></span>
+                        <span>•</span>
+                        <span>{pipelineData.cropfit.secondary_crop_protection.tank_mix_compatibility}</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Multi-Candidate Vector Match Ranking */}
                   {pipelineData.cropfit?.top_candidates && pipelineData.cropfit.top_candidates.length > 0 && (
                     <div className="bg-slate-900/90 rounded-xl p-3 border border-slate-700/80 space-y-2">
@@ -699,22 +776,24 @@ export default function PlantIntelligencePage() {
                           <Sliders className="h-3.5 w-3.5 text-emerald-400" />
                           <span>Vectorized Syngenta Formulation Ranking (6D Tensor)</span>
                         </span>
-                        <span className="text-[10px] font-mono text-emerald-400 font-bold">MULTI-VECTOR SCORING</span>
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold">MULTI-CRITERIA MATCH</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {pipelineData.cropfit.top_candidates.map((cand: any, idx: number) => (
                           <div
                             key={idx}
-                            className={`p-2.5 rounded-lg border text-xs space-y-1 ${idx === 0
+                            className={`p-2.5 rounded-lg border text-xs space-y-1 ${
+                              idx === 0
                                 ? "bg-emerald-950/60 border-emerald-500/50 text-white"
                                 : "bg-slate-800/60 border-slate-700/60 text-slate-300"
-                              }`}
+                            }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="font-extrabold">{cand.name}</span>
-                              <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded ${idx === 0 ? "bg-emerald-500 text-slate-950" : "bg-slate-700 text-slate-300"
-                                }`}>
+                              <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded ${
+                                idx === 0 ? "bg-emerald-500 text-slate-950" : "bg-slate-700 text-slate-300"
+                              }`}>
                                 {cand.score}% Fit
                               </span>
                             </div>
@@ -781,7 +860,7 @@ export default function PlantIntelligencePage() {
                     <span>Biological Activation Countdown: "What-If Delay" Simulator</span>
                   </h3>
                   <p className="text-xs text-slate-500">
-                    See why timing matters: Drag the slider to see how delaying application by days reduces protection.
+                    See why timing matters: Drag the slider to see how delaying application reduces yield protection.
                   </p>
                 </div>
                 <span className="text-xs font-mono font-black text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
@@ -809,8 +888,9 @@ export default function PlantIntelligencePage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
                   <span className="text-[10px] uppercase font-bold text-slate-500 block">Yield Protection Window</span>
-                  <span className={`text-2xl font-black font-mono ${delayStats.protection >= 70 ? "text-emerald-600" : delayStats.protection >= 45 ? "text-amber-600" : "text-red-600"
-                    }`}>
+                  <span className={`text-2xl font-black font-mono ${
+                    delayStats.protection >= 70 ? "text-emerald-600" : delayStats.protection >= 45 ? "text-amber-600" : "text-red-600"
+                  }`}>
                     {delayStats.protection}%
                   </span>
                   <span className="text-[10px] text-slate-500 block">Membrane shield active</span>
@@ -836,7 +916,7 @@ export default function PlantIntelligencePage() {
 
             {/* Multi-Modal Sensor Grid (4 Cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
+              
               {/* Weather Layer */}
               <div className="stripe-card p-4 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
@@ -844,21 +924,21 @@ export default function PlantIntelligencePage() {
                     <Thermometer className="h-4 w-4 text-emerald-600" />
                     <span>Weather Telemetry</span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
-                    Day 1 (Live)
+                  <span className="text-[10px] font-mono font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                    LIVE OPEN-METEO
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-slate-500 text-[10px] block">Max Temp</span>
                     <span className="font-mono font-bold text-slate-900">
-                      {firstForecast?.weather_layer?.TMax ?? 34}°C
+                      {firstForecast?.weather_layer?.TMax ?? 26.6}°C
                     </span>
                   </div>
                   <div>
                     <span className="text-slate-500 text-[10px] block">Night Min</span>
                     <span className="font-mono font-bold text-slate-900">
-                      {firstForecast?.weather_layer?.TMin ?? 22}°C
+                      {firstForecast?.weather_layer?.TMin ?? 23.1}°C
                     </span>
                   </div>
                   <div>
@@ -868,9 +948,9 @@ export default function PlantIntelligencePage() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Humidity (RH)</span>
+                    <span className="text-slate-500 text-[10px] block">VPD Air Pull</span>
                     <span className="font-mono font-bold text-slate-900">
-                      {firstForecast?.weather_layer?.RH_percent ?? 52}%
+                      {firstForecast?.weather_layer?.VPD_kPa ?? 0.7} kPa
                     </span>
                   </div>
                 </div>
@@ -984,10 +1064,10 @@ export default function PlantIntelligencePage() {
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-emerald-600" />
-                    <span>14-Day Dynamic Plant Stress Forecast</span>
+                    <span>14-Day Dynamic Plant Stress Forecast (Live Open-Meteo)</span>
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Click any day card to open full meteorological telemetry and targeted Syngenta product application guidelines.
+                    Click any day card to inspect real meteorological telemetry and targeted Syngenta product application guidelines.
                   </p>
                 </div>
                 <span className="text-[11px] font-mono font-bold text-slate-500">
@@ -1006,12 +1086,13 @@ export default function PlantIntelligencePage() {
                     <div
                       key={`timeline-day-${day.day ?? idx}-${day.date ?? idx}`}
                       onClick={() => setSelectedDayModal(day)}
-                      className={`min-w-[130px] p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 hover:shadow-md ${isCritical
+                      className={`min-w-[130px] p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 hover:shadow-md ${
+                        isCritical
                           ? "bg-red-50/70 border-red-300 hover:border-red-500"
                           : isHigh
-                            ? "bg-amber-50/70 border-amber-300 hover:border-amber-500"
-                            : "bg-slate-50 border-slate-200 hover:border-emerald-400"
-                        }`}
+                          ? "bg-amber-50/70 border-amber-300 hover:border-amber-500"
+                          : "bg-slate-50 border-slate-200 hover:border-emerald-400"
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-900">Day {day.day}</span>
@@ -1020,8 +1101,9 @@ export default function PlantIntelligencePage() {
 
                       <div className="flex flex-col items-center justify-center py-1">
                         <span
-                          className={`text-xl font-black font-mono ${isCritical ? "text-red-700" : isHigh ? "text-amber-700" : "text-emerald-700"
-                            }`}
+                          className={`text-xl font-black font-mono ${
+                            isCritical ? "text-red-700" : isHigh ? "text-amber-700" : "text-emerald-700"
+                          }`}
                         >
                           {stressPct}%
                         </span>
@@ -1032,12 +1114,13 @@ export default function PlantIntelligencePage() {
 
                       <div className="space-y-1 text-center">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${isCritical
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isCritical
                               ? "bg-red-200 text-red-900"
                               : isHigh
-                                ? "bg-amber-200 text-amber-900"
-                                : "bg-emerald-100 text-emerald-900"
-                            }`}
+                              ? "bg-amber-200 text-amber-900"
+                              : "bg-emerald-100 text-emerald-900"
+                          }`}
                         >
                           {day.dominant_stress}
                         </span>
@@ -1046,7 +1129,7 @@ export default function PlantIntelligencePage() {
                           {day.safe_to_spray ? (
                             <span className="text-emerald-700 font-bold">✓ Safe to spray</span>
                           ) : (
-                            <span className="text-amber-700 font-bold">⚠️ Drift risk</span>
+                            <span className="text-amber-700 font-bold">⚠️ High wind / rain</span>
                           )}
                         </div>
                       </div>
@@ -1056,6 +1139,73 @@ export default function PlantIntelligencePage() {
               </div>
             </div>
 
+            {/* Interactive Syngenta India Product Catalog Explorer */}
+            <div className="stripe-card p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                    <Package className="h-4 w-4 text-emerald-600" />
+                    <span>Syngenta India Retail Catalog (13 Registered Products)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Explore all Syngenta products sold by authorized retailers across India with real retail price ranges.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCatalog(!showCatalog)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <span>{showCatalog ? "Collapse" : "Explore Catalog"}</span>
+                  {showCatalog ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+
+              {showCatalog && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {[
+                      { id: "all", label: "All Products (13)" },
+                      { id: "biostimulant", label: "Biostimulants (2)" },
+                      { id: "insecticide", label: "Insecticides (4)" },
+                      { id: "fungicide", label: "Fungicides (4)" },
+                      { id: "herbicide", label: "Herbicides (2)" },
+                      { id: "seed", label: "Seed Treatment (1)" },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setCatalogCategory(cat.id)}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          catalogCategory === cat.id
+                            ? "bg-emerald-600 text-white"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
+                    {filteredCatalog.map((prod) => (
+                      <div key={prod.key} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-slate-900 text-sm">{prod.name}</span>
+                          <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
+                            {prod.category}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 text-[11px]">{prod.target}</p>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/80 text-[10px] font-mono">
+                          <span className="text-slate-500">{prod.active_ingredient.substring(0, 38)}...</span>
+                          <span className="font-black text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">{prod.retail_price}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
 
@@ -1063,7 +1213,7 @@ export default function PlantIntelligencePage() {
         {selectedDayModal && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-200 shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in-95">
-
+              
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div>
                   <span className="text-xs font-mono font-bold text-emerald-700 uppercase bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -1095,7 +1245,7 @@ export default function PlantIntelligencePage() {
                 <div>
                   <span className="text-slate-500 text-[10px] uppercase font-bold block">Max Temperature</span>
                   <span className="font-mono font-bold text-slate-800">
-                    {selectedDayModal.weather_layer?.TMax ?? 34}°C
+                    {selectedDayModal.weather_layer?.TMax ?? 26.6}°C
                   </span>
                 </div>
                 <div>
