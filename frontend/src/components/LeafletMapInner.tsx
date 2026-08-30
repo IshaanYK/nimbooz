@@ -1,67 +1,57 @@
 "use client";
 
-import React, { useEffect, useRef, memo } from "react";
+import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
 import { FieldRecord } from "@/lib/fieldStore";
 
-export type BaseMapMode = "satellite" | "streets" | "terrain";
-
-interface LeafletMapInnerProps {
+interface NewMapEngineProps {
   center: [number, number];
   zoom?: number;
-  savedFields: FieldRecord[];
+  fields: FieldRecord[];
   activeFieldId?: string;
-  isDrawingMode?: boolean;
-  drawnNodes?: Array<[number, number]>;
-  baseMapType?: BaseMapMode;
-  onMapClick?: (lat: number, lon: number) => void;
+  mapType: "satellite" | "streets" | "terrain";
+  isDrawing: boolean;
+  drawnPoints: Array<[number, number]>;
+  onMapClick: (lat: number, lon: number) => void;
   onSelectField?: (field: FieldRecord) => void;
 }
 
-export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
+export function LeafletMapInner({
   center,
-  zoom = 16,
-  savedFields = [],
+  zoom = 15,
+  fields = [],
   activeFieldId,
-  isDrawingMode = false,
-  drawnNodes = [],
-  baseMapType = "satellite",
+  mapType = "satellite",
+  isDrawing = false,
+  drawnPoints = [],
   onMapClick,
   onSelectField,
-}) => {
+}: NewMapEngineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const labelsLayerRef = useRef<L.TileLayer | null>(null);
-  const fieldsLayerGroupRef = useRef<L.LayerGroup | null>(null);
-  const drawingLayerGroupRef = useRef<L.LayerGroup | null>(null);
-  const userPinLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const vectorsGroupRef = useRef<L.LayerGroup | null>(null);
+  const drawingGroupRef = useRef<L.LayerGroup | null>(null);
 
-  // Mutable refs to prevent stale closure bugs
-  const onMapClickRef = useRef(onMapClick);
+  // Store latest callbacks to prevent stale closures
+  const clickCallbackRef = useRef(onMapClick);
+  clickCallbackRef.current = onMapClick;
+
+  const selectCallbackRef = useRef(onSelectField);
+  selectCallbackRef.current = onSelectField;
+
+  // 1. Initialize Map Once
   useEffect(() => {
-    onMapClickRef.current = onMapClick;
-  }, [onMapClick]);
+    if (!containerRef.current || mapInstanceRef.current) return;
 
-  const onSelectFieldRef = useRef(onSelectField);
-  useEffect(() => {
-    onSelectFieldRef.current = onSelectField;
-  }, [onSelectField]);
-
-  // Sanitize coordinates
-  const safeLat = typeof center?.[0] === "number" && !isNaN(center[0]) && center[0] !== 0 ? center[0] : 23.2599;
-  const safeLon = typeof center?.[1] === "number" && !isNaN(center[1]) && center[1] !== 0 ? center[1] : 77.4126;
-
-  // 1. Initialize Map Instance (Only on mount)
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Reset container leaflet id if hot reloaded
+    // Reset container ID if re-mounted
     if ((containerRef.current as any)._leaflet_id) {
       delete (containerRef.current as any)._leaflet_id;
     }
 
+    // Default icon assets
     try {
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -69,7 +59,10 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
         iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
-    } catch {}
+    } catch (_) {}
+
+    const safeLat = center?.[0] && !isNaN(center[0]) ? center[0] : 23.2599;
+    const safeLon = center?.[1] && !isNaN(center[1]) ? center[1] : 77.4126;
 
     const map = L.map(containerRef.current, {
       center: [safeLat, safeLon],
@@ -78,229 +71,201 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       maxZoom: 20,
       zoomControl: false,
       attributionControl: false,
-      trackResize: true,
-      preferCanvas: true,
+      fadeAnimation: true,
+      zoomAnimation: true,
     });
 
-    mapRef.current = map;
+    mapInstanceRef.current = map;
 
-    // Zoom control at bottom-right
+    // Zoom Controls at Bottom Right
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // Create vector layer groups
-    fieldsLayerGroupRef.current = L.layerGroup().addTo(map);
-    drawingLayerGroupRef.current = L.layerGroup().addTo(map);
-    userPinLayerGroupRef.current = L.layerGroup().addTo(map);
+    // Layer groups for clean management
+    tileLayerGroupRef.current = L.layerGroup().addTo(map);
+    vectorsGroupRef.current = L.layerGroup().addTo(map);
+    drawingGroupRef.current = L.layerGroup().addTo(map);
 
     // Click handler
     map.on("click", (e: L.LeafletMouseEvent) => {
-      if (onMapClickRef.current) {
-        onMapClickRef.current(e.latlng.lat, e.latlng.lng);
+      if (clickCallbackRef.current) {
+        clickCallbackRef.current(e.latlng.lat, e.latlng.lng);
       }
     });
 
-    // Invalidation hooks for smooth initial sizing
-    const t1 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 100);
-    const t2 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 400);
+    // Invalidate size on initial mount
+    const timer1 = setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+    const timer2 = setTimeout(() => {
+      map.invalidateSize();
+    }, 400);
 
-    const onResize = () => {
-      try { map.invalidateSize({ animate: false }); } catch {}
+    const handleResize = () => {
+      map.invalidateSize();
     };
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      window.removeEventListener("resize", onResize);
-      try {
-        map.remove();
-      } catch {}
-      mapRef.current = null;
-      tileLayerRef.current = null;
-      labelsLayerRef.current = null;
-      fieldsLayerGroupRef.current = null;
-      drawingLayerGroupRef.current = null;
-      userPinLayerGroupRef.current = null;
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      window.removeEventListener("resize", handleResize);
+      map.remove();
+      mapInstanceRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. Base Tile Layer Switcher
+  // 2. Base Map Tile Layers
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    const map = mapInstanceRef.current;
+    const group = tileLayerGroupRef.current;
+    if (!map || !group) return;
 
-    if (tileLayerRef.current) {
-      map.removeLayer(tileLayerRef.current);
-      tileLayerRef.current = null;
-    }
-    if (labelsLayerRef.current) {
-      map.removeLayer(labelsLayerRef.current);
-      labelsLayerRef.current = null;
-    }
+    group.clearLayers();
 
-    if (baseMapType === "satellite") {
-      // High-Res Google Satellite Hybrid
-      const satLayer = L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+    if (mapType === "satellite") {
+      // High-resolution Google Satellite Hybrid with roads & labels
+      const sat = L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
         maxZoom: 20,
         subdomains: ["mt0", "mt1", "mt2", "mt3"],
-        attribution: "Google Satellite",
       });
-      satLayer.addTo(map);
-      tileLayerRef.current = satLayer;
-    } else if (baseMapType === "terrain") {
-      // Google Terrain / Topo
-      const terrLayer = L.tileLayer("https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}", {
+      group.addLayer(sat);
+    } else if (mapType === "terrain") {
+      // Google Terrain
+      const terr = L.tileLayer("https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}", {
         maxZoom: 20,
         subdomains: ["mt0", "mt1", "mt2", "mt3"],
-        attribution: "Google Terrain",
       });
-      terrLayer.addTo(map);
-      tileLayerRef.current = terrLayer;
+      group.addLayer(terr);
     } else {
       // OpenStreetMap Streets
-      const osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      const streets = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
-        attribution: "OpenStreetMap",
       });
-      osmLayer.addTo(map);
-      tileLayerRef.current = osmLayer;
+      group.addLayer(streets);
     }
+  }, [mapType]);
 
-    try {
-      map.invalidateSize({ animate: false });
-    } catch {}
-  }, [baseMapType]);
-
-  // 3. Center Pan & Viewport Invalidation
+  // 3. Pan to Center
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || safeLat == null || safeLon == null) return;
-    try {
-      map.setView([safeLat, safeLon], map.getZoom() || 16, { animate: true });
-      map.invalidateSize({ animate: false });
-    } catch {}
-  }, [safeLat, safeLon]);
-
-  // 4. Drawing Mode Invalidation
-  useEffect(() => {
-    const map = mapRef.current;
+    const map = mapInstanceRef.current;
     if (!map) return;
-    try {
-      map.invalidateSize({ animate: false });
-    } catch {}
-    const t = setTimeout(() => {
-      try { map.invalidateSize({ animate: false }); } catch {}
-    }, 150);
-    return () => clearTimeout(t);
-  }, [isDrawingMode]);
+    const safeLat = center?.[0] && !isNaN(center[0]) ? center[0] : 23.2599;
+    const safeLon = center?.[1] && !isNaN(center[1]) ? center[1] : 77.4126;
 
-  // 5. Render Saved Field Polygons & Markers
+    map.setView([safeLat, safeLon], map.getZoom(), { animate: true });
+    map.invalidateSize();
+  }, [center]);
+
+  // 4. Invalidate Size on Drawing Mode Toggle
   useEffect(() => {
-    const map = mapRef.current;
-    const layerGroup = fieldsLayerGroupRef.current;
-    if (!map || !layerGroup) return;
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    map.invalidateSize();
+  }, [isDrawing]);
 
-    layerGroup.clearLayers();
+  // 5. Render Saved Farm Fields
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const group = vectorsGroupRef.current;
+    if (!map || !group) return;
 
-    if (!savedFields || savedFields.length === 0) return;
+    group.clearLayers();
 
-    savedFields.forEach((field) => {
+    fields.forEach((field) => {
       if (!field.polygon || field.polygon.length < 3) return;
       const isActive = field.id === activeFieldId;
 
-      const poly = L.polygon(field.polygon, {
+      const polygon = L.polygon(field.polygon, {
         color: isActive ? "#10B981" : "#3B82F6",
         weight: isActive ? 3 : 2,
         fillColor: isActive ? "#10B981" : "#60A5FA",
-        fillOpacity: isActive ? 0.35 : 0.2,
-        dashArray: isActive ? undefined : "4, 4",
+        fillOpacity: isActive ? 0.4 : 0.2,
       });
 
-      poly.bindPopup(`
-        <div style="font-family: system-ui, sans-serif; font-size: 12px; color: #0F172A; min-width: 170px; padding: 2px;">
-          <div style="font-size: 13px; font-weight: 800; color: #065F46; margin-bottom: 2px;">
+      polygon.bindPopup(`
+        <div style="font-family: system-ui, sans-serif; padding: 4px; min-width: 150px;">
+          <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: #065F46;">
             🌾 ${field.name}
-          </div>
-          <div style="color: #475569; font-size: 11px; margin-bottom: 6px;">
+          </h4>
+          <p style="margin: 0 0 6px 0; font-size: 12px; color: #475569;">
             ${field.crop} · ${field.areaAcres} Acres
-          </div>
-          <div style="display: inline-block; padding: 3px 8px; background: #ECFDF5; border-radius: 6px; border: 1px solid #A7F3D0; font-size: 10px; font-weight: bold; color: #065F46;">
-            ✓ Active Field Plot
-          </div>
+          </p>
+          <span style="font-size: 11px; background: #ECFDF5; color: #065F46; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
+            ✓ Active Plot
+          </span>
         </div>
       `);
 
-      poly.on("click", () => {
-        if (onSelectFieldRef.current) onSelectFieldRef.current(field);
+      polygon.on("click", () => {
+        if (selectCallbackRef.current) {
+          selectCallbackRef.current(field);
+        }
       });
 
-      layerGroup.addLayer(poly);
+      group.addLayer(polygon);
 
-      // Center marker
-      const centerMarker = L.circleMarker(field.center, {
-        radius: isActive ? 7 : 5,
+      // Center Pin Marker
+      const centerDot = L.circleMarker(field.center, {
+        radius: isActive ? 8 : 5,
         color: "#FFFFFF",
         weight: 2,
         fillColor: isActive ? "#10B981" : "#3B82F6",
         fillOpacity: 1,
       });
-      layerGroup.addLayer(centerMarker);
+      group.addLayer(centerDot);
     });
-  }, [savedFields, activeFieldId]);
+  }, [fields, activeFieldId]);
 
-  // 6. Render Active Drawing Nodes & Real-Time Polygon Trace
+  // 6. Render Active Drawing Points & Preview Line
   useEffect(() => {
-    const map = mapRef.current;
-    const drawGroup = drawingLayerGroupRef.current;
-    if (!map || !drawGroup) return;
+    const map = mapInstanceRef.current;
+    const group = drawingGroupRef.current;
+    if (!map || !group) return;
 
-    drawGroup.clearLayers();
+    group.clearLayers();
 
-    if (!isDrawingMode || drawnNodes.length === 0) return;
+    if (!isDrawing || drawnPoints.length === 0) return;
 
-    // Draw connecting line between points
-    if (drawnNodes.length > 1) {
-      const line = L.polyline(drawnNodes, {
+    // Draw connecting lines
+    if (drawnPoints.length > 1) {
+      const line = L.polyline(drawnPoints, {
         color: "#F59E0B",
         weight: 3,
         dashArray: "6, 6",
       });
-      drawGroup.addLayer(line);
+      group.addLayer(line);
     }
 
-    // Draw closed polygon preview if 3+ points
-    if (drawnNodes.length >= 3) {
-      const previewPoly = L.polygon(drawnNodes, {
+    // Draw polygon fill preview if 3+ points
+    if (drawnPoints.length >= 3) {
+      const fillPreview = L.polygon(drawnPoints, {
         color: "#10B981",
         weight: 2,
         fillColor: "#34D399",
         fillOpacity: 0.35,
       });
-      drawGroup.addLayer(previewPoly);
+      group.addLayer(fillPreview);
     }
 
-    // Draw corner markers
-    drawnNodes.forEach((node, index) => {
-      const isStart = index === 0;
-      const marker = L.circleMarker(node, {
+    // Point corner markers
+    drawnPoints.forEach((point, idx) => {
+      const isStart = idx === 0;
+      const marker = L.circleMarker(point, {
         radius: isStart ? 8 : 6,
         color: "#FFFFFF",
         weight: 2,
         fillColor: isStart ? "#10B981" : "#F59E0B",
         fillOpacity: 1,
       });
-      drawGroup.addLayer(marker);
+      group.addLayer(marker);
     });
-  }, [isDrawingMode, drawnNodes]);
+  }, [isDrawing, drawnPoints]);
 
   return (
     <div
       ref={containerRef}
-      className={`h-full w-full relative z-0 ${isDrawingMode ? "cursor-crosshair" : "cursor-grab"}`}
-      style={{ minHeight: "440px", height: "100%", width: "100%" }}
+      className={`w-full h-full min-h-[460px] ${isDrawing ? "cursor-crosshair" : "cursor-grab"}`}
+      style={{ width: "100%", height: "100%", minHeight: "460px" }}
     />
   );
-});
-
-LeafletMapInner.displayName = "LeafletMapInner";
+}
