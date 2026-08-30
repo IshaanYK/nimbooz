@@ -124,12 +124,17 @@ export function getSavedFields(): FieldRecord[] {
     const raw = localStorage.getItem(STORAGE_KEY_FIELDS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch (e) {
     console.error("Error reading fields from storage:", e);
   }
-  return [];
+  const initial = getInitialFarmerField();
+  try {
+    localStorage.setItem(STORAGE_KEY_FIELDS, JSON.stringify([initial]));
+    localStorage.setItem(STORAGE_KEY_ACTIVE_FIELD, initial.id);
+  } catch (_) {}
+  return [initial];
 }
 
 /**

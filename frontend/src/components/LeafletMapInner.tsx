@@ -32,9 +32,8 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const drawingLayerGroupRef = useRef<L.LayerGroup | null>(null);
-  const lastCenterRef = useRef<[number, number]>(center);
+  const lastCenterRef = useRef<[number, number]>([23.2599, 77.4126]);
 
-  // Mutable refs to prevent stale closure bugs
   const onMapClickRef = useRef(onMapClick);
   useEffect(() => {
     onMapClickRef.current = onMapClick;
@@ -45,9 +44,18 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     onSelectFieldRef.current = onSelectField;
   }, [onSelectField]);
 
+  // Safe coordinates check
+  const safeLat = (typeof center?.[0] === "number" && !isNaN(center[0]) && center[0] !== 0) ? center[0] : 23.2599;
+  const safeLon = (typeof center?.[1] === "number" && !isNaN(center[1]) && center[1] !== 0) ? center[1] : 77.4126;
+
   // 1. Initialize Leaflet Map (ONCE on mount)
   useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
+    if (!mapContainerRef.current) return;
+
+    // Prevent duplicate initialization error
+    if ((mapContainerRef.current as any)._leaflet_id) {
+      delete (mapContainerRef.current as any)._leaflet_id;
+    }
 
     try {
       delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -59,44 +67,42 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     } catch {}
 
     const map = L.map(mapContainerRef.current, {
-      center: center,
+      center: [safeLat, safeLon],
       zoom: 16,
       minZoom: 3,
-      maxZoom: 19,
+      maxZoom: 20,
       zoomControl: false,
       attributionControl: false,
       trackResize: true,
     });
 
     mapInstanceRef.current = map;
+    lastCenterRef.current = [safeLat, safeLon];
 
     // Zoom control in bottom right
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // 100% Reliable ESRI World Imagery Tile Layer
+    // Primary: Google Satellite Hybrid (Ultra fast & 100% reliable globally)
+    const googleHybrid = L.tileLayer(
+      "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+      {
+        maxZoom: 20,
+        subdomains: ["mt0", "mt1", "mt2", "mt3"],
+        attribution: "Google Satellite",
+      }
+    );
+
+    // Fallback: Esri World Imagery
     const esriSatellite = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
         maxZoom: 19,
         attribution: "Esri Satellite",
-        keepBuffer: 8,
-        updateWhenIdle: false,
-        updateWhenZooming: true,
       }
     );
 
-    // Place & Boundary Labels Overlay
-    const esriLabels = L.tileLayer(
-      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-      {
-        maxZoom: 19,
-        opacity: 0.85,
-        keepBuffer: 8,
-      }
-    );
-
-    esriSatellite.addTo(map);
-    esriLabels.addTo(map);
+    // Add Google Satellite Layer
+    googleHybrid.addTo(map);
 
     // Vector layer groups
     layerGroupRef.current = L.layerGroup().addTo(map);
@@ -109,9 +115,10 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       }
     });
 
-    // Invalidate size once layout settles
-    const t1 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 150);
-    const t2 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 500);
+    // Invalidate map size multiple times to ensure full render
+    const t1 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 100);
+    const t2 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 400);
+    const t3 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 1000);
 
     const handleResize = () => {
       try { map.invalidateSize({ animate: false }); } catch {}
@@ -121,6 +128,7 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
       window.removeEventListener("resize", handleResize);
       try {
         map.remove();
@@ -132,22 +140,20 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const centerLat = center?.[0];
-  const centerLon = center?.[1];
-
   // 2. Smooth Pan to center ONLY if center actually changed
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || centerLat == null || centerLon == null) return;
+    if (!map || safeLat == null || safeLon == null) return;
     const [lastLat, lastLon] = lastCenterRef.current;
-    const diff = Math.abs(lastLat - centerLat) + Math.abs(lastLon - centerLon);
+    const diff = Math.abs(lastLat - safeLat) + Math.abs(lastLon - safeLon);
     if (diff > 0.0001) {
-      lastCenterRef.current = [centerLat, centerLon];
+      lastCenterRef.current = [safeLat, safeLon];
       try {
-        map.setView([centerLat, centerLon], map.getZoom() || 16, { animate: true });
+        map.setView([safeLat, safeLon], map.getZoom() || 16, { animate: true });
+        map.invalidateSize();
       } catch {}
     }
-  }, [centerLat, centerLon]);
+  }, [safeLat, safeLon]);
 
   // 3. Render Real Saved Field Polygons
   useEffect(() => {
@@ -157,9 +163,9 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
 
     layerGroup.clearLayers();
 
-    if (!savedFields || savedFields.length === 0) return;
+    const fieldsToRender = savedFields && savedFields.length > 0 ? savedFields : [];
 
-    savedFields.forEach((field) => {
+    fieldsToRender.forEach((field) => {
       if (!field.polygon || field.polygon.length < 3) return;
       const isActive = field.id === activeFieldId;
 
