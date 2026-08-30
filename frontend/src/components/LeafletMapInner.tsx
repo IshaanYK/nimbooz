@@ -156,11 +156,25 @@ export function LeafletMapInner({
     map.invalidateSize();
   }, [center]);
 
-  // 4. Invalidate Size on Drawing Mode Toggle
+  // 4. Invalidate Size on Drawing Mode Toggle — must fire AFTER DOM reflow
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
-    map.invalidateSize();
+
+    // Use rAF + staggered timeouts to wait for the action bar layout shift to settle
+    const raf = requestAnimationFrame(() => {
+      try { map.invalidateSize({ animate: false }); } catch (_) {}
+    });
+    const t1 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch (_) {} }, 100);
+    const t2 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch (_) {} }, 300);
+    const t3 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch (_) {} }, 600);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [isDrawing]);
 
   // 5. Render Saved Farm Fields
