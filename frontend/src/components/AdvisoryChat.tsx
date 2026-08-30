@@ -758,7 +758,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                         const targetDealer = nearbyDealers[0];
                         const waDealLink = targetDealer
                           ? generateWhatsAppOrderLink(targetDealer, farmerName, effectiveCrop, effectiveAcres, deal.product, deal.title)
-                          : `https://wa.me/918001027964?text=${encodeURIComponent(`नमस्ते! मुझे ${deal.title} (${deal.couponCode}) क्लेम करना है।`)}`;
+                          : `https://wa.me/919826011223?text=${encodeURIComponent(`नमस्ते! मुझे ${deal.title} (${deal.couponCode}) क्लेम करना है।`)}`;
 
                         return (
                           <div key={deal.id} className="bg-white p-2.5 rounded-xl border border-amber-200 space-y-1.5 shadow-2xs">
