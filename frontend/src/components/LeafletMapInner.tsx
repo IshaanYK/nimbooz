@@ -52,7 +52,6 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Prevent duplicate initialization error
     if ((mapContainerRef.current as any)._leaflet_id) {
       delete (mapContainerRef.current as any)._leaflet_id;
     }
@@ -70,7 +69,7 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       center: [safeLat, safeLon],
       zoom: 16,
       minZoom: 3,
-      maxZoom: 20,
+      maxZoom: 19,
       zoomControl: false,
       attributionControl: false,
       trackResize: true,
@@ -82,27 +81,30 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     // Zoom control in bottom right
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // Primary: Google Satellite Hybrid (Ultra fast & 100% reliable globally)
-    const googleHybrid = L.tileLayer(
-      "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
-      {
-        maxZoom: 20,
-        subdomains: ["mt0", "mt1", "mt2", "mt3"],
-        attribution: "Google Satellite",
-      }
-    );
-
-    // Fallback: Esri World Imagery
+    // 100% Reliable ESRI High-Resolution World Imagery Tile Layer
     const esriSatellite = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
         maxZoom: 19,
         attribution: "Esri Satellite",
+        keepBuffer: 12,
+        updateWhenIdle: false,
+        updateWhenZooming: true,
       }
     );
 
-    // Add Google Satellite Layer
-    googleHybrid.addTo(map);
+    // Labels & Boundaries Overlay
+    const esriLabels = L.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 19,
+        opacity: 0.9,
+        keepBuffer: 12,
+      }
+    );
+
+    esriSatellite.addTo(map);
+    esriLabels.addTo(map);
 
     // Vector layer groups
     layerGroupRef.current = L.layerGroup().addTo(map);
@@ -115,10 +117,9 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       }
     });
 
-    // Invalidate map size multiple times to ensure full render
+    // Invalidate map size multiple times
     const t1 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 100);
     const t2 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 400);
-    const t3 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 1000);
 
     const handleResize = () => {
       try { map.invalidateSize({ animate: false }); } catch {}
@@ -128,7 +129,6 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
-      clearTimeout(t3);
       window.removeEventListener("resize", handleResize);
       try {
         map.remove();
@@ -140,7 +140,25 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. Smooth Pan to center ONLY if center actually changed
+  // 2. Handle Drawing Mode Transition (Forces tile re-render and prevents black map)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    try {
+      map.invalidateSize({ animate: false });
+    } catch (_) {}
+
+    const timer = setTimeout(() => {
+      try {
+        map.invalidateSize({ animate: false });
+      } catch (_) {}
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [isDrawingMode]);
+
+  // 3. Smooth Pan to center ONLY if center actually changed
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || safeLat == null || safeLon == null) return;
@@ -150,12 +168,12 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       lastCenterRef.current = [safeLat, safeLon];
       try {
         map.setView([safeLat, safeLon], map.getZoom() || 16, { animate: true });
-        map.invalidateSize();
+        map.invalidateSize({ animate: false });
       } catch {}
     }
   }, [safeLat, safeLon]);
 
-  // 3. Render Real Saved Field Polygons
+  // 4. Render Real Saved Field Polygons
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layerGroup = layerGroupRef.current;
@@ -209,7 +227,7 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     });
   }, [savedFields, activeFieldId]);
 
-  // 4. Render Active Drawing Nodes & Polygon Preview
+  // 5. Render Active Drawing Nodes & Polygon Preview
   useEffect(() => {
     const map = mapInstanceRef.current;
     const drawGroup = drawingLayerGroupRef.current;
@@ -257,7 +275,7 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     <div
       ref={mapContainerRef}
       className={`h-full w-full relative z-0 ${isDrawingMode ? "cursor-crosshair" : "cursor-grab"}`}
-      style={{ minHeight: "440px", backgroundColor: "#0f172a" }}
+      style={{ minHeight: "440px" }}
     />
   );
 });
