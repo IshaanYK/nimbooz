@@ -706,8 +706,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 </div>
               )}
 
-              {/* Live Syngenta Deals in Real User Location */}
-              {msg.sender === "bot" && localizedDeals.length > 0 && (
+              {/* Live Syngenta Deals — only on welcome message */}
+              {msg.sender === "bot" && msg.id === "welcome-1" && localizedDeals.length > 0 && (
                 <div className="border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-3 text-[11px] font-accent space-y-2 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-bold text-amber-950">
@@ -758,8 +758,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 </div>
               )}
 
-              {/* Nearby Syngenta Dealers & Google Maps Directions */}
-              {msg.sender === "bot" && (
+              {/* Nearby Syngenta Dealers — only on welcome message */}
+              {msg.sender === "bot" && msg.id === "welcome-1" && (
                 <div className="border border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-3 text-[11px] font-accent space-y-2.5 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-bold text-emerald-950">
@@ -895,8 +895,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 )}
               </div>
 
-              {/* Suggested Follow-Ups */}
-              {msg.followUpQuestions && msg.followUpQuestions.length > 0 && msg.sender === "bot" && (
+              {/* Suggested Follow-Ups — only on welcome message */}
+              {msg.followUpQuestions && msg.followUpQuestions.length > 0 && msg.sender === "bot" && msg.id === "welcome-1" && (
                 <div className="pt-2 flex flex-wrap gap-1.5 font-accent">
                   <span className="text-[9px] text-slate-400 font-bold block w-full">{t.suggestedFollowUps || "Suggested Questions:"}</span>
                   {msg.followUpQuestions.map((fq, idx) => (

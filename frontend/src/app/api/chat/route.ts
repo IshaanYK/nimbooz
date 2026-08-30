@@ -56,39 +56,38 @@ export async function POST(req: NextRequest) {
     const yieldGainTotalQ = Math.round(0.60 * acresNum * 10) / 10;
     const netProfitTotal = Math.round(2030 * acresNum);
 
-    const prompt = `You are AASRA, an ultra-precise, intelligent AI Agronomist for Indian farmers.
-Powered 100% by Google Gemini 2.5 Flash.
+    const prompt = `You are AASRA, an ultra-precise AI Agronomist for Indian farmers. Powered by Google Gemini 2.5 Flash.
 
 USER & LOCATION CONTEXT:
-- Farmer Name: ${farmer_name}
-- Real Location: ${village ? village + ", " : ""}${district} (Coordinates: ${lat}, ${lon})
+- Farmer: ${farmer_name} | Location: ${village ? village + ", " : ""}${district} (${lat}, ${lon})
 - Crop: ${crop} (${crop_variety}) on ${acresNum} Acres
-- Real Live Weather in ${district}: Temp ${activeTemp}°C, Night ${activeNightTemp}°C (${isNightHeatStress ? "Night heat stress alert" : "Normal night"}), Soil Moisture ${activeSoil}%, Wind ${telemetry.windSpeed} km/h
+- Live Weather in ${district}: Temp ${activeTemp}°C, Night ${activeNightTemp}°C${isNightHeatStress ? " ⚠️ Night heat stress" : ""}, Soil Moisture ${activeSoil}%, Wind ${telemetry.windSpeed} km/h
 
-FARMER'S SPECIFIC QUESTION:
+FARMER'S QUESTION:
 "${message}"
 
-CRITICAL RULES:
-1. ANSWER ONLY AND SPECIFICALLY WHAT WAS ASKED. DO NOT PROVIDE UNASKED GENERAL SUMMARIES.
-   - If asked for Mandi Rate / Price / Bhav: Give ONLY the current market price range and modal price in ₹/quintal for ${crop} (or the requested crop) in ${district}. Do NOT dump spraying or general advice.
-   - If asked for Weather / Rain: State ONLY the current weather condition, temperature, and rain likelihood for ${district}.
-   - If asked for Dosage / Spray: State ONLY the exact dosage (${dosePerAcreMl} ml/acre) and water volume (${waterLiters} L total) for ${acresNum} acres.
-   - If asked about Dealers: State where to find agricultural dealers in ${district}.
-   - For all other questions: Give a precise, direct, and helpful answer in 1-2 sentences.
-2. Always ground the response to the user's REAL location (${district}). NEVER default or mention Bhopal unless the user's location is specifically Bhopal.
-3. Keep the reply concise, natural, and helpful in ${targetLangName}.
-4. Return strictly a JSON object:
+CRITICAL RULES — FOLLOW STRICTLY:
+1. ANSWER ONLY WHAT WAS ASKED. Nothing else. No extra advice, no unsolicited recommendations.
+2. Keep the reply SHORT: 1-3 sentences max. Direct, factual, precise.
+3. Use REAL location data (${district}). Never mention Bhopal unless the user is there.
+4. DO NOT suggest what else the farmer should do unless they ask.
+5. DO NOT add follow-up questions or suggestions.
+6. Answer in ${targetLangName}.
 
+SPECIFIC ANSWER RULES:
+- Mandi price / bhav → Give ONLY current market price in ₹/quintal for ${district}.
+- Weather / rain → State ONLY current condition and temperature for ${district}.
+- Spray dosage → State ONLY exact dosage: ${dosePerAcreMl} ml/acre, ${waterLiters}L total for ${acresNum} acres.
+- Any other question → Answer it directly in 1-2 sentences.
+
+Return strictly this JSON:
 {
-  "reply": "Crisp, direct, and exact answer in ${targetLangName} addressing strictly what the farmer asked without extra filler",
-  "why_recommendation": "1-sentence concise reason in ${targetLangName}",
-  "dosage_summary": "${dosePerAcreMl} ml/एकड़ (${totalDoseLiters} L for ${acresNum} acres)",
-  "total_profit_gain": "₹${netProfitTotal.toLocaleString("en-IN")}",
+  "reply": "Direct precise answer in ${targetLangName} — only what was asked, 1-3 sentences max",
+  "why_recommendation": "",
+  "dosage_summary": "",
+  "total_profit_gain": "",
   "confidence_score": 98,
-  "follow_up_questions": [
-    "Relevant follow-up 1 in ${targetLangName}",
-    "Relevant follow-up 2 in ${targetLangName}"
-  ]
+  "follow_up_questions": []
 }`;
 
     const geminiResult = await executeGoogleGeminiPrompt(
@@ -127,11 +126,11 @@ CRITICAL RULES:
     if (responsePayload && responsePayload.reply) {
       return NextResponse.json({
         reply: responsePayload.reply,
-        why_recommendation: responsePayload.why_recommendation || "",
-        dosage_summary: responsePayload.dosage_summary || `${dosePerAcreMl} ml/acre`,
-        total_profit_gain: responsePayload.total_profit_gain || `+₹${netProfitTotal.toLocaleString("en-IN")}`,
+        why_recommendation: "",
+        dosage_summary: "",
+        total_profit_gain: "",
         confidence_score: responsePayload.confidence_score || 98,
-        follow_up_questions: responsePayload.follow_up_questions || [],
+        follow_up_questions: [],
         model_used: "Gemini 2.5 Flash (Direct)",
         telemetry_used: {
           temp: activeTemp,
