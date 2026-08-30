@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
+import { useFarm } from "@/context/FarmContext";
 import { isUserLoggedIn, getStoredProfile, logoutUser, INDIAN_LANGUAGES } from "@/lib/userStore";
 import { Footer } from "@/components/Footer";
 import {
@@ -35,6 +36,8 @@ import {
   CloudSun,
   FileText,
   HelpCircle,
+  Plus,
+  CheckCircle2,
 } from "lucide-react";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/how-it-works", "/product", "/impact-story", "/architecture"];
@@ -43,6 +46,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const pathname = usePathname();
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
+  const { farms, activeFarm, selectFarm, createFarm } = useFarm();
 
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [profile, setProfile] = useState(getStoredProfile());
@@ -50,10 +54,20 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
+  const [farmDropdownOpen, setFarmDropdownOpen] = useState(false);
+  const [showNewFarmModal, setShowNewFarmModal] = useState(false);
+
+  // New farm modal state
+  const [newFarmName, setNewFarmName] = useState("");
+  const [newFarmDistrict, setNewFarmDistrict] = useState("");
+  const [newFarmState, setNewFarmState] = useState("");
+  const [newFarmCrop, setNewFarmCrop] = useState("Soybean");
+  const [newFarmAcres, setNewFarmAcres] = useState(5.0);
 
   const moreDropdownRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const farmDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const isAuthed = isUserLoggedIn();
@@ -73,6 +87,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
         setProfileDropdownOpen(false);
       }
+      if (farmDropdownRef.current && !farmDropdownRef.current.contains(e.target as Node)) {
+        setFarmDropdownOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -91,9 +108,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const displayName = profile.fullName && profile.fullName.trim()
     ? profile.fullName
     : (language === "hi" ? "किसान साथी" : "Farmer Friend");
-  const displayLocation = profile.village && profile.district
-    ? `${profile.village}, ${profile.district}`
-    : profile.district || (language === "hi" ? "लाइव क्षेत्र" : "Live Region");
+  const displayLocation = activeFarm.district && activeFarm.state
+    ? `${activeFarm.district}, ${activeFarm.state}`
+    : activeFarm.district || (language === "hi" ? "लाइव क्षेत्र" : "Live Region");
 
   const currentLangObj = INDIAN_LANGUAGES.find((l) => l.code === language) || INDIAN_LANGUAGES[0];
 
@@ -102,22 +119,84 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0d253d] selection:bg-[#10B981] selection:text-white font-sans pb-20 md:pb-0">
       
-      {/* ── Stripe-Grade Precision Glassmorphic Top Navbar ────────────────── */}
+      {/* ── Precision Glassmorphic Top Navbar ────────────────── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           
-          {/* Brand Logo & Telemetry Indicator */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Brand Logo & Global Farm Selector */}
+          <div className="flex items-center gap-2.5 shrink-0">
             <Link href="/" className="flex items-center gap-2 group cursor-pointer">
               <div className="relative h-8 w-28 bg-slate-50 p-1 rounded-xl border border-slate-200/80 shadow-xs group-hover:scale-102 transition-transform">
                 <Image src="/images/aasra_logo.png" alt="AASRA Logo" fill className="object-contain p-0.5" priority />
               </div>
             </Link>
 
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[10px] font-mono font-bold text-emerald-800">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>LIVE SATELLITE</span>
-            </div>
+            {/* Global Farm & Location Selector */}
+            {loggedIn && (
+              <div className="relative" ref={farmDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setFarmDropdownOpen((v) => !v)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all text-xs font-bold shadow-xs cursor-pointer border border-slate-700"
+                  title="Switch Active Farm or Field"
+                >
+                  <MapPin className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                  <div className="text-left leading-tight max-w-[130px] sm:max-w-[170px] truncate">
+                    <span className="block text-[11px] font-extrabold truncate">{activeFarm.name}</span>
+                    <span className="block text-[9px] text-emerald-300 font-mono truncate">{activeFarm.primaryCrop} · {activeFarm.areaAcres} ac</span>
+                  </div>
+                  <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform ${farmDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {farmDropdownOpen && (
+                  <div className="absolute left-0 mt-2 w-80 rounded-2xl bg-white border border-slate-200 shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 text-xs text-slate-800">
+                    <div className="px-3.5 py-2 border-b border-slate-100 flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Farm / Portfolio</span>
+                      <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">{farms.length} Farm(s)</span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto py-1 space-y-1">
+                      {farms.map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => {
+                            selectFarm(f.id);
+                            setFarmDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors ${
+                            f.id === activeFarm.id
+                              ? "bg-emerald-50 text-emerald-950 font-extrabold border-l-4 border-emerald-600"
+                              : "text-slate-700 font-medium"
+                          }`}
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-bold flex items-center gap-1.5">
+                              <span>{f.name}</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-md">{f.primaryCrop}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              {f.district ? `${f.district}, ${f.state}` : "GPS Location"} · <strong className="text-slate-800">{f.areaAcres} Acres</strong>
+                            </div>
+                          </div>
+                          {f.id === activeFarm.id && <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 ml-2" />}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="border-t border-slate-100 pt-2 px-2.5">
+                      <button
+                        onClick={() => {
+                          setFarmDropdownOpen(false);
+                          setShowNewFarmModal(true);
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>+ Add Another Farm / Field</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Primary Clean Navigation Links (Desktop) */}
@@ -469,6 +548,136 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           <span>Simulate</span>
         </Link>
       </div>
+
+      {/* ── Add New Farm Portfolio Modal ──────────────────────── */}
+      {showNewFarmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 font-sans">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full uppercase">
+                  Farm Portfolio
+                </span>
+                <h3 className="text-lg font-black text-slate-900 font-display mt-0.5">
+                  {language === "hi" ? "नया खेत / फार्म जोड़ें" : "Add New Farm Plot"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowNewFarmModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                createFarm({
+                  name: newFarmName.trim() || `Farm Plot #${farms.length + 1}`,
+                  district: newFarmDistrict.trim() || activeFarm.district || "Indore",
+                  state: newFarmState.trim() || activeFarm.state || "Madhya Pradesh",
+                  primaryCrop: newFarmCrop,
+                  areaAcres: Number(newFarmAcres) || 5.0,
+                });
+                setShowNewFarmModal(false);
+                setNewFarmName("");
+                setNewFarmDistrict("");
+                setNewFarmState("");
+              }}
+              className="space-y-3.5 text-xs"
+            >
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Farm Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newFarmName}
+                  onChange={(e) => setNewFarmName(e.target.value)}
+                  placeholder="e.g. South Canal Soybean Plot"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">District / City</label>
+                  <input
+                    type="text"
+                    required
+                    value={newFarmDistrict}
+                    onChange={(e) => setNewFarmDistrict(e.target.value)}
+                    placeholder="e.g. Indore, Pune, Karnal"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">State</label>
+                  <input
+                    type="text"
+                    required
+                    value={newFarmState}
+                    onChange={(e) => setNewFarmState(e.target.value)}
+                    placeholder="e.g. Madhya Pradesh"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Primary Crop</label>
+                  <select
+                    value={newFarmCrop}
+                    onChange={(e) => setNewFarmCrop(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs text-slate-900 cursor-pointer"
+                  >
+                    <option value="Soybean">Soybean (सोयाबीन)</option>
+                    <option value="Cotton">Cotton (कपास)</option>
+                    <option value="Wheat">Wheat (गेहूँ)</option>
+                    <option value="Rice / Paddy">Rice / Paddy (धान)</option>
+                    <option value="Maize">Maize (मक्का)</option>
+                    <option value="Mustard">Mustard (सरसों)</option>
+                    <option value="Gram">Gram / Chana (चना)</option>
+                    <option value="Sugarcane">Sugarcane (गन्ना)</option>
+                    <option value="Tomato">Tomato (टमाटर)</option>
+                    <option value="Chilli">Chilli (मिर्च)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Area (Acres)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    required
+                    value={newFarmAcres}
+                    onChange={(e) => setNewFarmAcres(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewFarmModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow transition-all cursor-pointer"
+                >
+                  Save &amp; Switch Farm
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

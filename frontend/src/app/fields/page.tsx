@@ -8,6 +8,7 @@ import { DataBadge } from "@/components/DataBadge";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
+import { useFarm } from "@/context/FarmContext";
 import {
   getSavedFields,
   saveFarmerField,
@@ -38,6 +39,7 @@ import {
 export default function MyFieldsPage() {
   const { language } = useLanguage();
   const { weather } = useWeather();
+  const { activeFarm, farms, selectFarm, createFarm, updateActiveFarm } = useFarm();
   const t = getTranslation(language);
 
   const [savedFields, setSavedFields] = useState<FieldRecord[]>([]);
@@ -77,6 +79,15 @@ export default function MyFieldsPage() {
   const handleSelectField = (field: FieldRecord) => {
     setActiveFieldState(field);
     setActiveField(field.id);
+    updateActiveFarm({
+      name: field.name,
+      primaryCrop: field.crop,
+      cropVariety: field.cropVariety,
+      areaAcres: field.areaAcres,
+      areaHa: field.areaHa,
+      center: field.center,
+      polygon: field.polygon,
+    });
   };
 
   const handleDeleteField = (fieldId: string) => {
@@ -138,6 +149,18 @@ export default function MyFieldsPage() {
     setSavedFields(updated);
     setActiveFieldState(newFieldObj);
     setActiveField(newFieldObj.id);
+
+    createFarm({
+      name: newFieldObj.name,
+      district: weather.district || "Local District",
+      state: weather.state || "India",
+      primaryCrop: finalCropName,
+      cropVariety: finalVariety,
+      areaAcres: acres,
+      areaHa: newFieldObj.areaHa,
+      center: [lat, lon],
+      polygon: newFieldObj.polygon,
+    });
     setShowAddModal(false);
     setNewFieldName("");
     setIsCustomCropMode(false);

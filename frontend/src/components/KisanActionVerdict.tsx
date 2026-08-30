@@ -3,8 +3,11 @@
 import React, { useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
-import { getStoredProfile, FarmerProfile } from "@/lib/userStore";
+import { useFarm } from "@/context/FarmContext";
+import { getStoredProfile } from "@/lib/userStore";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
+import { evaluateSpraySuitability } from "@/lib/calculations/sprayingRisk";
+import { calculateDeterministicROI } from "@/lib/calculations/roiEngine";
 import {
   Sparkles,
   Volume2,
@@ -27,33 +30,52 @@ import { generateWhatsAppOrderLink, getNearbySyngentaDealers } from "@/lib/synge
 export const KisanActionVerdict: React.FC = () => {
   const { language } = useLanguage();
   const { weather } = useWeather();
+  const { activeFarm } = useFarm();
   const profile = getStoredProfile();
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : (language === "hi" ? "किसान भाई" : "Farmer Friend");
-  const crop = profile?.primaryCrop || "Soybean";
-  const acreage = profile?.fieldAreaAcres || 12.5;
-  const district = profile?.district || weather?.district || (language === "hi" ? "आपके क्षेत्र" : "Your Region");
-  const village = profile?.village || "";
+  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : (language === "hi" ? "किसान साथी" : "Farmer Friend");
+  const crop = activeFarm.primaryCrop || "Soybean";
+  const acreage = activeFarm.areaAcres || 5.0;
+  const district = activeFarm.district || weather?.district || (language === "hi" ? "आपके क्षेत्र" : "Your Region");
+  const village = activeFarm.village || "";
 
-  // Real calculations for the farmer
+  // Deterministic Spray Evaluation
+  const sprayVerdict = evaluateSpraySuitability({
+    temp: weather.temperature,
+    windSpeed: weather.windSpeed,
+    rainProb: weather.precipitationProbability || 10,
+    humidity: weather.humidity,
+    precipitation: weather.precipitation,
+    isRaining: weather.isRaining,
+  });
+
+  // Deterministic Financial Return
+  const roi = calculateDeterministicROI({
+    acres: acreage,
+    mandiPricePerQtl: 4850,
+    preservedYieldQtlPerAcre: 0.52,
+    productCostPerAcre: 420,
+    labourCostPerAcre: 150,
+    cropName: crop,
+  });
+
+  // Input requirement
   const totalDoseLiters = Math.round((250 * acreage) / 100) / 10;
   const totalWaterLiters = Math.round(175 * acreage);
-  const isOptimalSpray = !weather.isRaining && weather.windSpeed <= 15 && weather.precipitation <= 0.2;
-  const estimatedSavings = Math.round(1850 * acreage);
 
   const nearbyDealers = getNearbySyngentaDealers(district);
   const primaryDealer = nearbyDealers[0];
 
-  const verdictTextHindi = `नमस्ते ${farmerName} जी! आपके ${village}, ${district} के ${acreage} एकड़ ${crop} खेत के लिए आज की लाइव रिपोर्ट: ` +
-    (isOptimalSpray
-      ? `मौसम छिडकाव के लिए अनुकूल है। हवा की गति ${weather.windSpeed} किमी/घंटा और तापमान ${weather.temperature}°C है। रात का तापमान ${weather.nightTemperature || weather.temperature}°C होने से गर्मी तनाव बढ़ सकता है। सलाह: आज शाम 4:30 बजे के बाद ${acreage} एकड़ खेत में ${totalDoseLiters} लीटर सिंजेंटा क्वांटिस को ${totalWaterLiters} लीटर पानी में मिलाकर छिडकें। इससे लगभग ₹${estimatedSavings.toLocaleString("en-IN")} का शुद्ध फसल लाभ सुरक्षित होगा।`
-      : `आज तेज हवा या बारिश के कारण छिडकाव न करें। मौसम साफ होने की प्रतीक्षा करें।`);
+  const verdictTextHindi = `नमस्ते ${farmerName} जी! आपके ${activeFarm.name} (${district}) के ${acreage} एकड़ ${crop} खेत के लिए आज का फैसला: ` +
+    (sprayVerdict.isSuitable
+      ? `${sprayVerdict.actionTextHi}। ${sprayVerdict.primaryReasonHi} सर्वोत्तम समय: ${sprayVerdict.recommendedWindowHi}। कुल ${totalDoseLiters} लीटर दवा ${totalWaterLiters} लीटर पानी में मिलाकर प्रयोग करें। इससे लगभग ₹${roi.totalFieldNetProfit.toLocaleString("en-IN")} का शुद्ध फसल लाभ सुरक्षित होगा।`
+      : `${sprayVerdict.actionTextHi}। ${sprayVerdict.primaryReasonHi} सिफारिश: ${sprayVerdict.recommendedWindowHi} मौसम की जांच करें।`);
 
-  const verdictTextEnglish = `Namaste ${farmerName}! Live report for your ${acreage} acres of ${crop} in ${village}, ${district}: ` +
-    (isOptimalSpray
-      ? `Optimal spray window active today. Wind speed is ${weather.windSpeed} km/h and temperature is ${weather.temperature}°C. Recommendation: Apply ${totalDoseLiters}L Syngenta Quantis in ${totalWaterLiters}L water after 4:30 PM today to safeguard ~₹${estimatedSavings.toLocaleString("en-IN")} in net farm profit.`
-      : `High wind speed or rain detected. Pause spraying operations until favorable weather.`);
+  const verdictTextEnglish = `Namaste ${farmerName}! For your ${activeFarm.name} (${acreage} acres of ${crop} in ${district}): ` +
+    (sprayVerdict.isSuitable
+      ? `${sprayVerdict.actionText}. ${sprayVerdict.primaryReason} Recommended window: ${sprayVerdict.recommendedWindow}. Apply ${totalDoseLiters}L in ${totalWaterLiters}L water to safeguard ~₹${roi.totalFieldNetProfit.toLocaleString("en-IN")} in net farm profit.`
+      : `${sprayVerdict.actionText}. ${sprayVerdict.primaryReason} Recheck conditions at ${sprayVerdict.recommendedWindow}.`);
 
   const currentSpeechText = language === "hi" ? verdictTextHindi : verdictTextEnglish;
 
@@ -75,6 +97,8 @@ export const KisanActionVerdict: React.FC = () => {
   };
 
   const handleShareWhatsApp = () => {
+    const isOptimalSpray = sprayVerdict.isSuitable;
+    const estimatedSavings = roi.totalFieldNetProfit;
     const shareText = language === "hi"
       ? `🌾 *AASRA किसान सलाह पत्र — ${farmerName} (${crop})*\n` +
         `📍 स्थान: ${village}, ${district} (${acreage} एकड़)\n` +
@@ -108,13 +132,16 @@ export const KisanActionVerdict: React.FC = () => {
               {language === "hi" ? "आज का किसान फैसला" : "Today's Farm Action Verdict"}
             </span>
             <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
-              {farmerName} · {acreage} Ac ({crop}) · {village}, {district}
+              {farmerName} · {activeFarm.name} · {acreage} Ac ({crop}) · {district}
             </span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black font-display text-white tracking-tight flex items-center gap-2">
-            <span>{isOptimalSpray ? (language === "hi" ? "🟢 आज शाम छिडकाव का उत्तम समय है" : "🟢 Optimal Spray Window Open Today") : (language === "hi" ? "🔴 आज छिडकाव रोकें" : "🔴 Hold Spray Operations Today")}</span>
+            <span>{language === "hi" ? sprayVerdict.actionTextHi : sprayVerdict.actionText}</span>
           </h2>
+          <p className="text-xs text-emerald-200 font-medium max-w-3xl">
+            💡 {language === "hi" ? sprayVerdict.primaryReasonHi : sprayVerdict.primaryReason}
+          </p>
         </div>
 
         {/* Action Controls: Audio Briefing & Share */}
@@ -153,53 +180,44 @@ export const KisanActionVerdict: React.FC = () => {
             </span>
             <span className="text-base">🧪</span>
           </div>
-          <p className="text-base font-black text-white">Syngenta Quantis</p>
+          <p className="text-base font-black text-white">Syngenta Quantis / Biostimulant</p>
           <p className="text-xs font-mono font-bold text-emerald-300">
             {totalDoseLiters} L {language === "hi" ? `कुल (${acreage} एकड़)` : `Total (${acreage} Acres)`}
           </p>
-          <span className="text-[10px] text-slate-400 block font-sans">
-            {language === "hi" ? "(250 ml प्रति एकड़ @ 150-200L पानी)" : "(250 ml/acre @ 150-200L water)"}
-          </span>
+          <p className="text-[10px] text-slate-400">@ 250 ml/acre in {totalWaterLiters}L water</p>
         </div>
 
-        {/* 2. Ideal Time Window */}
-        <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-amber-400 uppercase font-bold">
-              {language === "hi" ? "छिडकाव का समय" : "Spray Window"}
-            </span>
-            <span className="text-base">🕒</span>
-          </div>
-          <p className="text-base font-black text-white">
-            {language === "hi" ? "आज शाम 4:30 – 7:00 बजे" : "Today 4:30 – 7:00 PM"}
-          </p>
-          <p className="text-xs font-mono font-bold text-amber-300">
-            {language === "hi" ? `हवा: ${weather.windSpeed} km/h (शांत)` : `Wind: ${weather.windSpeed} km/h (Calm)`}
-          </p>
-          <span className="text-[10px] text-slate-400 block font-sans">
-            {language === "hi" ? "धूप ढलने के बाद घोल तुरंत असर करता है" : "Evening spray prevents fast evaporation"}
-          </span>
-        </div>
-
-        {/* 3. Financial Gain */}
+        {/* 2. Ideal Timing Window */}
         <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold">
-              {language === "hi" ? "अनुमानित शुद्ध बचत" : "Net Farm Benefit"}
+              {language === "hi" ? "छिड़काव का सही समय" : "Recommended Window"}
+            </span>
+            <span className="text-base">⏰</span>
+          </div>
+          <p className="text-sm font-black text-amber-300">
+            {language === "hi" ? sprayVerdict.recommendedWindowHi : sprayVerdict.recommendedWindow}
+          </p>
+          <p className="text-[10px] text-slate-400">
+            Wind: {weather.windSpeed} km/h · Rain Prob: {weather.precipitationProbability}%
+          </p>
+        </div>
+
+        {/* 3. Biological Return on Investment */}
+        <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold">
+              {language === "hi" ? "अनुमानित शुद्ध बचत" : "Protected Net Value"}
             </span>
             <span className="text-base">💰</span>
           </div>
-          <p className="text-xl font-black text-emerald-400">
-            +₹{estimatedSavings.toLocaleString("en-IN")}
+          <p className="text-xl font-black text-emerald-400 font-mono">
+            +₹{roi.totalFieldNetProfit.toLocaleString("en-IN")}
           </p>
-          <p className="text-xs font-mono text-slate-300">
-            {language === "hi" ? "+₹1,850 प्रति एकड़ शुद्ध लाभ" : "+₹1,850 per acre net benefit"}
+          <p className="text-[10px] text-emerald-300/80 font-mono">
+            ROBI: {roi.robiMultiple}x · {roi.roiPercentage}% Net Return
           </p>
-          <span className="text-[10px] text-slate-400 block font-sans">
-            {language === "hi" ? "(फूल व फली झड़ने से सुरक्षा)" : "(Pod & flower drop protection)"}
-          </span>
         </div>
-
         {/* 4. Nearest Syngenta Dealer */}
         <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 space-y-2 flex flex-col justify-between">
           <div>

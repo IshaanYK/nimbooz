@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { BookOpen, Plus, Sparkles, TrendingUp, CheckCircle2, ShieldCheck, Download, Calendar, Activity, Zap, AlertTriangle, Sprout, Mic } from "lucide-react";
 import { DataBadge } from "./DataBadge";
 import { fetchJournalEntries, addJournalEntry } from "@/lib/api";
+import { useFarm } from "@/context/FarmContext";
 import { getStoredProfile } from "@/lib/userStore";
 
 interface InterventionJournalProps {
@@ -100,6 +101,7 @@ const DEFAULT_JOURNAL_RECORDS = [
 
 export const InterventionJournal: React.FC<InterventionJournalProps> = ({ filter = "all" }) => {
   const profile = getStoredProfile();
+  const { activeFarm, logIntervention } = useFarm();
 
   const [entries, setEntries] = useState<any[]>(DEFAULT_JOURNAL_RECORDS);
   const [showForm, setShowForm] = useState(false);
@@ -108,7 +110,7 @@ export const InterventionJournal: React.FC<InterventionJournalProps> = ({ filter
     product_name: "Syngenta Quantis / Stress Buster",
     application_date: new Date().toISOString().split("T")[0],
     dose_per_ha: "250 ml / acre",
-    treated_area_ha: 5.0,
+    treated_area_ha: activeFarm.areaAcres || 5.0,
     control_area_ha: 1.0,
     baseline_yield_kg: 2200,
     treated_yield_kg: 2600,
@@ -140,8 +142,8 @@ export const InterventionJournal: React.FC<InterventionJournalProps> = ({ filter
     e.preventDefault();
     const payload = {
       farmer_name: profile.fullName || "Farm Owner",
-      field_name: profile.fieldName || "Primary Field",
-      crop: profile.primaryCrop || "Soybean",
+      field_name: activeFarm.name || profile.fieldName || "Primary Field",
+      crop: activeFarm.primaryCrop || profile.primaryCrop || "Soybean",
       ...newEntry,
     };
 
@@ -163,6 +165,20 @@ export const InterventionJournal: React.FC<InterventionJournalProps> = ({ filter
     try {
       localStorage.setItem("aasra_journal_entries_v2", JSON.stringify(updated));
     } catch {}
+
+    logIntervention({
+      farmId: activeFarm.id,
+      fieldName: activeFarm.name,
+      crop: activeFarm.primaryCrop,
+      date: newEntry.application_date,
+      type: newEntry.category as any,
+      product: newEntry.product_name,
+      dosePerAcre: newEntry.dose_per_ha,
+      targetPestOrStress: newEntry.notes,
+      notes: newEntry.notes,
+      areaTreatedAcres: Number(newEntry.treated_area_ha),
+      costINR: newEntry.product_cost_inr,
+    });
 
     try {
       await addJournalEntry(payload);

@@ -15,6 +15,7 @@ import {
 import { DataBadge } from "./DataBadge";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
+import { useFarm } from "@/context/FarmContext";
 import { getTranslation } from "@/lib/translations";
 import { INDIAN_LANGUAGES } from "@/lib/userStore";
 
@@ -22,18 +23,20 @@ interface ROBICalculatorProps {
   crop?: string;
 }
 
-export const ROBICalculator: React.FC<ROBICalculatorProps> = ({ crop = "soybean" }) => {
+export const ROBICalculator: React.FC<ROBICalculatorProps> = ({ crop }) => {
   const { language } = useLanguage();
   const { weather } = useWeather();
+  const { activeFarm } = useFarm();
   const t = getTranslation(language);
   const langName = INDIAN_LANGUAGES.find((l) => l.code === language)?.native || language;
 
+  const effectiveCrop = crop || activeFarm.primaryCrop || "Soybean";
   const [treatedYield, setTreatedYield] = useState<number>(2850);
   const [untreatedYield, setUntreatedYield] = useState<number>(2600);
   const [cropPrice, setCropPrice] = useState<number>(38.0);
   const [productCost, setProductCost] = useState<number>(450);
   const [appCost, setAppCost] = useState<number>(150);
-  const [fieldArea, setFieldArea] = useState<number>(4.2);
+  const [fieldArea, setFieldArea] = useState<number>(activeFarm.areaHa || 2.0);
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
 
   // Weather-adjusted confidence
@@ -70,7 +73,7 @@ export const ROBICalculator: React.FC<ROBICalculatorProps> = ({ crop = "soybean"
   ${t.biologicalGain} | Language: ${langName} | Date: ${dateStr}
 ============================================================
 
-Crop: ${crop.toUpperCase()} | ${t.fieldManagement}: ${fieldArea} ha
+Crop: ${effectiveCrop.toUpperCase()} | ${t.fieldManagement}: ${fieldArea} ha
 ${t.actualYield}: ${treatedYield} kg/ha
 ${t.baselineYield}: ${untreatedYield} kg/ha
 ${t.biologicalGain}: +${yieldGain} kg/ha

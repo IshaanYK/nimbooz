@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useFarm } from "@/context/FarmContext";
+import { calculateDeterministicROI } from "@/lib/calculations/roiEngine";
 import {
   TrendingUp,
   AlertCircle,
@@ -27,13 +29,17 @@ interface CropFitEconomicMatrixProps {
 }
 
 export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
-  cropName = "Soybean",
-  fieldAcres = 12.5,
-  mandiPricePerQuintal = 4920,
+  cropName,
+  fieldAcres,
+  mandiPricePerQuintal = 4850,
   productName = "Syngenta Quantis / Isabion",
   productCostPerAcre = 420,
   labourCostPerAcre = 150,
 }) => {
+  const { activeFarm } = useFarm();
+  const effectiveCrop = cropName || activeFarm.primaryCrop || "Soybean";
+  const effectiveAcres = fieldAcres || activeFarm.areaAcres || 5.0;
+
   const [dosageMlPerAcre, setDosageMlPerAcre] = useState<number>(250);
   const [activeDecisionTab, setActiveDecisionTab] = useState<"apply" | "delay" | "skip">("apply");
 
@@ -47,7 +53,7 @@ export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
 
   // Economic calculations based on Apply, Delay, Skip
   const totalCostPerAcre = productCostPerAcre + labourCostPerAcre;
-  const totalFieldCost = Math.round(totalCostPerAcre * fieldAcres);
+  const totalFieldCost = Math.round(totalCostPerAcre * effectiveAcres);
 
   // Scenario calculations (in quintals preserved and rupee gain per acre)
   const scenarios = {
@@ -59,7 +65,7 @@ export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
       grossValuePerAcre: Math.round(0.52 * mandiPricePerQuintal), // ~₹2,558
       netProfitPerAcre: Math.round(0.52 * mandiPricePerQuintal - totalCostPerAcre), // ~₹1,988
       robiMultiple: ((0.52 * mandiPricePerQuintal) / totalCostPerAcre).toFixed(1), // ~4.5x
-      totalFieldGain: Math.round((0.52 * mandiPricePerQuintal - totalCostPerAcre) * fieldAcres),
+      totalFieldGain: Math.round((0.52 * mandiPricePerQuintal - totalCostPerAcre) * effectiveAcres),
       verdict: "Recommended Action: Prevent unseasonal heat stress at flowering stage. High certainty of return.",
       riskLevel: "Low Risk",
     },
@@ -71,7 +77,7 @@ export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
       grossValuePerAcre: Math.round(0.21 * mandiPricePerQuintal), // ~₹1,033
       netProfitPerAcre: Math.round(0.21 * mandiPricePerQuintal - totalCostPerAcre), // ~₹463
       robiMultiple: ((0.21 * mandiPricePerQuintal) / totalCostPerAcre).toFixed(1), // ~1.8x
-      totalFieldGain: Math.round((0.21 * mandiPricePerQuintal - totalCostPerAcre) * fieldAcres),
+      totalFieldGain: Math.round((0.21 * mandiPricePerQuintal - totalCostPerAcre) * effectiveAcres),
       verdict: "Sub-optimal: Irreversible flower drop reduces biological efficacy by 60%. Marginal profit.",
       riskLevel: "Moderate Risk",
     },
@@ -83,7 +89,7 @@ export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
       grossValuePerAcre: 0,
       netProfitPerAcre: -Math.round(0.65 * mandiPricePerQuintal), // Expected stress loss ~₹3,198/acre
       robiMultiple: "0.0",
-      totalFieldGain: -Math.round(0.65 * mandiPricePerQuintal * fieldAcres),
+      totalFieldGain: -Math.round(0.65 * mandiPricePerQuintal * effectiveAcres),
       verdict: "Avoid: Unmitigated climate stress causes unrecoverable yield loss exceeding ₹3,000/acre.",
       riskLevel: "Severe Stress Risk",
     },
@@ -218,7 +224,7 @@ export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
               <Sliders className="h-4 w-4 text-emerald-400" />
               <span className="font-bold text-slate-300">CropFit Dosage Calibrator</span>
             </div>
-            <span className="font-mono font-black text-emerald-400">{dosageMlPerAcre} ml / acre (Total: {((dosageMlPerAcre * fieldAcres) / 1000).toFixed(1)} L)</span>
+            <span className="font-mono font-black text-emerald-400">{dosageMlPerAcre} ml / acre (Total: {((dosageMlPerAcre * effectiveAcres) / 1000).toFixed(1)} L)</span>
           </div>
           <input
             type="range"

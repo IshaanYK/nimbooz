@@ -61,6 +61,7 @@ import {
 } from "@/lib/syngentaDealers";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
+import { useFarm } from "@/context/FarmContext";
 import { getTranslation } from "@/lib/translations";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
 import { findCropMandiRate } from "@/lib/mandiEngine";
@@ -104,24 +105,28 @@ const LANG_TO_BCP47: Record<string, string> = {
 };
 
 export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
-  currentField = "Primary Farm Plot",
-  crop = "soybean",
+  currentField,
+  crop,
   externalQuery,
   onClearExternalQuery,
 }) => {
   const { language, setLanguage } = useLanguage();
   const { weather, refetch: refetchWeather } = useWeather();
+  const { activeFarm, interventions } = useFarm();
   const t = getTranslation(language);
 
-  // Dynamic user location detection from GPS / Weather Context
+  // Dynamic user location detection from activeFarm & GPS Context
   const profile = getStoredProfile();
+  const effectiveCrop = crop || activeFarm.primaryCrop || "Soybean";
   const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : (language === "hi" ? "किसान साथी" : "Farmer Friend");
-  const effectiveDistrict = weather.district || profile?.district || (language === "hi" ? "आपका जिला" : "Your District");
-  const effectiveVillage = weather.village || profile?.village || (language === "hi" ? "आपका खेत" : "Your Farm");
-  const effectiveLocation = weather.locationName || `${effectiveVillage}, ${effectiveDistrict}` || currentField;
+  const effectiveDistrict = activeFarm.district || weather.district || (language === "hi" ? "आपका जिला" : "Your District");
+  const effectiveVillage = activeFarm.village || weather.village || (language === "hi" ? "आपका खेत" : "Your Farm");
+  const effectiveLocation = `${activeFarm.name} (${effectiveDistrict}, ${activeFarm.state || "India"})`;
+  const effectiveAcres = activeFarm.areaAcres || 5.0;
+  const effectiveVariety = activeFarm.cropVariety || "Certified Cultivar";
 
   const nearbyDealers = getNearbySyngentaDealers(effectiveDistrict, weather.lat, weather.lon);
-  const localizedDeals = getLocalizedSyngentaDeals(effectiveDistrict, crop);
+  const localizedDeals = getLocalizedSyngentaDeals(effectiveDistrict, effectiveCrop);
 
   const bcp47 = LANG_TO_BCP47[language] || "hi-IN";
   const langObj = INDIAN_LANGUAGES.find((l) => l.code === language);
@@ -396,7 +401,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     try {
       if (currentImg) {
         // Multimodal Gemini 2.5 Flash Vision Scanner
-        const visionRes = await analyzeCropLeafImage(currentImg, crop, language);
+        const visionRes = await analyzeCropLeafImage(currentImg, effectiveCrop, language);
         replyText = sanitizeDisplayReply(visionRes?.diagnosis || "Leaf scan completed.");
         whyReason = visionRes?.why_recommendation || "Visual markers analyzed for disease and heat stress.";
         confScore = visionRes?.confidence_score || 95;
@@ -408,13 +413,13 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           textClean,
           weather.lat,
           weather.lon,
-          crop,
+          effectiveCrop,
           language,
           effectiveLocation,
           weather.temperature,
           farmerName,
-          profile.fieldAreaAcres || 5.0,
-          profile.cropVariety || "Standard Variety",
+          effectiveAcres,
+          effectiveVariety,
           profile.soilType || "Agricultural Soil",
           effectiveDistrict,
           effectiveVillage
@@ -460,7 +465,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         lowerQ.includes("प्याज") ||
         lowerQ.includes("onion")
       ) {
-        const m = findCropMandiRate(textClean || crop, effectiveDistrict, weather.state, {
+        const m = findCropMandiRate(textClean || effectiveCrop, effectiveDistrict, weather.state, {
           temp: weather.temperature,
           nightTemp: weather.nightTemperature,
           soilMoisture: weather.soilMoistureEst,
@@ -752,7 +757,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                       {localizedDeals.map((deal) => {
                         const targetDealer = nearbyDealers[0];
                         const waDealLink = targetDealer
-                          ? generateWhatsAppOrderLink(targetDealer, farmerName, crop, profile?.fieldAreaAcres || 12.5, deal.product, deal.title)
+                          ? generateWhatsAppOrderLink(targetDealer, farmerName, effectiveCrop, effectiveAcres, deal.product, deal.title)
                           : `https://wa.me/918001027964?text=${encodeURIComponent(`नमस्ते! मुझे ${deal.title} (${deal.couponCode}) क्लेम करना है।`)}`;
 
                         return (
@@ -802,7 +807,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                   {openDealersId === msg.id ? (
                     <div className="space-y-2.5 pt-1 border-t border-emerald-200">
                       {nearbyDealers.slice(0, 3).map((dlr) => {
-                        const waMsgLink = generateWhatsAppOrderLink(dlr, farmerName, crop, profile?.fieldAreaAcres || 12.5, "Syngenta Quantis / Stress Buster");
+                        const waMsgLink = generateWhatsAppOrderLink(dlr, farmerName, effectiveCrop, effectiveAcres, "Syngenta Quantis / Stress Buster");
                         return (
                           <div key={dlr.id} className="bg-white p-2.5 rounded-xl border border-emerald-200 space-y-2 shadow-2xs">
                             <div className="flex items-start justify-between gap-1.5">

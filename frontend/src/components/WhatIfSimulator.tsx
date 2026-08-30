@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { DataBadge } from "./DataBadge";
 import { getSavedFields, getActiveField, setActiveField, FieldRecord } from "@/lib/fieldStore";
+import { useFarm } from "@/context/FarmContext";
 import { calculateYieldAttribution, YieldDecompositionResult } from "@/lib/attributionEngine";
 import { useWeather } from "@/context/WeatherContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -36,10 +37,9 @@ import { BiologicalSimulationAnimation } from "./BiologicalSimulationAnimation";
 export const WhatIfSimulator: React.FC = () => {
   const { weather } = useWeather();
   const { language, t } = useLanguage();
+  const { activeFarm, farms, selectFarm } = useFarm();
 
   const [profile, setProfile] = useState<FarmerProfile>(getStoredProfile());
-  const [savedFields, setSavedFields] = useState<FieldRecord[]>(getSavedFields());
-  const [selectedField, setSelectedFieldState] = useState<FieldRecord>(getActiveField());
 
   // Interactive Scenario State Inputs
   const [delayDays, setDelayDays] = useState<number>(0);
@@ -47,37 +47,21 @@ export const WhatIfSimulator: React.FC = () => {
   const [soilMoisture, setSoilMoisture] = useState<number>(weather.soilMoistureEst > 0 ? weather.soilMoistureEst : 45);
   const [marketPrice, setMarketPrice] = useState<number>(4600); // ₹/quintal
   const [sprayCost, setSprayCost] = useState<number>(1280); // ₹/acre
-  const [fieldArea, setFieldArea] = useState<number>(profile.fieldAreaAcres || 12.5);
+  const [fieldArea, setFieldArea] = useState<number>(activeFarm.areaAcres || 5.0);
 
   const [activeTab, setActiveTab] = useState<"visualizer" | "curve" | "comparison">("visualizer");
 
   useEffect(() => {
-    const list = getSavedFields();
-    setSavedFields(list);
-    setSelectedFieldState(getActiveField());
-    const stored = getStoredProfile();
-    setProfile(stored);
-    if (stored.fieldAreaAcres) {
-      setFieldArea(stored.fieldAreaAcres);
-    }
+    setFieldArea(activeFarm.areaAcres || 5.0);
     if (weather.temperature > 0 && !weather.isLoading) {
       setNightTemp(weather.nightTemperature || weather.temperature);
       setSoilMoisture(weather.soilMoistureEst);
     }
-  }, [weather.temperature, weather.nightTemperature, weather.soilMoistureEst, weather.isLoading]);
-
-  const handleFieldChange = (fieldId: string) => {
-    setActiveField(fieldId);
-    const match = savedFields.find((f) => f.id === fieldId);
-    if (match) {
-      setSelectedFieldState(match);
-      setFieldArea(match.areaAcres);
-    }
-  };
+  }, [activeFarm.areaAcres, weather.temperature, weather.nightTemperature, weather.soilMoistureEst, weather.isLoading]);
 
   // Run Biophysical Yield Attribution Engine
   const baseAttribution: YieldDecompositionResult = calculateYieldAttribution(
-    selectedField.crop,
+    activeFarm.primaryCrop || "Soybean",
     nightTemp,
     soilMoisture,
     fieldArea
@@ -149,7 +133,7 @@ export const WhatIfSimulator: React.FC = () => {
             <h2 className="text-xl sm:text-2xl font-black font-display text-white mt-1.5 flex items-center gap-2">
               <Sprout className="h-6 w-6 text-[#20C98A]" />
               <span>
-                {profile.fullName || "Interactive"}&apos;s Farm Simulator ({fieldArea} Acres {selectedField.crop})
+                {profile.fullName || "Interactive"}&apos;s Farm Simulator ({fieldArea} Acres {activeFarm.primaryCrop})
               </span>
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl font-medium leading-relaxed">
@@ -176,13 +160,13 @@ export const WhatIfSimulator: React.FC = () => {
           <div className="bg-[#10241F] p-3.5 rounded-2xl border border-white/10 space-y-1.5">
             <label className="text-slate-400 block text-[11px] font-bold">🌾 Target Farm Field</label>
             <select
-              value={selectedField.id}
-              onChange={(e) => handleFieldChange(e.target.value)}
+              value={activeFarm.id}
+              onChange={(e) => selectFarm(e.target.value)}
               className="w-full bg-[#081512] text-emerald-300 border border-slate-700 rounded-xl px-3 py-2 font-bold focus:outline-none focus:border-[#20C98A] cursor-pointer"
             >
-              {savedFields.map((f) => (
+              {farms.map((f) => (
                 <option key={f.id} value={f.id} className="bg-slate-900 text-white">
-                  {f.name} ({f.crop})
+                  {f.name} ({f.primaryCrop})
                 </option>
               ))}
             </select>
@@ -247,7 +231,7 @@ export const WhatIfSimulator: React.FC = () => {
               className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
             />
             <span className="text-[10px] text-slate-400 block">
-              Crop: {selectedField.crop.toUpperCase()}
+              Crop: {(activeFarm.primaryCrop || "Soybean").toUpperCase()}
             </span>
           </div>
 
@@ -445,7 +429,7 @@ export const WhatIfSimulator: React.FC = () => {
               </h3>
               <DataBadge type="MODELLED" customText="LIVE CANVAS PARTICLE ENGINE" />
             </div>
-            <BiologicalSimulationAnimation crop={selectedField.crop} />
+            <BiologicalSimulationAnimation crop={activeFarm.primaryCrop || "Soybean"} />
           </div>
         )}
 
@@ -526,7 +510,7 @@ export const WhatIfSimulator: React.FC = () => {
         <div className="flex justify-between items-center flex-wrap gap-2 border-b border-white/10 pb-4">
           <h4 className="font-extrabold text-base font-display text-emerald-300 flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-[#20C98A]" />
-            <span>Biophysical Decomposition Tree ({selectedField.crop.toUpperCase()})</span>
+            <span>Biophysical Decomposition Tree ({(activeFarm.primaryCrop || "Soybean").toUpperCase()})</span>
           </h4>
           <span className="text-xs font-mono text-slate-400">
             Area: {fieldArea} Acres | Delay: Day {delayDays}

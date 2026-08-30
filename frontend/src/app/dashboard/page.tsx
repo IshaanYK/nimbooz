@@ -17,6 +17,8 @@ import { MandiPriceTicker } from "@/components/MandiPriceTicker";
 import { BiologicalActivationCountdown } from "@/components/BiologicalActivationCountdown";
 import { CropFitEconomicMatrix } from "@/components/CropFitEconomicMatrix";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
+import { useFarm } from "@/context/FarmContext";
+import { calculateDeterministicROI } from "@/lib/calculations/roiEngine";
 import { getRegionalCrops, saveCustomCrop } from "@/lib/cropRegistry";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
@@ -26,37 +28,48 @@ import {
 export default function DashboardPage() {
   const { language } = useLanguage();
   const { weather, refetch, setCustomCoordinates } = useWeather();
+  const { activeFarm, updateActiveFarm } = useFarm();
   const t = getTranslation(language);
 
   const [profile, setProfile] = useState<FarmerProfile>(getStoredProfile());
-  const [activeField, setActiveFieldState] = useState<FieldRecord>(getActiveField());
   const [isSpeakingBriefing, setIsSpeakingBriefing] = useState<boolean>(false);
   const [showCropSwitchModal, setShowCropSwitchModal] = useState<boolean>(false);
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [customCropText, setCustomCropText] = useState<string>("");
 
-  const regionalCrops = getRegionalCrops(profile.district || weather.district, profile.state || weather.state);
+  const currentAcres = activeFarm.areaAcres || 5.0;
+  const currentCrop = activeFarm.primaryCrop || "Soybean";
+  const currentDistrict = activeFarm.district || weather.district || "Local Region";
+  const currentState = activeFarm.state || weather.state || "India";
+
+  const regionalCrops = getRegionalCrops(currentDistrict, currentState);
 
   useEffect(() => {
     setProfile(getStoredProfile());
-    setActiveFieldState(getActiveField());
   }, []);
 
-  const handleUpdateAcreage = (newAcres: number) => {
-    const updated = { ...profile, fieldAreaAcres: newAcres };
-    setProfile(updated);
-    saveProfile(updated);
-  };
-
   const handleUpdateCrop = (newCrop: string) => {
-    const updated = { ...profile, primaryCrop: newCrop };
-    setProfile(updated);
-    saveProfile(updated);
-    setActiveFieldState((prev) => ({ ...prev, crop: newCrop }));
+    updateActiveFarm({ primaryCrop: newCrop });
+    const p = getStoredProfile();
+    saveProfile({ ...p, primaryCrop: newCrop });
   };
 
-  const currentAcres = profile.fieldAreaAcres || 12.5;
-  const netProfitEst = Math.round(2030 * currentAcres);
+  const handleUpdateAcreage = (newAcres: number) => {
+    updateActiveFarm({ areaAcres: newAcres });
+    const p = getStoredProfile();
+    saveProfile({ ...p, fieldAreaAcres: newAcres });
+  };
+
+  const roi = calculateDeterministicROI({
+    acres: currentAcres,
+    mandiPricePerQtl: 4850,
+    preservedYieldQtlPerAcre: 0.52,
+    productCostPerAcre: 420,
+    labourCostPerAcre: 150,
+    cropName: currentCrop,
+  });
+
+  const netProfitEst = roi.totalFieldNetProfit;
   const chemicalLiters = Math.round((250 * currentAcres) / 100) / 10;
 
   // Speak Daily Farm Briefing
@@ -172,7 +185,7 @@ export default function DashboardPage() {
                   <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
                     {profile.fullName
                       ? `${profile.fullName} · ${profile.district || "Registered Farm"} ${profile.village ? `(${profile.village})` : ""}`
-                      : `Your Farm · ${activeField.name || "Main Field Plot"}`}
+                      : `Your Farm · ${activeFarm.name || "Main Field Plot"}`}
                   </h3>
                 </div>
                 <p className="text-xs text-slate-600">
@@ -275,14 +288,14 @@ export default function DashboardPage() {
 
         {/* 🌟 2. Concept Note PS-02: Biological Activation Countdown */}
         <BiologicalActivationCountdown
-          cropName={profile.primaryCrop?.toUpperCase() || "SOYBEAN"}
+          cropName={currentCrop.toUpperCase()}
           fieldAcres={currentAcres}
           stressType={weather.isNightHeatStress ? "Active Night Thermal Heat Stress (>25°C)" : "Compound Solar Radiation & Moisture Deficit"}
         />
 
         {/* 🌟 3. Concept Note PS-03: CropFit Apply vs Delay vs Skip Decision Support */}
         <CropFitEconomicMatrix
-          cropName={profile.primaryCrop || "Soybean"}
+          cropName={currentCrop}
           fieldAcres={currentAcres}
         />
 
@@ -291,20 +304,26 @@ export default function DashboardPage() {
           
           {/* Interactive Satellite Map */}
           <InteractiveWeatherMap
-            lat={activeField.center[0]}
-            lon={activeField.center[1]}
-            crop={activeField.crop}
+            lat={activeFarm.center[0]}
+            lon={activeFarm.center[1]}
+            crop={activeFarm.primaryCrop}
             onLocationSelect={async (newLat, newLon) => {
               if (setCustomCoordinates) {
                 await setCustomCoordinates(newLat, newLon);
               }
-              setActiveFieldState((prev) => ({
-                ...prev,
+              updateActiveFarm({
                 center: [newLat, newLon]
-              }));
+              });
             }}
             onFieldSelected={(f) => {
-              setActiveFieldState(f);
+              updateActiveFarm({
+                primaryCrop: f.crop,
+                cropVariety: f.cropVariety,
+                areaAcres: f.areaAcres,
+                areaHa: f.areaHa,
+                center: f.center,
+                polygon: f.polygon,
+              });
               if (setCustomCoordinates) {
                 setCustomCoordinates(f.center[0], f.center[1]);
               }
@@ -498,17 +517,17 @@ export default function DashboardPage() {
 
           {/* Verified Syngenta Authorized Dealer Locator Section */}
           <SyngentaDealerLocator
-            district={weather.district || profile.district || activeField.district || "Your Location"}
+            district={currentDistrict}
             farmerName={profile.fullName || "Farm Owner"}
-            crop={profile.primaryCrop || activeField.crop || "Soybean"}
+            crop={currentCrop}
             fieldAcres={currentAcres}
             productName="Syngenta Quantis & Stress Buster"
           />
 
           {/* Daily APMC Mandi Commodity Rates Ticker */}
           <MandiPriceTicker
-            district={weather.district || profile.district || activeField.district || "Your Location"}
-            state={weather.state || profile.state || activeField.state || "India"}
+            district={currentDistrict}
+            state={currentState}
           />
 
         </div>

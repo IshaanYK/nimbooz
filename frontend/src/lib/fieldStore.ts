@@ -1,6 +1,7 @@
 "use client";
 
 import { getStoredProfile } from "./userStore";
+import { calculatePolygonArea } from "./calculations/geospatial";
 
 /**
  * AASRA Multi-Field Store & Polygon Boundary Engine
@@ -103,30 +104,12 @@ export function getInitialFarmerField(): FieldRecord {
  * Calculate planar Shoelace polygon area in Acres and Hectares
  */
 export function calculatePolygonAreaAcres(coords: Array<[number, number]>): { acres: number; ha: number } {
-  if (coords.length < 3) return { acres: 0, ha: 0 };
-  
-  const R = 6378137; // Earth radius in meters
-  const meanLat = (coords.reduce((acc, c) => acc + c[0], 0) / coords.length) * (Math.PI / 180);
-  const cosLat = Math.cos(meanLat);
-
-  // Convert lat/lon coordinates to local metric (x, y) meters
-  const points = coords.map(([lat, lon]) => ({
-    x: (lon * Math.PI / 180) * R * cosLat,
-    y: (lat * Math.PI / 180) * R,
-  }));
-
-  // Standard Shoelace formula in square meters
-  let areaM2 = 0;
-  for (let i = 0; i < points.length; i++) {
-    const j = (i + 1) % points.length;
-    areaM2 += points[i].x * points[j].y;
-    areaM2 -= points[j].x * points[i].y;
-  }
-  areaM2 = Math.abs(areaM2) / 2;
-
-  const ha = Math.round((areaM2 / 10000) * 100) / 100;
-  const acres = Math.round((areaM2 / 4046.85642) * 100) / 100;
-  return { acres: acres > 0 ? acres : 0.5, ha: ha > 0 ? ha : 0.2 };
+  if (!coords || coords.length < 3) return { acres: 0, ha: 0 };
+  const res = calculatePolygonArea(coords);
+  return {
+    acres: res.acres > 0 ? res.acres : 0.5,
+    ha: res.hectares > 0 ? res.hectares : 0.2,
+  };
 }
 
 /**
