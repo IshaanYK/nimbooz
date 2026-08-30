@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 
 import { FieldRecord } from "@/lib/fieldStore";
 
-interface NewMapEngineProps {
+interface LeafletMapInnerProps {
   center: [number, number];
   zoom?: number;
   fields: FieldRecord[];
@@ -28,25 +28,25 @@ export function LeafletMapInner({
   drawnPoints = [],
   onMapClick,
   onSelectField,
-}: NewMapEngineProps) {
+}: LeafletMapInnerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerGroupRef = useRef<L.LayerGroup | null>(null);
-  const vectorsGroupRef = useRef<L.LayerGroup | null>(null);
+  const fieldsGroupRef = useRef<L.LayerGroup | null>(null);
   const drawingGroupRef = useRef<L.LayerGroup | null>(null);
 
   // Store latest callbacks to prevent stale closures
-  const clickCallbackRef = useRef(onMapClick);
-  clickCallbackRef.current = onMapClick;
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
 
-  const selectCallbackRef = useRef(onSelectField);
-  selectCallbackRef.current = onSelectField;
+  const onSelectFieldRef = useRef(onSelectField);
+  onSelectFieldRef.current = onSelectField;
 
   // 1. Initialize Map Once
   useEffect(() => {
     if (!containerRef.current || mapInstanceRef.current) return;
 
-    // Reset container ID if re-mounted
+    // Clean any prior Leaflet container ID
     if ((containerRef.current as any)._leaflet_id) {
       delete (containerRef.current as any)._leaflet_id;
     }
@@ -68,7 +68,7 @@ export function LeafletMapInner({
       center: [safeLat, safeLon],
       zoom: zoom,
       minZoom: 3,
-      maxZoom: 20,
+      maxZoom: 19,
       zoomControl: false,
       attributionControl: false,
       fadeAnimation: true,
@@ -80,41 +80,44 @@ export function LeafletMapInner({
     // Zoom Controls at Bottom Right
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // Layer groups for clean management
+    // Initialize Layer Groups
     tileLayerGroupRef.current = L.layerGroup().addTo(map);
-    vectorsGroupRef.current = L.layerGroup().addTo(map);
+    fieldsGroupRef.current = L.layerGroup().addTo(map);
     drawingGroupRef.current = L.layerGroup().addTo(map);
 
-    // Click handler
+    // Map Click Handler
     map.on("click", (e: L.LeafletMouseEvent) => {
-      if (clickCallbackRef.current) {
-        clickCallbackRef.current(e.latlng.lat, e.latlng.lng);
+      if (onMapClickRef.current) {
+        onMapClickRef.current(e.latlng.lat, e.latlng.lng);
       }
     });
 
-    // Invalidate size on initial mount
-    const timer1 = setTimeout(() => {
-      map.invalidateSize();
-    }, 100);
-    const timer2 = setTimeout(() => {
-      map.invalidateSize();
-    }, 400);
+    // ResizeObserver ensures map never goes blank when layout changes
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize({ animate: false });
+        }
+      });
+      resizeObserver.observe(containerRef.current);
+    }
 
-    const handleResize = () => {
-      map.invalidateSize();
-    };
-    window.addEventListener("resize", handleResize);
+    // Initial size invalidations
+    setTimeout(() => map.invalidateSize({ animate: false }), 50);
+    setTimeout(() => map.invalidateSize({ animate: false }), 250);
+    setTimeout(() => map.invalidateSize({ animate: false }), 600);
 
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      window.removeEventListener("resize", handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       map.remove();
       mapInstanceRef.current = null;
     };
   }, []);
 
-  // 2. Base Map Tile Layers
+  // 2. Base Map Tile Layers (ESRI Satellite + OpenStreetMap + Google)
   useEffect(() => {
     const map = mapInstanceRef.current;
     const group = tileLayerGroupRef.current;
@@ -123,25 +126,36 @@ export function LeafletMapInner({
     group.clearLayers();
 
     if (mapType === "satellite") {
-      // High-resolution Google Satellite Hybrid with roads & labels
-      const sat = L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
-        maxZoom: 20,
-        subdomains: ["mt0", "mt1", "mt2", "mt3"],
-      });
-      group.addLayer(sat);
+      // 100% Reliable high-res ESRI World Imagery
+      const esriSatellite = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19,
+          attribution: "Esri, Maxar, Earthstar Geographics",
+        }
+      );
+      // Optional subtle boundaries overlay
+      const esriLabels = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19,
+        }
+      );
+      group.addLayer(esriSatellite);
+      group.addLayer(esriLabels);
     } else if (mapType === "terrain") {
-      // Google Terrain
-      const terr = L.tileLayer("https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}", {
-        maxZoom: 20,
-        subdomains: ["mt0", "mt1", "mt2", "mt3"],
+      const topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+        maxZoom: 17,
+        attribution: "OpenTopoMap",
       });
-      group.addLayer(terr);
+      group.addLayer(topo);
     } else {
-      // OpenStreetMap Streets
-      const streets = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      // OpenStreetMap Standard
+      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
+        attribution: "OpenStreetMap",
       });
-      group.addLayer(streets);
+      group.addLayer(osm);
     }
   }, [mapType]);
 
@@ -153,34 +167,35 @@ export function LeafletMapInner({
     const safeLon = center?.[1] && !isNaN(center[1]) ? center[1] : 77.4126;
 
     map.setView([safeLat, safeLon], map.getZoom(), { animate: true });
-    map.invalidateSize();
+    map.invalidateSize({ animate: false });
   }, [center]);
 
-  // 4. Invalidate Size on Drawing Mode Toggle — must fire AFTER DOM reflow
+  // 4. Invalidate Size on Drawing Mode Toggle
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Use rAF + staggered timeouts to wait for the action bar layout shift to settle
-    const raf = requestAnimationFrame(() => {
-      try { map.invalidateSize({ animate: false }); } catch (_) {}
-    });
-    const t1 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch (_) {} }, 100);
-    const t2 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch (_) {} }, 300);
-    const t3 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch (_) {} }, 600);
+    const t1 = setTimeout(() => {
+      try {
+        map.invalidateSize({ animate: false });
+      } catch (_) {}
+    }, 50);
+    const t2 = setTimeout(() => {
+      try {
+        map.invalidateSize({ animate: false });
+      } catch (_) {}
+    }, 200);
 
     return () => {
-      cancelAnimationFrame(raf);
       clearTimeout(t1);
       clearTimeout(t2);
-      clearTimeout(t3);
     };
   }, [isDrawing]);
 
   // 5. Render Saved Farm Fields
   useEffect(() => {
     const map = mapInstanceRef.current;
-    const group = vectorsGroupRef.current;
+    const group = fieldsGroupRef.current;
     if (!map || !group) return;
 
     group.clearLayers();
@@ -190,47 +205,47 @@ export function LeafletMapInner({
       const isActive = field.id === activeFieldId;
 
       const polygon = L.polygon(field.polygon, {
-        color: isActive ? "#10B981" : "#3B82F6",
+        color: isActive ? "#10B981" : "#38BDF8",
         weight: isActive ? 3 : 2,
-        fillColor: isActive ? "#10B981" : "#60A5FA",
-        fillOpacity: isActive ? 0.4 : 0.2,
+        fillColor: isActive ? "#10B981" : "#0284C7",
+        fillOpacity: isActive ? 0.35 : 0.2,
       });
 
       polygon.bindPopup(`
-        <div style="font-family: system-ui, sans-serif; padding: 4px; min-width: 150px;">
+        <div style="font-family: system-ui, -apple-system, sans-serif; padding: 6px; min-width: 160px;">
           <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: #065F46;">
             🌾 ${field.name}
           </h4>
           <p style="margin: 0 0 6px 0; font-size: 12px; color: #475569;">
-            ${field.crop} · ${field.areaAcres} Acres
+            ${field.crop} · <strong>${field.areaAcres} Acres</strong>
           </p>
           <span style="font-size: 11px; background: #ECFDF5; color: #065F46; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
-            ✓ Active Plot
+            ✓ Measured Geodesic Area
           </span>
         </div>
       `);
 
       polygon.on("click", () => {
-        if (selectCallbackRef.current) {
-          selectCallbackRef.current(field);
+        if (onSelectFieldRef.current) {
+          onSelectFieldRef.current(field);
         }
       });
 
       group.addLayer(polygon);
 
-      // Center Pin Marker
-      const centerDot = L.circleMarker(field.center, {
+      // Centroid Marker
+      const marker = L.circleMarker(field.center, {
         radius: isActive ? 8 : 5,
         color: "#FFFFFF",
         weight: 2,
-        fillColor: isActive ? "#10B981" : "#3B82F6",
+        fillColor: isActive ? "#10B981" : "#38BDF8",
         fillOpacity: 1,
       });
-      group.addLayer(centerDot);
+      group.addLayer(marker);
     });
   }, [fields, activeFieldId]);
 
-  // 6. Render Active Drawing Points & Preview Line
+  // 6. Render Active Drawing Points & Guide Line
   useEffect(() => {
     const map = mapInstanceRef.current;
     const group = drawingGroupRef.current;
@@ -240,7 +255,7 @@ export function LeafletMapInner({
 
     if (!isDrawing || drawnPoints.length === 0) return;
 
-    // Draw connecting lines
+    // Connecting dashed line
     if (drawnPoints.length > 1) {
       const line = L.polyline(drawnPoints, {
         color: "#F59E0B",
@@ -250,7 +265,7 @@ export function LeafletMapInner({
       group.addLayer(line);
     }
 
-    // Draw polygon fill preview if 3+ points
+    // Polygon preview fill if 3+ points
     if (drawnPoints.length >= 3) {
       const fillPreview = L.polygon(drawnPoints, {
         color: "#10B981",
@@ -261,11 +276,11 @@ export function LeafletMapInner({
       group.addLayer(fillPreview);
     }
 
-    // Point corner markers
+    // Corner vertex points
     drawnPoints.forEach((point, idx) => {
       const isStart = idx === 0;
       const marker = L.circleMarker(point, {
-        radius: isStart ? 8 : 6,
+        radius: isStart ? 9 : 6,
         color: "#FFFFFF",
         weight: 2,
         fillColor: isStart ? "#10B981" : "#F59E0B",
@@ -278,8 +293,8 @@ export function LeafletMapInner({
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full min-h-[460px] ${isDrawing ? "cursor-crosshair" : "cursor-grab"}`}
-      style={{ width: "100%", height: "100%", minHeight: "460px" }}
+      className={`w-full h-full min-h-[480px] relative z-0 ${isDrawing ? "cursor-crosshair" : "cursor-grab"}`}
+      style={{ width: "100%", height: "100%", minHeight: "480px" }}
     />
   );
 }

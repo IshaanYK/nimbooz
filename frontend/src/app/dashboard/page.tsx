@@ -20,6 +20,7 @@ import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngin
 import { useFarm } from "@/context/FarmContext";
 import { calculateDeterministicROI } from "@/lib/calculations/roiEngine";
 import { getRegionalCrops, saveCustomCrop } from "@/lib/cropRegistry";
+import { findCropMandiRate } from "@/lib/mandiEngine";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
   Thermometer, Droplets, Sprout, RefreshCw, Volume2, VolumeX, Edit3, ShieldCheck, X, Plus
@@ -60,9 +61,12 @@ export default function DashboardPage() {
     saveProfile({ ...p, fieldAreaAcres: newAcres });
   };
 
+  const mandiRateObj = findCropMandiRate(currentCrop, currentDistrict, currentState);
+  const currentMandiPrice = mandiRateObj?.modalPrice || 4850;
+
   const roi = calculateDeterministicROI({
     acres: currentAcres,
-    mandiPricePerQtl: 4850,
+    mandiPricePerQtl: currentMandiPrice,
     preservedYieldQtlPerAcre: 0.52,
     productCostPerAcre: 420,
     labourCostPerAcre: 150,

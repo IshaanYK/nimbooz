@@ -65,43 +65,49 @@ export default function LandingPage() {
             <div className="flex items-center justify-center gap-2.5 flex-wrap">
               <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-mono font-bold shadow-xs">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                TEAM-2 CONCEPT NOTE · SYNGENTA BIOLOGICALS
+                ASSARA · PRODUCTION PRECISION AGRICULTURE MVP
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-mono font-bold">
-                🌾 {t.askActProve || "ASK · ACT · PROVE"}
+                🌾 USER → FARM → LOCATION → REAL DATA → ACTION
               </span>
             </div>
 
             {/* Main Bold Display Title */}
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-display text-slate-900 tracking-tight leading-[1.08] max-w-5xl mx-auto">
-              {t.heroTitle1 || "Biological Intelligence for Indian Agriculture."} <br />
+              Location-Aware Farming Intelligence. <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600">
-                {t.heroTitle2 || "Predict Stress. Guide Action. Prove Returns."}
+                Real Data. Measured Fields. Zero Guesswork.
               </span>
             </h1>
 
             {/* Sub-headline */}
             <p className="text-base sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed font-normal">
-              {t.heroSubtitle || "AASRA turns satellite weather streams, micro-climate nocturnal heat telemetry, and biophysical crop models into localized vernacular voice guidance and verifiable financial proof (ROBI)."}
+              ASSARA connects your actual GPS coordinates, drawn farm boundaries, real Open-Meteo telemetry, and APMC market prices to answer: <strong>What should I do today?</strong>
             </p>
 
             {/* Primary Action Buttons */}
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/dashboard"
+                href="/onboarding"
                 className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/20 hover:scale-105 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <Sprout className="h-5 w-5" />
-                <span>{t.btnStartFarm || "Launch Farmer Command Center"}</span>
+                <span>Start with your farm</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
 
               <Link
-                href="/architecture"
+                href="/login"
                 className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2"
               >
-                <BookOpen className="h-4 w-4 text-indigo-600" />
-                <span>{language === "hi" ? "कॉन्सेप्ट नोट और गणित देखें" : "Explore Concept Note & Math"}</span>
+                <span>Sign in</span>
+              </Link>
+
+              <Link
+                href="/dashboard"
+                className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2"
+              >
+                <span>Go to Dashboard</span>
               </Link>
             </div>
 

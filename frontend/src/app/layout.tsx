@@ -5,8 +5,8 @@ import { FarmProvider } from "@/context/FarmContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nimbooz — Field-Aware Precision Agriculture Platform",
-  description: "AI decision-support platform for farmers combining real weather telemetry, satellite monitoring, and deterministic agronomics.",
+  title: "ASSARA — Evidence-Based Precision Agriculture Intelligence",
+  description: "Production-grade, location-aware decision support for farmers combining real weather telemetry, satellite monitoring, and deterministic agronomics. No fabricated data.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

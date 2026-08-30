@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
+import { useFarm } from "@/context/FarmContext";
 import {
   FieldRecord,
   getSavedFields,
@@ -63,6 +64,7 @@ export function InteractiveWeatherMap({
 }: InteractiveWeatherMapProps) {
   const { language } = useLanguage();
   const { weather } = useWeather();
+  const { createFarm, selectFarm } = useFarm();
 
   const effectiveLat = lat ?? weather.lat ?? 23.2599;
   const effectiveLon = lon ?? weather.lon ?? 77.4126;
@@ -250,6 +252,19 @@ export function InteractiveWeatherMap({
     setFields(updated);
     setActiveField(newField.id);
     setActiveFieldState(newField);
+
+    try {
+      createFarm({
+        name: newField.name,
+        primaryCrop: newField.crop,
+        cropVariety: newField.cropVariety,
+        areaAcres: newField.areaAcres,
+        district: weather.district || "Indore",
+        state: weather.state || "Madhya Pradesh",
+        center: newField.center,
+        polygon: newField.polygon,
+      });
+    } catch (_) {}
 
     setIsDrawing(false);
     setDrawnPoints([]);
