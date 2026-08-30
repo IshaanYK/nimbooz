@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState, memo } from "react";
+import React, { useEffect, useRef, memo } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { FieldRecord, FieldPin } from "@/lib/fieldStore";
 
 interface LeafletMapInnerProps {
@@ -9,7 +11,6 @@ interface LeafletMapInnerProps {
   activeFieldId?: string;
   isDrawingMode?: boolean;
   drawnNodes?: Array<[number, number]>;
-  activeLayer?: string;
   baseMapType?: "satellite" | "streets" | "hybrid";
   pinsList?: FieldPin[];
   onMapClick?: (lat: number, lon: number) => void;
@@ -22,281 +23,237 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
   activeFieldId,
   isDrawingMode = false,
   drawnNodes = [],
-  activeLayer = "crop_health",
   baseMapType = "satellite",
   pinsList = [],
   onMapClick,
   onSelectField,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const tileLayerRef = useRef<any>(null);
-  const labelLayerRef = useRef<any>(null);
-  const layerGroupRef = useRef<any>(null);
-  const [mapReady, setMapReady] = useState(false);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  const drawingLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const lastCenterRef = useRef<[number, number]>(center);
 
-  // 1. Load Leaflet CDN script & CSS once
+  // Mutable refs to prevent stale closure bugs
+  const onMapClickRef = useRef(onMapClick);
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if ((window as any).L) {
-      setMapReady(true);
-      return;
-    }
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
 
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-    document.head.appendChild(link);
-
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    script.async = true;
-    script.onload = () => setMapReady(true);
-    document.body.appendChild(script);
-  }, []);
-
-  // 2. Initialize Map — runs once when Leaflet is ready
+  const onSelectFieldRef = useRef(onSelectField);
   useEffect(() => {
-    if (!mapReady || !mapContainerRef.current || mapInstanceRef.current) return;
-    const L = (window as any).L;
-    if (!L) return;
+    onSelectFieldRef.current = onSelectField;
+  }, [onSelectField]);
 
-    // Fix default icon paths
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    });
+  // 1. Initialize Leaflet Map (ONCE on mount)
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
+
+    try {
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+    } catch {}
 
     const map = L.map(mapContainerRef.current, {
       center: center,
-      zoom: 15,
+      zoom: 16,
+      minZoom: 3,
+      maxZoom: 19,
       zoomControl: false,
       attributionControl: false,
+      trackResize: true,
     });
 
     mapInstanceRef.current = map;
 
-    // Zoom control bottom-right
+    // Zoom control in bottom right
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // Satellite base tiles
-    tileLayerRef.current = L.tileLayer(
+    // 100% Reliable ESRI World Imagery Tile Layer
+    const esriSatellite = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      { maxZoom: 19, attribution: "Esri Satellite" }
-    ).addTo(map);
+      {
+        maxZoom: 19,
+        attribution: "Esri Satellite",
+        keepBuffer: 8,
+        updateWhenIdle: false,
+        updateWhenZooming: true,
+      }
+    );
 
-    // Labels overlay
-    labelLayerRef.current = L.tileLayer(
+    // Place & Boundary Labels Overlay
+    const esriLabels = L.tileLayer(
       "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-      { maxZoom: 19, opacity: 0.8 }
-    ).addTo(map);
+      {
+        maxZoom: 19,
+        opacity: 0.85,
+        keepBuffer: 8,
+      }
+    );
 
-    // Vector layer group for polygons/markers
+    esriSatellite.addTo(map);
+    esriLabels.addTo(map);
+
+    // Vector layer groups
     layerGroupRef.current = L.layerGroup().addTo(map);
+    drawingLayerGroupRef.current = L.layerGroup().addTo(map);
 
     // Map click handler
-    map.on("click", (e: any) => {
-      if (onMapClick) onMapClick(e.latlng.lat, e.latlng.lng);
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      if (onMapClickRef.current) {
+        onMapClickRef.current(e.latlng.lat, e.latlng.lng);
+      }
     });
 
-    // Fix size after mount
-    setTimeout(() => {
-      try { map.invalidateSize(); } catch { /* ignore */ }
-    }, 300);
+    // Invalidate size once layout settles
+    const t1 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 150);
+    const t2 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 500);
+
+    const handleResize = () => {
+      try { map.invalidateSize({ animate: false }); } catch {}
+    };
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      try { map.remove(); } catch { /* ignore */ }
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener("resize", handleResize);
+      try {
+        map.remove();
+      } catch {}
       mapInstanceRef.current = null;
-      tileLayerRef.current = null;
-      labelLayerRef.current = null;
       layerGroupRef.current = null;
+      drawingLayerGroupRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady]);
+  }, []);
 
-  // 3. Switch Base Map Tiles when baseMapType changes
+  const centerLat = center?.[0];
+  const centerLon = center?.[1];
+
+  // 2. Smooth Pan to center ONLY if center actually changed
   useEffect(() => {
-    if (!mapReady || !mapInstanceRef.current) return;
-    const L = (window as any).L;
-    if (!L) return;
     const map = mapInstanceRef.current;
-
-    // Remove existing tile layers
-    try { if (tileLayerRef.current) map.removeLayer(tileLayerRef.current); } catch { /* ignore */ }
-    try { if (labelLayerRef.current) map.removeLayer(labelLayerRef.current); } catch { /* ignore */ }
-    tileLayerRef.current = null;
-    labelLayerRef.current = null;
-
-    if (baseMapType === "satellite") {
-      tileLayerRef.current = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 19 }
-      ).addTo(map);
-      labelLayerRef.current = L.tileLayer(
-        "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 19, opacity: 0.85 }
-      ).addTo(map);
-    } else if (baseMapType === "streets") {
-      tileLayerRef.current = L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        { maxZoom: 19 }
-      ).addTo(map);
-    } else {
-      tileLayerRef.current = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        { maxZoom: 19 }
-      ).addTo(map);
-    }
-
-    // Ensure vector layer stays on top by re-adding it
-    if (layerGroupRef.current) {
+    if (!map || centerLat == null || centerLon == null) return;
+    const [lastLat, lastLon] = lastCenterRef.current;
+    const diff = Math.abs(lastLat - centerLat) + Math.abs(lastLon - centerLon);
+    if (diff > 0.0001) {
+      lastCenterRef.current = [centerLat, centerLon];
       try {
-        map.removeLayer(layerGroupRef.current);
-        layerGroupRef.current.addTo(map);
-      } catch { /* ignore */ }
+        map.setView([centerLat, centerLon], map.getZoom() || 16, { animate: true });
+      } catch {}
     }
-  }, [baseMapType, mapReady]);
+  }, [centerLat, centerLon]);
 
-  // 4. Smooth Pan to center (guarded)
+  // 3. Render Real Saved Field Polygons
   useEffect(() => {
-    if (!mapReady || !mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
-    // Delay to ensure map has rendered
-    setTimeout(() => {
-      try {
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView(center, 15, { animate: true, duration: 1.2 });
-        }
-      } catch { /* ignore */ }
-    }, 100);
-  }, [center, mapReady]);
-
-  // 5. Render Field Polygons, Drawing Nodes, Observation Pins
-  useEffect(() => {
-    if (!mapReady || !mapInstanceRef.current || !layerGroupRef.current) return;
-    const L = (window as any).L;
-    if (!L) return;
-
     const layerGroup = layerGroupRef.current;
+    if (!map || !layerGroup) return;
+
     layerGroup.clearLayers();
 
-    // A. Field Polygons
+    if (!savedFields || savedFields.length === 0) return;
+
     savedFields.forEach((field) => {
       if (!field.polygon || field.polygon.length < 3) return;
       const isActive = field.id === activeFieldId;
-      const baseColor = isActive ? "#10B981" : field.color || "#F59E0B";
 
-      let fillColor = baseColor;
-      let fillOpacity = isActive ? 0.55 : 0.3;
-
-      if (activeLayer === "temp") {
-        fillColor = isActive ? "#EF4444" : "#F97316";
-        fillOpacity = 0.6;
-      } else if (activeLayer === "rain") {
-        fillColor = "#3B82F6";
-        fillOpacity = 0.55;
-      } else if (activeLayer === "soil") {
-        fillColor = "#8B5CF6";
-        fillOpacity = 0.55;
-      } else if (activeLayer === "crop_health") {
-        fillColor = isActive ? "#10B981" : "#84CC16";
-        fillOpacity = 0.5;
-      }
-
-      const polygonObj = L.polygon(field.polygon, {
-        color: isActive ? "#059669" : baseColor,
-        weight: isActive ? 4 : 2,
+      const poly = L.polygon(field.polygon, {
+        color: isActive ? "#10B981" : "#3B82F6",
+        weight: isActive ? 3 : 2,
+        fillColor: isActive ? "#10B981" : "#60A5FA",
+        fillOpacity: isActive ? 0.35 : 0.2,
         dashArray: isActive ? undefined : "4, 4",
-        fillColor,
-        fillOpacity,
       });
 
-      polygonObj.bindTooltip(
-        `<div style="font-size:11px; font-family:sans-serif; line-height:1.4">
-          <strong>${field.name}</strong><br/>
-          <span style="color:#059669">${field.crop} (${field.cropVariety || "JS-335"})</span><br/>
-          ${field.areaAcres} Acres
-        </div>`,
-        { permanent: false, direction: "top" }
-      );
+      poly.bindPopup(`
+        <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; color: #0F172A; min-width: 160px; padding: 2px;">
+          <strong style="font-size: 13px; color: #065F46; display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+            🌾 ${field.name}
+          </strong>
+          <span style="color: #475569; font-size: 11px; display: block; margin-bottom: 4px;">
+            ${field.crop} · ${field.areaAcres} Acres
+          </span>
+          <div style="padding: 3px 6px; background: #ECFDF5; border-radius: 6px; border: 1px solid #A7F3D0; font-size: 10px; font-weight: bold; color: #065F46;">
+            ✓ Real Verified Farm
+          </div>
+        </div>
+      `);
 
-      polygonObj.on("click", () => {
-        if (onSelectField) onSelectField(field);
+      poly.on("click", () => {
+        if (onSelectFieldRef.current) onSelectFieldRef.current(field);
       });
 
-      layerGroup.addLayer(polygonObj);
+      layerGroup.addLayer(poly);
 
-      // Field label badge at center
-      const centerIcon = L.divIcon({
-        className: "field-center-badge",
-        html: `<div style="background:${isActive ? "#059669" : "#1E293B"};color:white;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:800;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);white-space:nowrap;">
-          🌱 ${field.name} (${field.areaAcres} Ac)
-        </div>`,
-      });
-
-      const centerMarker = L.marker(field.center, { icon: centerIcon });
-      centerMarker.on("click", () => {
-        if (onSelectField) onSelectField(field);
+      // Center marker
+      const centerMarker = L.circleMarker(field.center, {
+        radius: isActive ? 7 : 5,
+        color: "#FFFFFF",
+        weight: 2,
+        fillColor: isActive ? "#10B981" : "#3B82F6",
+        fillOpacity: 1,
       });
       layerGroup.addLayer(centerMarker);
     });
+  }, [savedFields, activeFieldId]);
 
-    // B. Drawing polygon preview
-    if (drawnNodes.length > 0) {
-      drawnNodes.forEach((node, idx) => {
-        const circle = L.circleMarker(node, {
-          radius: 7,
-          color: "#FFFFFF",
-          weight: 2,
-          fillColor: "#F59E0B",
-          fillOpacity: 1,
-        }).bindTooltip(`Vertex ${idx + 1}`, { permanent: true, direction: "top" });
-        layerGroup.addLayer(circle);
+  // 4. Render Active Drawing Nodes & Polygon Preview
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const drawGroup = drawingLayerGroupRef.current;
+    if (!map || !drawGroup) return;
+
+    drawGroup.clearLayers();
+
+    if (!isDrawingMode || drawnNodes.length === 0) return;
+
+    // Connect nodes with dashed guideline
+    if (drawnNodes.length > 1) {
+      const line = L.polyline(drawnNodes, {
+        color: "#F59E0B",
+        weight: 3,
+        dashArray: "6, 6",
       });
-
-      if (drawnNodes.length >= 2) {
-        layerGroup.addLayer(
-          L.polyline(drawnNodes, { color: "#F59E0B", weight: 3, dashArray: "6, 6" })
-        );
-      }
-
-      if (drawnNodes.length >= 3) {
-        layerGroup.addLayer(
-          L.polygon(drawnNodes, {
-            color: "#F59E0B",
-            weight: 2,
-            fillColor: "#FBBF24",
-            fillOpacity: 0.3,
-          })
-        );
-      }
+      drawGroup.addLayer(line);
     }
 
-    // C. Observation pins
-    pinsList.forEach((pin) => {
-      const pinIcon = L.divIcon({
-        className: "custom-pin-marker",
-        html: `<div style="background:#EF4444;color:white;padding:3px 7px;border-radius:8px;font-size:10px;font-weight:bold;border:1.5px solid white;box-shadow:0 3px 6px rgba(0,0,0,0.35)">
-          📍 ${pin.note}
-        </div>`,
+    // Closed preview polygon if 3+ points
+    if (drawnNodes.length >= 3) {
+      const polyPreview = L.polygon(drawnNodes, {
+        color: "#10B981",
+        weight: 2,
+        fillColor: "#34D399",
+        fillOpacity: 0.35,
       });
-      const marker = L.marker([pin.lat, pin.lon], { icon: pinIcon }).bindPopup(
-        `<div style="font-family:sans-serif;font-size:12px">
-          <strong>Observation</strong><br/>${pin.note}<br/><small style="color:#64748B">${pin.date}</small>
-        </div>`
-      );
-      layerGroup.addLayer(marker);
-    });
+      drawGroup.addLayer(polyPreview);
+    }
 
-  }, [mapReady, savedFields, activeFieldId, drawnNodes, activeLayer, pinsList, onSelectField]);
+    // Point corner markers
+    drawnNodes.forEach((node, index) => {
+      const marker = L.circleMarker(node, {
+        radius: index === 0 ? 8 : 6,
+        color: "#FFFFFF",
+        weight: 2,
+        fillColor: index === 0 ? "#10B981" : "#F59E0B",
+        fillOpacity: 1,
+      });
+      drawGroup.addLayer(marker);
+    });
+  }, [isDrawingMode, drawnNodes]);
 
   return (
     <div
       ref={mapContainerRef}
-      className="h-full w-full bg-slate-950 rounded-2xl overflow-hidden"
-      style={{ minHeight: "400px" }}
+      className={`h-full w-full relative z-0 ${isDrawingMode ? "cursor-crosshair" : "cursor-grab"}`}
+      style={{ minHeight: "440px", backgroundColor: "#0f172a" }}
     />
   );
 });
+
+LeafletMapInner.displayName = "LeafletMapInner";

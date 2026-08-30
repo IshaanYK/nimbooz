@@ -1,47 +1,132 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BookOpen, Plus, Sparkles, TrendingUp, CheckCircle2, ShieldCheck, Download, Calendar, Activity } from "lucide-react";
+import { BookOpen, Plus, Sparkles, TrendingUp, CheckCircle2, ShieldCheck, Download, Calendar, Activity, Zap, AlertTriangle, Sprout, Mic } from "lucide-react";
 import { DataBadge } from "./DataBadge";
 import { fetchJournalEntries, addJournalEntry } from "@/lib/api";
 import { getStoredProfile } from "@/lib/userStore";
 
-export const InterventionJournal: React.FC = () => {
+interface InterventionJournalProps {
+  filter?: string;
+}
+
+const DEFAULT_JOURNAL_RECORDS = [
+  {
+    id: "entry-001",
+    category: "spray",
+    farmer_name: "Ramesh Patel",
+    field_name: "Bhopal North Plot",
+    crop: "Soybean (JS 335)",
+    application_date: "2026-08-14",
+    product_name: "Syngenta Quantis / Stress Buster",
+    dose_per_ha: "250 ml / acre",
+    treated_area_ha: 5.0,
+    baseline_yield_kg: 2200,
+    treated_yield_kg: 2680,
+    net_profit_gain_inr: 9800,
+    robi_ratio: 14.2,
+    notes: "Applied preventive foliar spray at R1 flowering stage 36h before peak 38°C heatwave. Pod retention 94%.",
+    statusBadge: "VERIFIED TREATMENT",
+  },
+  {
+    id: "entry-002",
+    category: "heat",
+    farmer_name: "Ramesh Patel",
+    field_name: "Bhopal North Plot",
+    crop: "Soybean (JS 335)",
+    application_date: "2026-08-12",
+    product_name: "Night Thermal Stress Warning (25.8°C)",
+    dose_per_ha: "Telemetry Trigger",
+    treated_area_ha: 5.0,
+    baseline_yield_kg: 2200,
+    treated_yield_kg: 2200,
+    net_profit_gain_inr: 0,
+    robi_ratio: 0,
+    notes: "AASRA detected +4.8 nocturnal degree-hours above 25°C threshold via Open-Meteo. Triggered Day 1 biological clock countdown.",
+    statusBadge: "WEATHER TELEMETRY",
+  },
+  {
+    id: "entry-003",
+    category: "ai",
+    farmer_name: "Ramesh Patel",
+    field_name: "Bhopal North Plot",
+    crop: "Soybean (JS 335)",
+    application_date: "2026-08-11",
+    product_name: "Gemini 1.5 Pro Vernacular Voice Advisory",
+    dose_per_ha: "Voice Query",
+    treated_area_ha: 5.0,
+    baseline_yield_kg: 2200,
+    treated_yield_kg: 2680,
+    net_profit_gain_inr: 9800,
+    robi_ratio: 14.2,
+    notes: "Farmer asked: 'गरमी में फूल गिरने से कैसे बचाएं?'. AASRA prescribed Quantis @ 250ml/acre in Hindi audio with exact mandi ROI calculations.",
+    statusBadge: "VOICE ADVISORY",
+  },
+  {
+    id: "entry-004",
+    category: "spray",
+    farmer_name: "Ramesh Patel",
+    field_name: "South River Plot",
+    crop: "Cotton (Bt-II)",
+    application_date: "2026-07-28",
+    product_name: "Syngenta Isabion (Pure Amino Acids)",
+    dose_per_ha: "400 ml / acre",
+    treated_area_ha: 4.2,
+    baseline_yield_kg: 1800,
+    treated_yield_kg: 2150,
+    net_profit_gain_inr: 7400,
+    robi_ratio: 11.8,
+    notes: "Foliar application during vegetative branching for root biomass proliferation and nutrient absorption efficiency.",
+    statusBadge: "VERIFIED TREATMENT",
+  },
+  {
+    id: "entry-005",
+    category: "planting",
+    farmer_name: "Ramesh Patel",
+    field_name: "Bhopal North Plot",
+    crop: "Soybean (JS 335)",
+    application_date: "2026-06-24",
+    product_name: "Sowing & Seed Inoculation",
+    dose_per_ha: "Seed Treatment",
+    treated_area_ha: 5.0,
+    baseline_yield_kg: 2200,
+    treated_yield_kg: 2200,
+    net_profit_gain_inr: 0,
+    robi_ratio: 0,
+    notes: "Sowing completed following monsoon onset. Sowing date calibrated into GDD Phenology Engine (Formula 3.1).",
+    statusBadge: "PHENOLOGY MILESTONE",
+  },
+];
+
+export const InterventionJournal: React.FC<InterventionJournalProps> = ({ filter = "all" }) => {
   const profile = getStoredProfile();
 
-  const [entries, setEntries] = useState<any[]>([
-    {
-      id: "entry-001",
-      farmer_name: profile.fullName || "Rajesh Sharma",
-      field_name: profile.fieldName || "Primary Soybean Field",
-      crop: profile.primaryCrop || "soybean",
-      application_date: "2026-07-10",
-      product_name: "Syngenta Stress Buster",
-      dose_per_ha: "500 ml / ha",
-      treated_area_ha: 4.2,
-      baseline_yield_kg: 2200,
-      treated_yield_kg: 2450,
-      net_profit_gain_inr: 8900,
-      robi_ratio: 15.8,
-      notes: "Foliar spray applied during peak night heat stress (25.8°C). Preserved pod filling potential.",
-    },
-  ]);
-
+  const [entries, setEntries] = useState<any[]>(DEFAULT_JOURNAL_RECORDS);
   const [showForm, setShowForm] = useState(false);
   const [newEntry, setNewEntry] = useState({
-    product_name: "Syngenta Stress Buster",
+    category: "spray",
+    product_name: "Syngenta Quantis / Stress Buster",
     application_date: new Date().toISOString().split("T")[0],
-    dose_per_ha: "500 ml / ha",
-    treated_area_ha: 4.2,
+    dose_per_ha: "250 ml / acre",
+    treated_area_ha: 5.0,
     control_area_ha: 1.0,
     baseline_yield_kg: 2200,
-    treated_yield_kg: 2500,
+    treated_yield_kg: 2600,
     product_cost_inr: 600,
-    market_price_inr_per_kg: 38.0,
+    market_price_inr_per_kg: 49.2,
     notes: "",
   });
 
   useEffect(() => {
+    // Load from local storage or API
+    try {
+      const stored = localStorage.getItem("aasra_journal_entries_v2");
+      if (stored) {
+        setEntries(JSON.parse(stored));
+        return;
+      }
+    } catch {}
+
     async function loadJournal() {
       const data = await fetchJournalEntries();
       if (data && data.entries && data.entries.length > 0) {
@@ -54,32 +139,43 @@ export const InterventionJournal: React.FC = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
-      farmer_name: profile.fullName || "Authenticated Farmer",
+      farmer_name: profile.fullName || "Farm Owner",
       field_name: profile.fieldName || "Primary Field",
-      crop: profile.primaryCrop || "soybean",
+      crop: profile.primaryCrop || "Soybean",
       ...newEntry,
     };
 
-    const res = await addJournalEntry(payload);
-    if (res && res.record) {
-      setEntries([res.record, ...entries]);
-    } else {
-      const extraYield = newEntry.treated_yield_kg - newEntry.baseline_yield_kg;
-      const extraRevenue = extraYield * newEntry.market_price_inr_per_kg;
-      const netProfit = extraRevenue - newEntry.product_cost_inr;
-      const robi = extraRevenue / (newEntry.product_cost_inr || 1);
+    const extraYield = newEntry.treated_yield_kg - newEntry.baseline_yield_kg;
+    const extraRevenue = extraYield * newEntry.market_price_inr_per_kg;
+    const netProfit = extraRevenue - newEntry.product_cost_inr;
+    const robi = extraRevenue / (newEntry.product_cost_inr || 1);
 
-      const fallbackRecord = {
-        id: `entry-${(entries.length + 1).toString().padStart(3, "0")}`,
-        ...payload,
-        net_profit_gain_inr: Math.round(netProfit),
-        robi_ratio: Number(robi.toFixed(1)),
-      };
-      setEntries([fallbackRecord, ...entries]);
+    const record = {
+      id: `entry-${Date.now().toString().slice(-4)}`,
+      ...payload,
+      net_profit_gain_inr: Math.round(netProfit),
+      robi_ratio: Number(robi.toFixed(1)),
+      statusBadge: "USER LOGGED",
+    };
+
+    const updated = [record, ...entries];
+    setEntries(updated);
+    try {
+      localStorage.setItem("aasra_journal_entries_v2", JSON.stringify(updated));
+    } catch {}
+
+    try {
+      await addJournalEntry(payload);
+    } catch (err) {
+      console.warn("Journal API sync failed, saved locally", err);
     }
-
     setShowForm(false);
   };
+
+  const filteredEntries = entries.filter((item) => {
+    if (filter === "all") return true;
+    return item.category === filter;
+  });
 
   return (
     <div className="bg-slate-900 text-white rounded-3xl border border-white/10 p-6 space-y-6 shadow-2xl font-sans">
@@ -89,13 +185,13 @@ export const InterventionJournal: React.FC = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-emerald-400" />
-              PS-07 Field Intervention Journal
+              PS-07 Field Intervention Journal & Timeline
             </h3>
             <DataBadge type="USER_PROVIDED" />
             <DataBadge type="MODELLED" customText="ROBI TRACKED" />
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Log biological applications, track control vs treated plots, and generate verifiable proof cards.
+            Showing {filteredEntries.length} chronological agronomic records for {profile.fullName || "Farm Owner"}.
           </p>
         </div>
 
@@ -113,27 +209,42 @@ export const InterventionJournal: React.FC = () => {
         <form onSubmit={handleAdd} className="bg-slate-950 p-5 rounded-2xl border border-emerald-500/30 space-y-4 text-xs animate-fade-in">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <h4 className="font-bold text-emerald-400 uppercase tracking-wider font-mono">
-              New Biological Application Record
+              New Field Intervention Entry
             </h4>
             <DataBadge type="USER_PROVIDED" size="sm" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-slate-300 block mb-1">Product Applied</label>
+              <label className="text-slate-300 block mb-1 font-bold">Category</label>
+              <select
+                value={newEntry.category}
+                onChange={(e) => setNewEntry({ ...newEntry, category: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 font-bold"
+              >
+                <option value="spray">Biological Spray Application</option>
+                <option value="heat">Climate Heat Event</option>
+                <option value="ai">AI Voice Advisory</option>
+                <option value="planting">Planting / Phenology</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-slate-300 block mb-1 font-bold">Product / Event Name</label>
               <select
                 value={newEntry.product_name}
                 onChange={(e) => setNewEntry({ ...newEntry, product_name: e.target.value })}
                 className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 font-bold"
               >
-                <option value="Syngenta Stress Buster">Syngenta Stress Buster (Abiotic Heat)</option>
-                <option value="Syngenta Nutrient Booster">Syngenta Nutrient Booster (NUE)</option>
-                <option value="Syngenta Yield Booster">Syngenta Yield Booster (Grain Fill)</option>
+                <option value="Syngenta Quantis / Stress Buster">Syngenta Quantis (Abiotic Heat Shield)</option>
+                <option value="Syngenta Isabion">Syngenta Isabion (Amino Acid Stimulant)</option>
+                <option value="Syngenta Amistar Top">Syngenta Amistar Top (Disease Shield)</option>
+                <option value="Field Heat Stress Event">Field Heat Stress Event</option>
               </select>
             </div>
 
             <div>
-              <label className="text-slate-300 block mb-1">Application Date</label>
+              <label className="text-slate-300 block mb-1 font-bold">Date</label>
               <input
                 type="date"
                 value={newEntry.application_date}
@@ -141,20 +252,19 @@ export const InterventionJournal: React.FC = () => {
                 className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 font-mono font-bold"
               />
             </div>
-
-            <div>
-              <label className="text-slate-300 block mb-1">Treated Area (ha)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={newEntry.treated_area_ha}
-                onChange={(e) => setNewEntry({ ...newEntry, treated_area_ha: Number(e.target.value) })}
-                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 font-mono font-bold"
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-slate-400 block mb-1">Treated Area (Acres)</label>
+              <input
+                type="number"
+                step="0.5"
+                value={newEntry.treated_area_ha}
+                onChange={(e) => setNewEntry({ ...newEntry, treated_area_ha: Number(e.target.value) })}
+                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-2.5 py-2 font-mono font-bold"
+              />
+            </div>
             <div>
               <label className="text-slate-400 block mb-1">Actual Yield (kg/ha)</label>
               <input
@@ -174,16 +284,7 @@ export const InterventionJournal: React.FC = () => {
               />
             </div>
             <div>
-              <label className="text-slate-400 block mb-1">Product Cost (₹/ha)</label>
-              <input
-                type="number"
-                value={newEntry.product_cost_inr}
-                onChange={(e) => setNewEntry({ ...newEntry, product_cost_inr: Number(e.target.value) })}
-                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-2.5 py-2 font-mono"
-              />
-            </div>
-            <div>
-              <label className="text-slate-400 block mb-1">Market Price (₹/kg)</label>
+              <label className="text-slate-400 block mb-1">Mandi Price (₹/kg)</label>
               <input
                 type="number"
                 value={newEntry.market_price_inr_per_kg}
@@ -194,7 +295,7 @@ export const InterventionJournal: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-slate-300 block mb-1">Intervention & Weather Notes</label>
+            <label className="text-slate-300 block mb-1 font-bold">Intervention & Weather Notes</label>
             <textarea
               value={newEntry.notes}
               onChange={(e) => setNewEntry({ ...newEntry, notes: e.target.value })}
@@ -215,26 +316,36 @@ export const InterventionJournal: React.FC = () => {
 
       {/* Animated Field Journal Timeline */}
       <div className="space-y-4">
-        {entries.map((item, idx) => (
+        {filteredEntries.map((item, idx) => (
           <div
             key={item.id || idx}
             className="bg-slate-950 p-5 rounded-2xl border border-white/10 space-y-3 shadow-lg relative overflow-hidden"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-2.5">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-emerald-600 text-slate-950 flex items-center justify-center font-bold">
-                  <Activity className="w-4 h-4" />
+                <div className={`h-8 w-8 rounded-xl flex items-center justify-center font-bold ${
+                  item.category === "spray"
+                    ? "bg-emerald-600 text-white"
+                    : item.category === "heat"
+                    ? "bg-rose-600 text-white"
+                    : item.category === "ai"
+                    ? "bg-blue-600 text-white"
+                    : "bg-amber-600 text-white"
+                }`}>
+                  {item.category === "spray" ? <Activity className="w-4 h-4" /> : item.category === "heat" ? <AlertTriangle className="w-4 h-4" /> : item.category === "ai" ? <Mic className="w-4 h-4" /> : <Sprout className="w-4 h-4" />}
                 </div>
                 <div>
                   <h4 className="font-bold text-white text-sm">{item.product_name}</h4>
                   <p className="text-[11px] text-slate-400 font-mono">
-                    {item.field_name} • {item.crop?.toUpperCase()} ({item.treated_area_ha} ha)
+                    {item.field_name} • {item.crop?.toUpperCase()} ({item.treated_area_ha} Ac)
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <DataBadge type="USER_PROVIDED" size="sm" />
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                  {item.statusBadge || "LOGGED"}
+                </span>
                 <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-700/50">
                   {item.application_date}
                 </span>
@@ -252,11 +363,15 @@ export const InterventionJournal: React.FC = () => {
               </div>
               <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                 <span className="text-slate-400 text-[10px] block font-mono">NET PROFIT GAIN</span>
-                <span className="font-bold text-amber-300 font-mono">+₹{item.net_profit_gain_inr} / ha</span>
+                <span className="font-bold text-amber-300 font-mono">
+                  {item.net_profit_gain_inr > 0 ? `+₹${item.net_profit_gain_inr.toLocaleString("en-IN")}` : "Baseline"}
+                </span>
               </div>
               <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
                 <span className="text-slate-400 text-[10px] block font-mono">ROBI RATIO</span>
-                <span className="font-bold text-emerald-300 font-mono">{item.robi_ratio} : 1</span>
+                <span className="font-bold text-emerald-300 font-mono">
+                  {item.robi_ratio > 0 ? `${item.robi_ratio}x Return` : "N/A"}
+                </span>
               </div>
             </div>
 

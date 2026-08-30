@@ -40,7 +40,7 @@ export default function ImpactPage() {
                 PS-07: Intelligence & ROBI Attribution Engine
               </span>
               <span className="text-xs font-mono font-bold text-slate-700 uppercase bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                {profile.fullName || "Ramesh Patel"} · {farmerAcres} Acres ({farmerCrop})
+                {profile.fullName ? `${profile.fullName} · ` : ""}{farmerAcres} Acres ({farmerCrop})
               </span>
             </div>
             <h1 className="text-3xl font-black font-display text-slate-900 mt-1 flex items-center gap-2">

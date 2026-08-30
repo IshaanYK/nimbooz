@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { fetchCurrentWeather } from "@/lib/api";
 import { reverseGeocode } from "@/context/WeatherContext";
 import {
@@ -39,7 +41,7 @@ export const LiveWeatherMap: React.FC<LiveWeatherMapProps> = ({
   const [currentLat, setCurrentLat] = useState(lat || 23.2599);
   const [currentLon, setCurrentLon] = useState(lon || 77.4126);
   const [cityName, setCityName] = useState("Field Region");
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(true);
   const [selectedFarm, setSelectedFarm] = useState<any>(null);
 
   // Map View Mode: "telemetry" (Voyager light) | "satellite" | "moisture"
@@ -58,10 +60,20 @@ export const LiveWeatherMap: React.FC<LiveWeatherMapProps> = ({
   const LOCATION_PRESETS = [
     { name: "Bhopal (Soybean)", lat: 23.2599, lon: 77.4126 },
     { name: "Nagpur (Cotton)", lat: 21.1458, lon: 79.0882 },
-    { name: "Pune (Sugarcane)", lat: 18.5204, lon: 73.8567 },
-    { name: "Ludhiana (Wheat)", lat: 30.901, lon: 75.8573 },
-    { name: "Anand (Dairy & Maize)", lat: 22.5645, lon: 72.9289 },
+    { name: "Indore (Wheat)", lat: 22.7196, lon: 75.8577 },
+    { name: "Nashik (Grape)", lat: 19.9975, lon: 73.7898 },
+    { name: "Amravati (Soybean)", lat: 20.9374, lon: 77.7796 },
+    { name: "Ujjain (Mustard)", lat: 23.1765, lon: 75.7885 },
   ];
+
+  // Geocode location name
+  useEffect(() => {
+    reverseGeocode(currentLat, currentLon).then((geo) => {
+      if (geo && typeof geo === "object") {
+        setCityName(geo.locationName || geo.district || "Field Region");
+      }
+    });
+  }, [currentLat, currentLon]);
 
   // Detect time of day
   useEffect(() => {
@@ -99,28 +111,9 @@ export const LiveWeatherMap: React.FC<LiveWeatherMapProps> = ({
     loadWeather();
   }, [currentLat, currentLon, crop]);
 
-  // Load Leaflet dynamically
-  useEffect(() => {
-    if (typeof window !== "undefined" && !(window as any).L) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
-
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = () => setMapLoaded(true);
-      document.body.appendChild(script);
-    } else {
-      setMapLoaded(true);
-    }
-  }, []);
-
   // Render Leaflet Map
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
-    const L = (window as any).L;
-    if (!L) return;
 
     if ((mapRef.current as any)._leaflet_id) {
       (mapRef.current as any)._leaflet_id = null;

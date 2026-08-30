@@ -45,7 +45,7 @@ export const Ps04SpeechIntelligence: React.FC = () => {
             </span>
           </h2>
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto">
-            Powered by Sarvam AI STT & TTS models fine-tuned on regional Indian agricultural dialects.
+            Powered by Google Cloud Chirp 3 HD &amp; Google Gemini 2.5 Flash Voice Engine calibrated for 12 Indian regional agricultural languages.
           </p>
 
           {/* Language Selector */}
@@ -80,7 +80,7 @@ export const Ps04SpeechIntelligence: React.FC = () => {
             </div>
             <div className="flex items-center gap-3 text-emerald-300">
               <span>Confidence: <strong className="text-amber-300">{currentSample.confidence}</strong></span>
-              <span className="px-2 py-0.5 rounded bg-[#00A878]/40 border border-[#20C98A]/40 text-[10px]">SARVAM BULBUL v3</span>
+              <span className="px-2 py-0.5 rounded bg-[#00A878]/40 border border-[#20C98A]/40 text-[10px]">GOOGLE CHIRP 3 HD · GEMINI 2.5</span>
             </div>
           </div>
 

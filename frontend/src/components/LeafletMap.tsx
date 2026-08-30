@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { MapPin, Navigation, CheckCircle2 } from "lucide-react";
 
 interface LeafletMapProps {
@@ -15,57 +17,42 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   onLocationSelect,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   const [currentLat, setCurrentLat] = useState(lat || 23.2599);
   const [currentLon, setCurrentLon] = useState(lon || 77.4126);
-  const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
-    // Dynamically load Leaflet script & CSS if not present
-    if (typeof window !== "undefined" && !(window as any).L) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
+    if (!mapRef.current || mapInstanceRef.current) return;
 
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = () => {
-        setMapLoaded(true);
-      };
-      document.body.appendChild(script);
-    } else {
-      setMapLoaded(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return;
-    const L = (window as any).L;
-    if (!L) return;
-
-    // Clear previous map if initialized
-    if ((mapRef.current as any)._leaflet_id) {
-      (mapRef.current as any)._leaflet_id = null;
-      mapRef.current.innerHTML = "";
-    }
+    try {
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+    } catch {}
 
     const map = L.map(mapRef.current).setView([currentLat, currentLon], 11);
+    mapInstanceRef.current = map;
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; OpenStreetMap',
       maxZoom: 18,
     }).addTo(map);
 
     const marker = L.marker([currentLat, currentLon], { draggable: true }).addTo(map);
+    markerRef.current = marker;
 
     marker.bindPopup(`<b>Selected Field Location</b><br>Lat: ${currentLat.toFixed(4)}, Lon: ${currentLon.toFixed(4)}`).openPopup();
 
-    map.on("click", (e: any) => {
+    map.on("click", (e: L.LeafletMouseEvent) => {
       const { lat: newLat, lng: newLng } = e.latlng;
       setCurrentLat(newLat);
       setCurrentLon(newLng);
       marker.setLatLng([newLat, newLng]);
-      marker.getPopup().setContent(`<b>Selected Field Location</b><br>Lat: ${newLat.toFixed(4)}, Lon: ${newLng.toFixed(4)}`);
+      marker.getPopup()?.setContent(`<b>Selected Field Location</b><br>Lat: ${newLat.toFixed(4)}, Lon: ${newLng.toFixed(4)}`);
       onLocationSelect(newLat, newLng);
     });
 
@@ -75,16 +62,29 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       setCurrentLon(newLng);
       onLocationSelect(newLat, newLng);
     });
-  }, [mapLoaded]);
+
+    setTimeout(() => {
+      try { map.invalidateSize(); } catch {}
+    }, 200);
+
+    return () => {
+      try { map.remove(); } catch {}
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUseGps = () => {
-    if ("geolocation" in navigator) {
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const newLat = pos.coords.latitude;
           const newLon = pos.coords.longitude;
           setCurrentLat(newLat);
           setCurrentLon(newLon);
+          if (markerRef.current) markerRef.current.setLatLng([newLat, newLon]);
+          if (mapInstanceRef.current) mapInstanceRef.current.setView([newLat, newLon], 13);
           onLocationSelect(newLat, newLon);
         },
         () => {

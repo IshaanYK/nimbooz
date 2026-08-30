@@ -114,9 +114,9 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
   // Dynamic user location detection from GPS / Weather Context
   const profile = getStoredProfile();
-  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : "Ramesh Patel";
-  const effectiveDistrict = weather.district || profile?.district || "Bhopal";
-  const effectiveVillage = weather.village || profile?.village || "Local Farm Plot";
+  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : (language === "hi" ? "किसान साथी" : "Farmer Friend");
+  const effectiveDistrict = weather.district || profile?.district || (language === "hi" ? "आपका जिला" : "Your District");
+  const effectiveVillage = weather.village || profile?.village || (language === "hi" ? "आपका खेत" : "Your Farm");
   const effectiveLocation = weather.locationName || `${effectiveVillage}, ${effectiveDistrict}` || currentField;
 
   const nearbyDealers = getNearbySyngentaDealers(effectiveDistrict, weather.lat, weather.lon);
@@ -134,7 +134,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   // Welcome message generator
   const buildWelcome = useCallback((): Message => {
     const p = getStoredProfile();
-    const name = p?.fullName && p.fullName.trim() ? p.fullName : "Ramesh Patel";
+    const name = p?.fullName && p.fullName.trim() ? p.fullName : (language === "hi" ? "किसान साथी" : "Farmer Friend");
     const welcomeText = language === "hi"
       ? `नमस्ते ${name} जी! मैं आसरा हूँ, आपका AI कृषि साथी। आपके क्षेत्र (${effectiveLocation}) के लिए लाइव मौसम और सिंजेंटा अधिकृत डीलर नेटवर्क सक्रिय है। आप मुझसे छिड़काव समय, दवा की खुराक, रोग निदान या नजदीकी सिंजेंटा ऑफर्स के बारे में पूछ सकते हैं।`
       : `Namaste ${name}! I am AASRA, your AI Agricultural Companion. Live telemetry and Syngenta dealer network for ${effectiveLocation} are active. Ask me about heat stress, spray windows, biostimulant dosage, or local Syngenta offers.`;
@@ -161,6 +161,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
   const recognitionRef = useRef<any>(null);
   const accumulatedTranscriptRef = useRef<string>("");
+  const isListeningActiveRef = useRef<boolean>(false);
   const silenceTimerRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -177,7 +178,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     setMessages([buildWelcome()]);
     setVoiceState("IDLE");
     setInput("");
-    stopGoogleSpeech();
+    isListeningActiveRef.current = false;
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
   }, [language, buildWelcome]);
 
   // Handle external query from sample pills
@@ -202,22 +204,23 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       : `High temperature (${weather.temperature}°C)`
     : "Ideal conditions for foliar bio-spray (Early morning / Late evening)";
 
-  // Full-Sentence Continuous Speech-to-Text Input
+  // Full-Sentence Continuous Speech-to-Text with Automatic Pause Detection
   const startListening = () => {
     if (typeof window === "undefined") return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Google Speech Recognition requires Chrome, Edge, or Android browser.");
+      alert("Speech Recognition requires Chrome, Edge, or Android browser.");
       return;
     }
 
-    stopGoogleSpeech();
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    isListeningActiveRef.current = true;
     accumulatedTranscriptRef.current = "";
     setLiveSpeechTranscript("");
 
     try {
       if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (_) {}
+        try { recognitionRef.current.abort(); } catch (_) { }
       }
 
       const recognition = new SpeechRecognition();
@@ -253,43 +256,53 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           setLiveSpeechTranscript(completeSentence);
         }
 
-        // Silence timeout debounce (3.5 seconds of pause before auto-sending so farmer can speak full sentence comfortably)
+        // Automatic Silence / End-of-Speech Detection (Submits automatically 1.8s after user stops talking)
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(() => {
-          const textToSend = (accumulatedTranscriptRef.current + interimText).trim();
-          if (recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch (_) {}
+          if (isListeningActiveRef.current) {
+            const finalQuery = (accumulatedTranscriptRef.current + interimText).trim();
+            isListeningActiveRef.current = false;
+            if (recognitionRef.current) {
+              try { recognitionRef.current.stop(); } catch (_) { }
+            }
+            setVoiceState("IDLE");
+            if (finalQuery) {
+              processUserMessage(finalQuery);
+              accumulatedTranscriptRef.current = "";
+              setLiveSpeechTranscript("");
+            }
           }
-          if (textToSend) {
-            processUserMessage(textToSend);
-            accumulatedTranscriptRef.current = "";
-            setLiveSpeechTranscript("");
-          }
-        }, 3500);
+        }, 1800);
       };
 
       recognition.onerror = (event: any) => {
-        console.warn("STT Error:", event.error);
-        if (event.error !== "no-speech") {
-          setVoiceState("IDLE");
-        }
+        console.warn("STT Notice:", event.error);
       };
 
       recognition.onend = () => {
-        setVoiceState((current) => (current === "LISTENING" ? "IDLE" : current));
+        // If user is still in listening mode, automatically restart recognition so it never cuts off
+        if (isListeningActiveRef.current) {
+          try {
+            recognition.start();
+          } catch (_) {}
+        } else {
+          setVoiceState("IDLE");
+        }
       };
 
       recognition.start();
     } catch (e) {
       console.warn("STT exception:", e);
+      isListeningActiveRef.current = false;
       setVoiceState("IDLE");
     }
   };
 
   const stopListening = () => {
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    isListeningActiveRef.current = false;
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (_) {}
+      try { recognitionRef.current.stop(); } catch (_) { }
     }
     setVoiceState("IDLE");
     const textToSend = input.trim() || accumulatedTranscriptRef.current.trim();
@@ -299,8 +312,6 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       setLiveSpeechTranscript("");
     }
   };
-
-  // Google Speech Synthesis (calm, natural human speed)
   const speakResponse = useCallback((textToSpeak: string) => {
     setVoiceState("RESPONDING");
     playGoogleNeuralSpeech(textToSpeak, language, {
@@ -332,7 +343,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       try {
         const parsed = JSON.parse(clean);
         if (parsed.reply) return parsed.reply;
-      } catch {}
+      } catch { }
     }
     return clean
       .replace(/^\s*\{\s*"reply"\s*:\s*"/i, "")
@@ -345,7 +356,6 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   const processUserMessage = async (queryText: string) => {
     if (!queryText.trim() && !selectedImage) return;
 
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const userMsg: Message = {
       id: `user-${Date.now()}`,
@@ -418,7 +428,6 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         };
 
         setMessages((prev) => [...prev, botMsg]);
-        speakResponse(replyText);
         return;
       }
     } catch (err) {
@@ -440,12 +449,11 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     };
 
     setMessages((prev) => [...prev, botMsg]);
-    speakResponse(replyText);
   };
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-lg flex flex-col h-[650px] sm:h-[760px] max-h-[88vh] sm:max-h-none overflow-hidden font-body text-slate-900 w-full relative">
-      
+
       {/* Hidden File Input for Multimodal Camera / Image Scanner */}
       <input
         type="file"
@@ -498,9 +506,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       </div>
 
       {/* Safe Spray Window Strip */}
-      <div className={`px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-accent border-b flex items-center justify-between shrink-0 ${
-        isSprayWindowSafe ? "bg-emerald-50/90 border-emerald-200 text-emerald-900" : "bg-amber-50/90 border-amber-200 text-amber-900"
-      }`}>
+      <div className={`px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-accent border-b flex items-center justify-between shrink-0 ${isSprayWindowSafe ? "bg-emerald-50/90 border-emerald-200 text-emerald-900" : "bg-amber-50/90 border-amber-200 text-amber-900"
+        }`}>
         <div className="flex items-center gap-1.5 sm:gap-2 truncate">
           <CloudSun className={`h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 ${isSprayWindowSafe ? "text-emerald-600" : "text-amber-600"}`} />
           <span className="font-bold shrink-0">
@@ -580,21 +587,19 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             className={`flex items-start gap-2.5 sm:gap-3 ${msg.sender === "user" ? "flex-row-reverse" : ""}`}
           >
             <div
-              className={`h-8 w-8 sm:h-9 sm:w-9 rounded-2xl flex items-center justify-center text-xs font-bold shrink-0 shadow-xs ${
-                msg.sender === "user"
+              className={`h-8 w-8 sm:h-9 sm:w-9 rounded-2xl flex items-center justify-center text-xs font-bold shrink-0 shadow-xs ${msg.sender === "user"
                   ? "bg-emerald-600 text-white font-accent"
                   : "bg-white text-slate-800 border border-slate-200"
-              }`}
+                }`}
             >
               {msg.sender === "user" ? "👤" : <Sparkles className="h-4 w-4 text-emerald-600" />}
             </div>
 
             <div
-              className={`max-w-[88%] sm:max-w-[82%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm space-y-2.5 ${
-                msg.sender === "user"
+              className={`max-w-[88%] sm:max-w-[82%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm space-y-2.5 ${msg.sender === "user"
                   ? "bg-emerald-600 text-white rounded-tr-none font-medium"
                   : "bg-white text-slate-900 border border-slate-200 rounded-tl-none font-normal"
-              }`}
+                }`}
             >
               {/* Uploaded Image Thumbnail */}
               {msg.imageUrl && (
@@ -913,6 +918,34 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         </div>
       )}
 
+      {/* Active Continuous Listening HUD */}
+      {voiceState === "LISTENING" && (
+        <div className="px-4 py-2.5 bg-emerald-900 text-white border-t border-emerald-700 flex items-center justify-between gap-2 text-xs shrink-0 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-300"></span>
+            </span>
+            <span className="font-bold text-white">Listening... (Speak your question — auto-sends when you pause)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+              isListeningActiveRef.current = false;
+              if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (_) { } }
+              setVoiceState("IDLE");
+              setLiveSpeechTranscript("");
+            }}
+            className="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-950 text-slate-200 cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+            title="Cancel"
+          >
+            <X className="h-3.5 w-3.5" />
+            <span>Cancel</span>
+          </button>
+        </div>
+      )}
+
       {/* Input Bar */}
       <div className="p-2.5 sm:p-4 border-t border-slate-200 bg-white flex items-center gap-2 shrink-0">
         {/* Camera / Image Upload */}
@@ -929,13 +962,12 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         <button
           type="button"
           onClick={voiceState === "LISTENING" ? stopListening : startListening}
-          className={`p-3 rounded-2xl border transition-all flex items-center justify-center cursor-pointer shadow-xs shrink-0 ${
-            voiceState === "LISTENING"
+          className={`p-3 rounded-2xl border transition-all flex items-center justify-center cursor-pointer shadow-xs shrink-0 ${voiceState === "LISTENING"
               ? "bg-rose-600 text-white border-rose-500 animate-pulse scale-105"
               : speechRecognitionSupported
-              ? "bg-slate-100 text-slate-800 hover:bg-emerald-600 hover:text-white border-slate-200"
-              : "bg-slate-100 text-slate-400 border-slate-200 opacity-50 cursor-not-allowed"
-          }`}
+                ? "bg-slate-100 text-slate-800 hover:bg-emerald-600 hover:text-white border-slate-200"
+                : "bg-slate-100 text-slate-400 border-slate-200 opacity-50 cursor-not-allowed"
+            }`}
           title={voiceState === "LISTENING" ? "Click to Stop & Send" : `${t.listenLabel} (${langName})`}
           disabled={!speechRecognitionSupported && voiceState !== "LISTENING"}
         >
@@ -948,9 +980,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && processUserMessage(input)}
           placeholder={voiceState === "LISTENING" ? "Listening to your speech in real-time..." : (selectedImage ? "Add optional question for leaf scan..." : t.chatPlaceholder || "Ask about spray timing, dosage, or deals...")}
-          className={`flex-1 text-xs sm:text-sm placeholder-slate-400 border rounded-2xl px-3.5 sm:px-4 py-3 focus:outline-none focus:ring-2 font-body font-medium min-w-0 transition-colors ${
-            voiceState === "LISTENING" ? "bg-emerald-50/70 border-emerald-400 focus:ring-emerald-200 text-emerald-950" : "bg-slate-50 text-slate-900 border-slate-300 focus:border-emerald-600 focus:ring-emerald-100"
-          }`}
+          className={`flex-1 text-xs sm:text-sm placeholder-slate-400 border rounded-2xl px-3.5 sm:px-4 py-3 focus:outline-none focus:ring-2 font-body font-medium min-w-0 transition-colors ${voiceState === "LISTENING" ? "bg-emerald-50/70 border-emerald-400 focus:ring-emerald-200 text-emerald-950" : "bg-slate-50 text-slate-900 border-slate-300 focus:border-emerald-600 focus:ring-emerald-100"
+            }`}
         />
 
         <button

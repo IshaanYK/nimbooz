@@ -30,9 +30,9 @@ export const FieldIntelligenceCard: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-[#20C98A]" />
-              <h3 className="font-extrabold text-white text-lg font-display">PRIMARY FIELD · BHOPAL SECTOR</h3>
+              <h3 className="font-extrabold text-white text-lg font-display">ACTIVE REGISTERED FIELD · LIVE OVERWATCH</h3>
             </div>
-            <span className="text-xs text-emerald-200 font-mono">Soybean (JS-335) • Flowering Stage • 4.2 ha</span>
+            <span className="text-xs text-emerald-200 font-mono">Real-Time Satellite Overwatch • Flowering Stage • Live Microclimate</span>
           </div>
 
           {/* Tabs */}

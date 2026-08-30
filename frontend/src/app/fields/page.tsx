@@ -8,21 +8,57 @@ import { DataBadge } from "@/components/DataBadge";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
-import { getSavedFields, deleteFarmerField, setActiveField, FieldRecord } from "@/lib/fieldStore";
-import { MapPin, Plus, Trash2, Layers, CheckCircle2, Sliders, Thermometer, Mic, Sparkles } from "lucide-react";
+import {
+  getSavedFields,
+  saveFarmerField,
+  deleteFarmerField,
+  setActiveField,
+  getInitialFarmerField,
+  CROP_OPTIONS,
+  FieldRecord
+} from "@/lib/fieldStore";
+import {
+  MapPin,
+  Plus,
+  Trash2,
+  Layers,
+  CheckCircle2,
+  Sliders,
+  Thermometer,
+  Mic,
+  Sparkles,
+  Edit3,
+  X,
+  Sprout,
+  Activity
+} from "lucide-react";
 
 export default function MyFieldsPage() {
   const { language } = useLanguage();
   const { weather } = useWeather();
   const t = getTranslation(language);
 
-  const [savedFields, setSavedFields] = useState<FieldRecord[]>(getSavedFields());
-  const [activeField, setActiveFieldState] = useState<FieldRecord>(savedFields[0] || getSavedFields()[0]);
+  const [savedFields, setSavedFields] = useState<FieldRecord[]>([]);
+  const [activeField, setActiveFieldState] = useState<FieldRecord>(getInitialFarmerField());
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+
+  // New field form state
+  const [newFieldName, setNewFieldName] = useState<string>("");
+  const [newCrop, setNewCrop] = useState<string>("Soybean");
+  const [newAcres, setNewAcres] = useState<number>(5.0);
+  const [newLat, setNewLat] = useState<number>(23.2599);
+  const [newLon, setNewLon] = useState<number>(77.4126);
 
   useEffect(() => {
     const list = getSavedFields();
-    setSavedFields(list);
-    if (list.length > 0) setActiveFieldState(list[0]);
+    if (list && list.length > 0) {
+      setSavedFields(list);
+      setActiveFieldState(list[0]);
+    } else {
+      const initial = getInitialFarmerField();
+      setSavedFields([initial]);
+      setActiveFieldState(initial);
+    }
   }, []);
 
   const handleSelectField = (field: FieldRecord) => {
@@ -31,12 +67,57 @@ export default function MyFieldsPage() {
   };
 
   const handleDeleteField = (fieldId: string) => {
+    if (savedFields.length <= 1) {
+      alert("You must keep at least one registered field plot in your portfolio.");
+      return;
+    }
     if (confirm("Are you sure you want to delete this field from your farm portfolio?")) {
       const updated = deleteFarmerField(fieldId);
       setSavedFields(updated);
-      if (updated.length > 0) setActiveFieldState(updated[0]);
+      if (updated.length > 0) {
+        setActiveFieldState(updated[0]);
+        setActiveField(updated[0].id);
+      }
     }
   };
+
+  const handleAddQuickField = (e: React.FormEvent) => {
+    e.preventDefault();
+    const lat = Number(newLat) || 23.2599;
+    const lon = Number(newLon) || 77.4126;
+    const acres = Number(newAcres) || 5.0;
+
+    const newFieldObj: FieldRecord = {
+      id: `field_${Date.now()}`,
+      name: newFieldName.trim() || `Farm Plot ${savedFields.length + 1}`,
+      crop: newCrop,
+      cropVariety: "JS-335",
+      areaAcres: acres,
+      areaHa: Math.round((acres * 0.404686) * 10) / 10,
+      center: [lat, lon],
+      polygon: [
+        [lat + 0.002, lon - 0.003],
+        [lat + 0.003, lon + 0.003],
+        [lat - 0.002, lon + 0.004],
+        [lat - 0.003, lon - 0.002],
+      ],
+      sowingDate: new Date().toISOString().split("T")[0],
+      growthStage: "R2 Flowering Stage",
+      soilType: "Black Cotton Vertisol",
+      irrigationType: "Rainfed + Borewell",
+      color: "#10B981",
+      healthScore: 92,
+    };
+
+    const updated = saveFarmerField(newFieldObj);
+    setSavedFields(updated);
+    setActiveFieldState(newFieldObj);
+    setActiveField(newFieldObj.id);
+    setShowAddModal(false);
+    setNewFieldName("");
+  };
+
+  const currentField = activeField || savedFields[0] || getInitialFarmerField();
 
   return (
     <AppShell>
@@ -62,6 +143,13 @@ export default function MyFieldsPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Register New Field</span>
+            </button>
             <span className="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 text-xs font-mono font-bold">
               {savedFields.length} {t.registeredFieldsCount}
             </span>
@@ -74,9 +162,9 @@ export default function MyFieldsPage() {
           {/* Left Satellite Map Component (8 Cols) */}
           <div className="lg:col-span-8 space-y-6">
             <InteractiveWeatherMap
-              lat={activeField.center[0]}
-              lon={activeField.center[1]}
-              crop={activeField.crop}
+              lat={currentField.center ? currentField.center[0] : 23.2599}
+              lon={currentField.center ? currentField.center[1] : 77.4126}
+              crop={currentField.crop || "Soybean"}
               onFieldSelected={(f) => setActiveFieldState(f)}
             />
           </div>
@@ -98,8 +186,8 @@ export default function MyFieldsPage() {
                     key={f.id}
                     onClick={() => handleSelectField(f)}
                     className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2 ${
-                      activeField.id === f.id
-                        ? "bg-emerald-50/50 border-[#10B981] shadow-sm"
+                      currentField.id === f.id
+                        ? "bg-emerald-50/50 border-[#10B981] shadow-sm ring-2 ring-emerald-500/20"
                         : "bg-slate-50 border-slate-200 hover:border-slate-300"
                     }`}
                   >
@@ -114,13 +202,14 @@ export default function MyFieldsPage() {
                     </div>
 
                     <div className="flex justify-between items-center text-xs font-mono pt-1 text-slate-600">
-                      <span>{t.healthScoreLabel}: <strong className="text-[#10B981]">{f.healthScore}%</strong></span>
+                      <span>{t.healthScoreLabel}: <strong className="text-[#10B981]">{f.healthScore || 92}%</strong></span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteField(f.id);
                         }}
                         className="text-rose-600 hover:text-rose-800 p-1 rounded-lg hover:bg-rose-50"
+                        title="Delete Field"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -176,7 +265,7 @@ export default function MyFieldsPage() {
             <div className="stripe-card p-5 space-y-3">
               <h4 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
                 <Thermometer className="h-4 w-4 text-rose-500" />
-                {t.liveFieldTelemetry}
+                {t.liveFieldTelemetry} ({currentField.name})
               </h4>
               <div className="grid grid-cols-2 gap-3 font-mono text-xs">
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
@@ -203,6 +292,114 @@ export default function MyFieldsPage() {
         </div>
 
       </div>
+
+      {/* Modal: Quick Add Field */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Sprout className="h-5 w-5 text-emerald-600" />
+                <h3 className="font-extrabold text-base text-slate-900 font-display">
+                  Register New Farm Field
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddQuickField} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Field / Plot Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newFieldName}
+                  onChange={(e) => setNewFieldName(e.target.value)}
+                  placeholder="e.g. River Side Soybean Field"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Primary Crop</label>
+                  <select
+                    value={newCrop}
+                    onChange={(e) => setNewCrop(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs"
+                  >
+                    <option value="Soybean">Soybean (सोयाबीन)</option>
+                    <option value="Cotton">Cotton (कपास)</option>
+                    <option value="Wheat">Wheat (गेहूं)</option>
+                    <option value="Rice / Paddy">Rice / Paddy (धान)</option>
+                    <option value="Maize">Maize (मक्का)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Area (Acres)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    required
+                    value={newAcres}
+                    onChange={(e) => setNewAcres(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Latitude (°N)</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    required
+                    value={newLat}
+                    onChange={(e) => setNewLat(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Longitude (°E)</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    required
+                    value={newLon}
+                    onChange={(e) => setNewLon(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow transition-all cursor-pointer"
+                >
+                  Save Field Plot
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

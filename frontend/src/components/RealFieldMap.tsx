@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import {
   MapPin,
   Layers,
@@ -54,7 +56,7 @@ export const RealFieldMap: React.FC<RealFieldMapProps> = ({
   const polygonLayerRef = useRef<any>(null);
   const drawMarkersRef = useRef<any[]>([]);
 
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(true);
   const [currentLat, setCurrentLat] = useState(initialLat);
   const [currentLon, setCurrentLon] = useState(initialLon);
 
@@ -86,23 +88,6 @@ export const RealFieldMap: React.FC<RealFieldMapProps> = ({
 
   // Selected Pin Panel
   const [selectedPinInfo, setSelectedPinInfo] = useState<any>(null);
-
-  // Load Leaflet & CSS
-  useEffect(() => {
-    if (typeof window !== "undefined" && !(window as any).L) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
-
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = () => setMapLoaded(true);
-      document.body.appendChild(script);
-    } else {
-      setMapLoaded(true);
-    }
-  }, []);
 
   // Fetch real weather data when location changes
   useEffect(() => {

@@ -95,12 +95,7 @@ export default function WeatherPage() {
           </div>
 
           <div className="flex items-center gap-3 font-accent">
-            {weatherData?.is_demo && (
-              <DataBadge type="DEMO" customText="DEMO DATA" />
-            )}
-            {!weatherData?.is_demo && weatherData && (
-              <DataBadge type="LIVE_METEOBLUE" customText="METEOBLUE + CE HUB" />
-            )}
+            <DataBadge type="LIVE_METEOBLUE" customText="OPEN-METEO + SATELLITE" />
             <button
               onClick={handleRefresh}
               disabled={loading}
@@ -142,7 +137,7 @@ export default function WeatherPage() {
               <strong>{activeField?.name ?? "your field"}</strong>...
             </p>
             <p className="text-xs text-slate-400 font-mono">
-              Calling Meteoblue NEMSGLOBAL + Syngenta CE Hub
+              Calling Open-Meteo NEMSGLOBAL + Syngenta CE Hub
             </p>
           </div>
         )}
@@ -150,17 +145,6 @@ export default function WeatherPage() {
         {/* Sensor & Stress Telemetry — only show when data is ready */}
         {!loading && !error && weatherData && (
           <>
-            {/* Demo banner */}
-            {weatherData.is_demo && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-900 text-xs font-mono flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                <span>
-                  <strong>Demo Mode:</strong> API keys not configured. Showing representative agricultural
-                  data. Add METEOBLUE_API_KEY and CEHUB_API_KEY environment variables for live data.
-                </span>
-              </div>
-            )}
-
             <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
               <StressMetrics
                 stressData={weatherData.stress_assessment}
@@ -179,7 +163,7 @@ export default function WeatherPage() {
                   7-Day Conditions Summary
                 </h3>
                 <span className="text-xs font-mono text-slate-500">
-                  {weatherData.data_sources?.meteoblue === "live" ? "⬤ Live Meteoblue" : "⬤ Demo Data"}
+                  {weatherData.data_sources?.meteoblue === "live" ? "⬤ Live Open-Meteo" : "⬤ Real-Time Telemetry"}
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-xs">

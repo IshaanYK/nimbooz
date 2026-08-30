@@ -143,13 +143,13 @@ export const WhatIfSimulator: React.FC = () => {
                 PERSONALIZED BIOPHYSICAL SCENARIO
               </span>
               <span className="text-[10px] font-mono font-bold text-slate-400">
-                FARMER: {profile.fullName || "Ramesh Patel"}
+                FARMER: {profile.fullName || "Your Farm"}
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black font-display text-white mt-1.5 flex items-center gap-2">
               <Sprout className="h-6 w-6 text-[#20C98A]" />
               <span>
-                {profile.fullName || "Ramesh Patel"}&apos;s Farm Simulator ({fieldArea} Acres {selectedField.crop})
+                {profile.fullName || "Interactive"}&apos;s Farm Simulator ({fieldArea} Acres {selectedField.crop})
               </span>
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl font-medium leading-relaxed">

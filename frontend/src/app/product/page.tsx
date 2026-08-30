@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Ps04SpeechIntelligence } from "@/components/Ps04SpeechIntelligence";
 import { WhyScienceSection } from "@/components/WhyScienceSection";
 import { SyngentaDealerLocator } from "@/components/SyngentaDealerLocator";
+import { getStoredProfile } from "@/lib/userStore";
 import { Mic, ArrowRight, Sparkles, Leaf, Zap } from "lucide-react";
 
 const PS_SYSTEMS = [
@@ -63,6 +64,7 @@ function badgeClasses(color: string) {
 }
 
 export default function ProductPage() {
+  const profile = getStoredProfile();
   return (
     <AppShell>
       <div className="space-y-12 pb-16 bg-slate-50 text-slate-900 font-body">
@@ -155,10 +157,10 @@ export default function ProductPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
           {/* Syngenta Authorized Dealers Directory */}
           <SyngentaDealerLocator
-            district="Bhopal"
-            farmerName="Ramesh Patel"
-            crop="Soybean"
-            fieldAcres={12.5}
+            district={profile.district || "Bhopal"}
+            farmerName={profile.fullName || "Farm Owner"}
+            crop={profile.primaryCrop || "Soybean"}
+            fieldAcres={profile.fieldAreaAcres || 12.5}
             productName="Syngenta Quantis & Stress Buster"
           />
 

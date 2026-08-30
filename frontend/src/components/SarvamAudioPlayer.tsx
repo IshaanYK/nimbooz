@@ -47,7 +47,7 @@ export const SarvamAudioPlayer: React.FC<SarvamAudioPlayerProps> = ({
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-emerald-600 animate-spin" />
           <span className="font-mono font-bold text-xs text-emerald-900 uppercase">
-            Sarvam AI Authentic Indian Voice Engine
+            Google Cloud Vernacular Voice Engine
           </span>
         </div>
         <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 border border-emerald-400">

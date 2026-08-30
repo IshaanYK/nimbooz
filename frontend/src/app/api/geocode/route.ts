@@ -3,12 +3,60 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q") || "";
+  const lat = searchParams.get("lat");
+  const lon = searchParams.get("lon");
 
+  // 1. Handle Reverse Geocoding (lat/lon to district & state)
+  if (lat && lon) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(
+        lat
+      )}&lon=${encodeURIComponent(lon)}&zoom=10&addressdetails=1`;
+      
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "AASRA-AgriGIS-Navigator/1.0",
+          Accept: "application/json",
+        },
+        next: { revalidate: 86400 },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const addr = data.address || {};
+        const district = addr.county || addr.state_district || addr.city || addr.town || addr.suburb || "Local Region";
+        const state = addr.state || "India";
+        const village = addr.village || addr.suburb || addr.neighbourhood || "";
+        const displayName = data.display_name || `${district}, ${state}`;
+
+        return NextResponse.json({
+          district,
+          state,
+          village,
+          displayName,
+          lat: parseFloat(lat),
+          lon: parseFloat(lon),
+        });
+      }
+    } catch (err) {
+      console.warn("[Reverse Geocode Error]:", err);
+    }
+
+    return NextResponse.json({
+      district: "Local Region",
+      state: "India",
+      village: "",
+      displayName: `Location (${parseFloat(lat).toFixed(2)}, ${parseFloat(lon).toFixed(2)})`,
+      lat: parseFloat(lat),
+      lon: parseFloat(lon),
+    });
+  }
+
+  // 2. Handle Forward Geocoding (query search)
   if (!q.trim()) {
     return NextResponse.json({ results: [] });
   }
 
-  // Pre-configured instant fallbacks for major Indian agricultural districts
   const PRESET_DISTRICTS: Record<string, { lat: number; lon: number; name: string }> = {
     bhopal: { lat: 23.2599, lon: 77.4126, name: "Bhopal, Madhya Pradesh" },
     fanda: { lat: 23.2389, lon: 77.2917, name: "Fanda Kalan, Bhopal, Madhya Pradesh" },

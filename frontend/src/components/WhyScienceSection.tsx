@@ -223,7 +223,7 @@ export const WhyScienceSection: React.FC = () => {
                 Why Authentic Indian Female Voice AI Breaks Literacy Barriers
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed font-normal">
-                Many Indian farmers prefer speaking over typing. AASRA uses Sarvam AI STT & TTS models tuned to 12 Indian regional dialects with clear female voice pronunciation.
+                Many Indian farmers prefer speaking over typing. AASRA uses Google Cloud Chirp 3 HD &amp; Gemini 2.5 Flash Voice Engine tuned to 12 Indian regional agricultural languages with natural vernacular pronunciation.
               </p>
               <div className="space-y-2 pt-2 text-xs">
                 <div className="flex items-center gap-2 text-emerald-900 font-bold">

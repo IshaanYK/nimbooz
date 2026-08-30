@@ -36,7 +36,7 @@ export default function AdminPage() {
               </span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 font-light max-w-xl font-telemetry">
-              Real-time API health checks, Supabase PgBouncer pooler status, Sarvam speech engine telemetry, and system logs.
+              Real-time API health checks, Supabase PgBouncer pooler status, Google Cloud Speech AI telemetry, and system logs.
             </p>
           </div>
 
@@ -60,7 +60,7 @@ export default function AdminPage() {
           </div>
 
           <div className="glass-telemetry-card p-6 border border-cyan-400/30 space-y-2">
-            <span className="text-slate-400 block text-[10px] uppercase">SARVAM SPEECH AI</span>
+            <span className="text-slate-400 block text-[10px] uppercase">GOOGLE CLOUD CHIRP 3 SPEECH AI</span>
             <span className="text-lg font-bold text-[#2DC7FF]">READY (STT + TTS)</span>
             <p className="text-[11px] text-slate-400 font-telemetry">12 Dialects Operational</p>
           </div>

@@ -30,11 +30,11 @@ export const KisanActionVerdict: React.FC = () => {
   const profile = getStoredProfile();
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const farmerName = profile?.fullName || "Ramesh Patel";
+  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : (language === "hi" ? "किसान भाई" : "Farmer Friend");
   const crop = profile?.primaryCrop || "Soybean";
   const acreage = profile?.fieldAreaAcres || 12.5;
-  const district = profile?.district || "Bhopal";
-  const village = profile?.village || "Fanda Kalan";
+  const district = profile?.district || weather?.district || (language === "hi" ? "आपके क्षेत्र" : "Your Region");
+  const village = profile?.village || "";
 
   // Real calculations for the farmer
   const totalDoseLiters = Math.round((250 * acreage) / 100) / 10;
@@ -47,7 +47,7 @@ export const KisanActionVerdict: React.FC = () => {
 
   const verdictTextHindi = `नमस्ते ${farmerName} जी! आपके ${village}, ${district} के ${acreage} एकड़ ${crop} खेत के लिए आज की लाइव रिपोर्ट: ` +
     (isOptimalSpray
-      ? `मौसम छिडकाव के लिए अनुकूल है। हवा की गति ${weather.windSpeed} किमी/घंटा और तापमान ${weather.temperature}°C है। रात का तापमान ${weather.nightTemperature || weather.temperature}°C होने से गर्मी तनाव बढ़ सकता है। सलाह: आज शाम 4:30 बजे के बाद ${acreage} एकड़ खेत में 3.1 लीटर सिंजेंटा क्वांटिस को ${totalWaterLiters} लीटर पानी में मिलाकर छिडकें। इससे लगभग ₹${estimatedSavings.toLocaleString("en-IN")} का शुद्ध फसल लाभ सुरक्षित होगा।`
+      ? `मौसम छिडकाव के लिए अनुकूल है। हवा की गति ${weather.windSpeed} किमी/घंटा और तापमान ${weather.temperature}°C है। रात का तापमान ${weather.nightTemperature || weather.temperature}°C होने से गर्मी तनाव बढ़ सकता है। सलाह: आज शाम 4:30 बजे के बाद ${acreage} एकड़ खेत में ${totalDoseLiters} लीटर सिंजेंटा क्वांटिस को ${totalWaterLiters} लीटर पानी में मिलाकर छिडकें। इससे लगभग ₹${estimatedSavings.toLocaleString("en-IN")} का शुद्ध फसल लाभ सुरक्षित होगा।`
       : `आज तेज हवा या बारिश के कारण छिडकाव न करें। मौसम साफ होने की प्रतीक्षा करें।`);
 
   const verdictTextEnglish = `Namaste ${farmerName}! Live report for your ${acreage} acres of ${crop} in ${village}, ${district}: ` +
@@ -75,14 +75,23 @@ export const KisanActionVerdict: React.FC = () => {
   };
 
   const handleShareWhatsApp = () => {
-    const shareText = `🌾 *AASRA किसान सलाह पत्र — ${farmerName} (${crop})*\n` +
-      `📍 स्थान: ${village}, ${district} (${acreage} एकड़)\n` +
-      `🌡️ लाइव तापमान: ${weather.temperature}°C | रात का तापमान: ${weather.nightTemperature || weather.temperature}°C\n` +
-      `✅ आज का फैसला: ${isOptimalSpray ? "छिडकाव का सही समय है (Optimal Spray Window)" : "आज छिडकाव न करें"}\n` +
-      `🧪 खुराक: ${totalDoseLiters} लीटर Syngenta Quantis + ${totalWaterLiters} लीटर पानी\n` +
-      `💰 अनुमानित शुद्ध लाभ: +₹${estimatedSavings.toLocaleString("en-IN")}\n` +
-      `📞 सिंजेंटा हेल्पलाइन: 1800-102-7964\n` +
-      `👉 देखें: https://frontend-phi-flame-21.vercel.app/dashboard`;
+    const shareText = language === "hi"
+      ? `🌾 *AASRA किसान सलाह पत्र — ${farmerName} (${crop})*\n` +
+        `📍 स्थान: ${village}, ${district} (${acreage} एकड़)\n` +
+        `🌡️ लाइव तापमान: ${weather.temperature}°C | रात का तापमान: ${weather.nightTemperature || weather.temperature}°C\n` +
+        `✅ आज का फैसला: ${isOptimalSpray ? "छिडकाव का सही समय है (Optimal Spray Window)" : "आज छिडकाव न करें"}\n` +
+        `🧪 खुराक: ${totalDoseLiters} लीटर Syngenta Quantis + ${totalWaterLiters} लीटर पानी\n` +
+        `💰 अनुमानित शुद्ध लाभ: +₹${estimatedSavings.toLocaleString("en-IN")}\n` +
+        `📞 सिंजेंटा हेल्पलाइन: 1800-102-7964\n` +
+        `👉 देखें: https://frontend-phi-flame-21.vercel.app/dashboard`
+      : `🌾 *AASRA Farmer Advisory Note — ${farmerName} (${crop})*\n` +
+        `📍 Location: ${village}, ${district} (${acreage} Acres)\n` +
+        `🌡️ Live Temp: ${weather.temperature}°C | Night Temp: ${weather.nightTemperature || weather.temperature}°C\n` +
+        `✅ Today's Action: ${isOptimalSpray ? "Optimal Spray Window Active" : "Hold Spray Operations"}\n` +
+        `🧪 Dosage: ${totalDoseLiters}L Syngenta Quantis + ${totalWaterLiters}L Water\n` +
+        `💰 Net Protected Benefit: +₹${estimatedSavings.toLocaleString("en-IN")}\n` +
+        `📞 Syngenta Helpline: 1800-102-7964\n` +
+        `👉 Open: https://frontend-phi-flame-21.vercel.app/dashboard`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, "_blank");
   };
 
@@ -119,13 +128,13 @@ export const KisanActionVerdict: React.FC = () => {
             }`}
           >
             {isPlayingAudio ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            <span>{isPlayingAudio ? (language === "hi" ? "आवाज बंद करें" : "Stop Audio") : (language === "hi" ? "🔊 बोलकर सुनें" : "🔊 Listen Voice")}</span>
+            <span>{isPlayingAudio ? (language === "hi" ? "आवाज बंद करें" : "Stop Voice") : (language === "hi" ? "🔊 बोलकर सुनें" : "🔊 Listen Voice")}</span>
           </button>
 
           <button
             onClick={handleShareWhatsApp}
             className="px-3.5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
-            title="Share with Farmers on WhatsApp"
+            title="Share on WhatsApp"
           >
             <Share2 className="h-4 w-4" />
             <span className="hidden sm:inline">WhatsApp</span>
@@ -146,10 +155,10 @@ export const KisanActionVerdict: React.FC = () => {
           </div>
           <p className="text-base font-black text-white">Syngenta Quantis</p>
           <p className="text-xs font-mono font-bold text-emerald-300">
-            {totalDoseLiters} L कुल ({acreage} एकड़)
+            {totalDoseLiters} L {language === "hi" ? `कुल (${acreage} एकड़)` : `Total (${acreage} Acres)`}
           </p>
           <span className="text-[10px] text-slate-400 block font-sans">
-            (250 ml प्रति एकड़ @ 150-200L पानी)
+            {language === "hi" ? "(250 ml प्रति एकड़ @ 150-200L पानी)" : "(250 ml/acre @ 150-200L water)"}
           </span>
         </div>
 
@@ -165,10 +174,10 @@ export const KisanActionVerdict: React.FC = () => {
             {language === "hi" ? "आज शाम 4:30 – 7:00 बजे" : "Today 4:30 – 7:00 PM"}
           </p>
           <p className="text-xs font-mono font-bold text-amber-300">
-            हवा: {weather.windSpeed} km/h (शांत)
+            {language === "hi" ? `हवा: ${weather.windSpeed} km/h (शांत)` : `Wind: ${weather.windSpeed} km/h (Calm)`}
           </p>
           <span className="text-[10px] text-slate-400 block font-sans">
-            {language === "hi" ? "धूप ढलने के बाद घोल तुरंत असर करता है" : "Evening application avoids leaf burn"}
+            {language === "hi" ? "धूप ढलने के बाद घोल तुरंत असर करता है" : "Evening spray prevents fast evaporation"}
           </span>
         </div>
 
@@ -184,10 +193,10 @@ export const KisanActionVerdict: React.FC = () => {
             +₹{estimatedSavings.toLocaleString("en-IN")}
           </p>
           <p className="text-xs font-mono text-slate-300">
-            +₹1,850 प्रति एकड़ शुद्ध लाभ
+            {language === "hi" ? "+₹1,850 प्रति एकड़ शुद्ध लाभ" : "+₹1,850 per acre net benefit"}
           </p>
           <span className="text-[10px] text-slate-400 block font-sans">
-            (फूल व फली झड़ने से सुरक्षा)
+            {language === "hi" ? "(फूल व फली झड़ने से सुरक्षा)" : "(Pod & flower drop protection)"}
           </span>
         </div>
 
@@ -210,7 +219,7 @@ export const KisanActionVerdict: React.FC = () => {
               className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] text-center flex items-center justify-center gap-1 cursor-pointer"
             >
               <Phone className="h-3 w-3" />
-              <span>कॉल</span>
+              <span>{language === "hi" ? "कॉल" : "Call"}</span>
             </a>
             {primaryDealer && (
               <a
@@ -232,7 +241,7 @@ export const KisanActionVerdict: React.FC = () => {
       {isPlayingAudio && (
         <div className="bg-amber-400/20 border border-amber-400/40 rounded-2xl p-3 flex items-center gap-3 text-xs text-amber-200 font-mono animate-pulse relative z-10">
           <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-          <span>🎙️ Google Chirp 3 HD Neural Voice Live Streaming... ("आज की बोलती किसान रिपोर्ट")</span>
+          <span>🎙️ Google Chirp 3 HD Neural Voice Live Streaming... ({language === "hi" ? "आज की बोलती किसान रिपोर्ट" : "Daily Spoken Agronomic Briefing"})</span>
         </div>
       )}
     </div>

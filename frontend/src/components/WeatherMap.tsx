@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { MapPin, Sun, CloudRain, Wind, Navigation, Layers, Sparkles, CheckCircle2, AlertTriangle, Zap, User } from "lucide-react";
 
 interface WeatherMapProps {
@@ -17,11 +19,11 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   onLocationSelect,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
   const [currentLat, setCurrentLat] = useState(lat || 23.2599);
   const [currentLon, setCurrentLon] = useState(lon || 77.4126);
   const [weatherCondition, setWeatherCondition] = useState<"sunny" | "rainy" | "windy">("sunny");
   const [selectedFarm, setSelectedFarm] = useState<any>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
 
   const nearbyFarms = [
     {
@@ -63,170 +65,133 @@ export const WeatherMap: React.FC<WeatherMapProps> = ({
   ];
 
   useEffect(() => {
-    if (typeof window !== "undefined" && !(window as any).L) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
+    if (!mapRef.current || mapInstanceRef.current) return;
 
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = () => setMapLoaded(true);
-      document.body.appendChild(script);
-    } else {
-      setMapLoaded(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return;
-    const L = (window as any).L;
-    if (!L) return;
-
-    if ((mapRef.current as any)._leaflet_id) {
-      (mapRef.current as any)._leaflet_id = null;
-      mapRef.current.innerHTML = "";
-    }
+    try {
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+    } catch {}
 
     const map = L.map(mapRef.current).setView([currentLat, currentLon], 13);
+    mapInstanceRef.current = map;
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; OpenStreetMap',
       maxZoom: 18,
     }).addTo(map);
 
     // Plot Nearby Farms on Map
     nearbyFarms.forEach((farm) => {
-      const marker = L.marker([farm.lat, farm.lon]).addTo(map);
-      marker.bindPopup(`<b>${farm.name}</b><br>Owner: ${farm.owner}<br>Crop: ${farm.crop} (${farm.area})<br>Status: ${farm.stress}`);
+      const customIcon = L.divIcon({
+        className: "custom-farm-icon",
+        html: `<div style="background-color: ${farm.color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🌱</div>`,
+        iconSize: [24, 24],
+      });
+
+      const marker = L.marker([farm.lat, farm.lon], { icon: customIcon }).addTo(map);
+
       marker.on("click", () => {
         setSelectedFarm(farm);
+        if (onLocationSelect) onLocationSelect(farm.lat, farm.lon);
       });
     });
 
-    map.on("click", (e: any) => {
+    map.on("click", (e: L.LeafletMouseEvent) => {
       const { lat: newLat, lng: newLng } = e.latlng;
       setCurrentLat(newLat);
       setCurrentLon(newLng);
       if (onLocationSelect) onLocationSelect(newLat, newLng);
     });
-  }, [mapLoaded, weatherCondition]);
 
-  const handleUseGps = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const newLat = pos.coords.latitude;
-        const newLon = pos.coords.longitude;
-        setCurrentLat(newLat);
-        setCurrentLon(newLon);
-        if (onLocationSelect) onLocationSelect(newLat, newLon);
-      });
-    }
-  };
+    setTimeout(() => {
+      try { map.invalidateSize(); } catch {}
+    }, 200);
+
+    return () => {
+      try { map.remove(); } catch {}
+      mapInstanceRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="space-y-4">
-      {/* Top Map Controls Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-emerald-500/20 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-emerald-500 animate-ping" />
-          <span className="font-extrabold text-slate-900 uppercase tracking-wider font-mono">
-            Interactive OpenStreetMap Field & Nearby Farms
-          </span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-bold text-slate-100 flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-emerald-400" />
+            Field & Regional Farm Telemetry Map
+          </h3>
+          <p className="text-xs text-slate-400">
+            Real-time geospatial intelligence cross-referencing micro-climate across farms
+          </p>
         </div>
-
-        {/* Weather Effect Switcher Buttons */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
-          <span className="text-[11px] font-bold text-slate-500 px-2">Weather Layer:</span>
-          {[
-            { id: "sunny", label: "☀️ Sunny (35°C)", icon: Sun },
-            { id: "rainy", label: "🌧️ Raining (12mm)", icon: CloudRain },
-            { id: "windy", label: "🌬️ Wind (18 km/h)", icon: Wind },
-          ].map((w) => (
-            <button
-              key={w.id}
-              onClick={() => setWeatherCondition(w.id as any)}
-              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                weatherCondition === w.id
-                  ? "bg-emerald-600 text-white shadow-md font-black"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              {w.label}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={handleUseGps}
-          className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
-        >
-          <Navigation className="h-3.5 w-3.5" />
-          Acquire My GPS Location
-        </button>
       </div>
 
-      {/* Map Container with Dynamic Weather Overlay */}
-      <div className="relative w-full h-[380px] rounded-3xl border border-emerald-500/30 overflow-hidden shadow-xl bg-slate-900">
-        <div ref={mapRef} className="w-full h-full" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* The Map */}
+        <div className="lg:col-span-2 relative rounded-2xl overflow-hidden border border-white/10 shadow-lg h-[400px]">
+          <div ref={mapRef} className="w-full h-full bg-slate-950" />
 
-        {/* Weather Overlays */}
-        {weatherCondition === "sunny" && (
-          <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-tr from-amber-500/10 via-transparent to-amber-400/20 backdrop-brightness-110" />
-        )}
-
-        {weatherCondition === "rainy" && (
-          <div className="absolute inset-0 z-10 pointer-events-none bg-slate-950/25 overflow-hidden">
-            <div className="w-full h-full flex justify-around opacity-60">
-              <div className="w-0.5 h-6 bg-sky-300 animate-rain" />
-              <div className="w-0.5 h-6 bg-sky-300 animate-rain" style={{ animationDelay: "0.2s" }} />
-              <div className="w-0.5 h-6 bg-sky-300 animate-rain" style={{ animationDelay: "0.4s" }} />
-              <div className="w-0.5 h-6 bg-sky-300 animate-rain" style={{ animationDelay: "0.6s" }} />
+          {/* Floating Map Overlay Info */}
+          <div className="absolute top-3 right-3 z-[400] bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-white/10 text-xs space-y-1 shadow-lg text-slate-200 font-mono">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>LIVE GIS OVERLAY</span>
             </div>
+            <div>Selected Lat: {currentLat.toFixed(4)}</div>
+            <div>Selected Lon: {currentLon.toFixed(4)}</div>
+            <div className="text-[10px] text-slate-400">Source: Open-Meteo & Syngenta CE Hub</div>
           </div>
-        )}
+        </div>
 
-        {/* Floating Farm Telemetry Popup */}
-        {selectedFarm && (
-          <div className="absolute bottom-4 left-4 right-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-emerald-500/40 shadow-2xl space-y-2 text-xs animate-fade-in-up">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-emerald-600" />
-                <h4 className="font-extrabold text-slate-900 text-sm">{selectedFarm.name}</h4>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold font-mono">
-                {selectedFarm.area}
+        {/* Selected / Active Farm Information Panel */}
+        <div className="bg-slate-900 border border-white/10 rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+                Plot Intelligence
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-medium">
+                {selectedFarm ? selectedFarm.crop : crop || "Soybean"}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-slate-700">
-              <div>
-                <span className="text-slate-500 block">Farmer / Owner:</span>
-                <span className="font-bold text-slate-900">{selectedFarm.owner}</span>
+            <div>
+              <h4 className="text-lg font-bold text-white">
+                {selectedFarm ? selectedFarm.name : "My Primary Farm"}
+              </h4>
+              <p className="text-xs text-slate-400">
+                Owner: {selectedFarm ? selectedFarm.owner : "Farmer Profile"} • Area: {selectedFarm ? selectedFarm.area : "4.2 ha"}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950 border border-white/5 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Biological Stress:</span>
+                <span className="font-bold text-amber-400 flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {selectedFarm ? selectedFarm.stress : "Night Heat Stress (6.3/9)"}
+                </span>
               </div>
-              <div>
-                <span className="text-slate-500 block">Crop Variety:</span>
-                <span className="font-bold text-slate-900">{selectedFarm.crop}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Stress Assessment:</span>
-                <span className="font-bold text-amber-600">{selectedFarm.stress}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Biological Action:</span>
-                <span className="font-bold text-emerald-600">{selectedFarm.recommendation}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Recommended Action:</span>
+                <span className="font-bold text-emerald-400 flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {selectedFarm ? selectedFarm.recommendation : "Syngenta Stress Buster (500 ml/ha)"}
+                </span>
               </div>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Selected Coordinates bar */}
-      <div className="flex items-center justify-between text-xs bg-white p-3 rounded-2xl border border-slate-200 shadow-sm text-slate-700">
-        <span>Active GPS Coordinates:</span>
-        <span className="font-mono font-bold text-emerald-700">
-          {currentLat.toFixed(4)}° N, {currentLon.toFixed(4)}° E
-        </span>
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+            <span>Click any farm marker to inspect field status</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -200,7 +200,7 @@ export function stopGoogleSpeech() {
     try {
       currentAudio.pause();
       currentAudio.currentTime = 0;
-    } catch (_) {}
+    } catch (_) { }
     currentAudio = null;
   }
   if (speechSynthesisTimer) {
@@ -210,6 +210,6 @@ export function stopGoogleSpeech() {
   if (typeof window !== "undefined" && window.speechSynthesis) {
     try {
       window.speechSynthesis.cancel();
-    } catch (_) {}
+    } catch (_) { }
   }
 }

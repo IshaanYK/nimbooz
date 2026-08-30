@@ -14,6 +14,8 @@ import { getActiveField, FieldRecord } from "@/lib/fieldStore";
 import { SyngentaDealerLocator } from "@/components/SyngentaDealerLocator";
 import { KisanActionVerdict } from "@/components/KisanActionVerdict";
 import { MandiPriceTicker } from "@/components/MandiPriceTicker";
+import { BiologicalActivationCountdown } from "@/components/BiologicalActivationCountdown";
+import { CropFitEconomicMatrix } from "@/components/CropFitEconomicMatrix";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
@@ -150,7 +152,9 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
-                    {profile.fullName || "Ramesh Patel"} · {profile.district || "Bhopal"} ({profile.village || "Fanda Kalan"})
+                    {profile.fullName
+                      ? `${profile.fullName} · ${profile.district || "Registered Farm"} ${profile.village ? `(${profile.village})` : ""}`
+                      : `Your Farm · ${activeField.name || "Main Field Plot"}`}
                   </h3>
                 </div>
                 <p className="text-xs text-slate-600">
@@ -250,6 +254,19 @@ export default function DashboardPage() {
 
         {/* 🌟 1. Today's Farmer Action Verdict & 1-Tap Voice Briefing */}
         <KisanActionVerdict />
+
+        {/* 🌟 2. Concept Note PS-02: Biological Activation Countdown */}
+        <BiologicalActivationCountdown
+          cropName={profile.primaryCrop?.toUpperCase() || "SOYBEAN"}
+          fieldAcres={currentAcres}
+          stressType={weather.isNightHeatStress ? "Active Night Thermal Heat Stress (>25°C)" : "Compound Solar Radiation & Moisture Deficit"}
+        />
+
+        {/* 🌟 3. Concept Note PS-03: CropFit Apply vs Delay vs Skip Decision Support */}
+        <CropFitEconomicMatrix
+          cropName={profile.primaryCrop || "Soybean"}
+          fieldAcres={currentAcres}
+        />
 
         {/* Full Width Overwatch Layout */}
         <div className="space-y-8">
@@ -449,15 +466,18 @@ export default function DashboardPage() {
 
           {/* Verified Syngenta Authorized Dealer Locator Section */}
           <SyngentaDealerLocator
-            district={profile.district || "Bhopal"}
-            farmerName={profile.fullName || "Ramesh Patel"}
+            district={profile.district || activeField.district || weather.district || "Your Location"}
+            farmerName={profile.fullName || "Farm Owner"}
             crop={profile.primaryCrop || "Soybean"}
             fieldAcres={currentAcres}
             productName="Syngenta Quantis & Stress Buster"
           />
 
           {/* Daily APMC Mandi Commodity Rates Ticker */}
-          <MandiPriceTicker />
+          <MandiPriceTicker
+            district={profile.district || activeField.district || weather.district}
+            state={profile.state || activeField.state}
+          />
 
         </div>
 

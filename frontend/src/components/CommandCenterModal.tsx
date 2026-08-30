@@ -80,7 +80,7 @@ export const CommandCenterModal: React.FC<ModalProps> = ({
   const handleMicClick = () => {
     setIsRecording((prev) => !prev);
     if (!isRecording) {
-      triggerToast("🎙️ Listening via Sarvam Saaras v3 STT... Speak now!");
+      triggerToast("🎙️ Listening via Google Speech Engine... Speak now!");
       setTimeout(() => {
         setIsRecording(false);
         setInputMsg("रात में तापमान बढ़ने पर सोयाबीन के लिए क्या करें?");

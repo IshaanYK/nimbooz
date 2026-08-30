@@ -72,7 +72,7 @@ export default function JournalPage() {
 
         {/* Main Vertical Journal Component */}
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-sm">
-          <InterventionJournal />
+          <InterventionJournal filter={filter} />
         </div>
       </div>
     </AppShell>
