@@ -17,9 +17,10 @@ import { MandiPriceTicker } from "@/components/MandiPriceTicker";
 import { BiologicalActivationCountdown } from "@/components/BiologicalActivationCountdown";
 import { CropFitEconomicMatrix } from "@/components/CropFitEconomicMatrix";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
+import { getRegionalCrops, saveCustomCrop } from "@/lib/cropRegistry";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
-  Thermometer, Droplets, Sprout, RefreshCw, Volume2, VolumeX, Edit3, ShieldCheck
+  Thermometer, Droplets, Sprout, RefreshCw, Volume2, VolumeX, Edit3, ShieldCheck, X, Plus
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -30,6 +31,11 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<FarmerProfile>(getStoredProfile());
   const [activeField, setActiveFieldState] = useState<FieldRecord>(getActiveField());
   const [isSpeakingBriefing, setIsSpeakingBriefing] = useState<boolean>(false);
+  const [showCropSwitchModal, setShowCropSwitchModal] = useState<boolean>(false);
+  const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
+  const [customCropText, setCustomCropText] = useState<string>("");
+
+  const regionalCrops = getRegionalCrops(profile.district || weather.district, profile.state || weather.state);
 
   useEffect(() => {
     setProfile(getStoredProfile());
@@ -92,8 +98,20 @@ export default function DashboardPage() {
             <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 mt-1">
               {t.welcomePrefix} {profile.fullName || "Kisan Sathi"}
             </h1>
-            <p className="text-sm text-slate-600 font-medium">
-              {profile.village ? `${profile.village}, ` : ""}{profile.district || weather.district || "Live GPS Location"}{profile.state ? `, ${profile.state}` : ""} · <strong className="text-slate-900">{currentAcres} Acres</strong> ({profile.primaryCrop?.toUpperCase() || "FARM CROP"})
+            <p className="text-sm text-slate-600 font-medium flex items-center gap-2 flex-wrap mt-1">
+              <span>{profile.village ? `${profile.village}, ` : ""}{profile.district || weather.district || "Live GPS Location"}{profile.state ? `, ${profile.state}` : ""}</span>
+              <span>·</span>
+              <strong className="text-slate-900">{currentAcres} Acres</strong>
+              <span>·</span>
+              <button
+                onClick={() => setShowCropSwitchModal(true)}
+                className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs px-2.5 py-0.5 rounded-lg cursor-pointer transition-all shadow-2xs"
+                title="Click to change or add crop"
+              >
+                <Sprout className="h-3.5 w-3.5 text-emerald-600" />
+                <span>{profile.primaryCrop || "Soybean"}</span>
+                <Edit3 className="h-2.5 w-2.5 opacity-60 ml-0.5" />
+              </button>
             </p>
           </div>
 
@@ -496,6 +514,116 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* 🌟 Dynamic Regional & Custom Crop Switcher Modal */}
+      {showCropSwitchModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full uppercase">
+                  {weather.district || profile.district || "Regional"} Agromarket
+                </span>
+                <h3 className="text-lg font-black text-slate-900 font-display mt-0.5">
+                  {language === "hi" ? "फसल चुनें या नई फसल जोड़ें" : "Select or Add Farm Crop"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowCropSwitchModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Toggle Modes */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setIsCustomMode(false)}
+                className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
+                  !isCustomMode ? "bg-white text-emerald-900 shadow-xs" : "text-slate-600"
+                }`}
+              >
+                🌾 Native Regional Crops ({regionalCrops.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCustomMode(true)}
+                className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
+                  isCustomMode ? "bg-white text-emerald-900 shadow-xs" : "text-slate-600"
+                }`}
+              >
+                ✨ + Add Custom Crop
+              </button>
+            </div>
+
+            {isCustomMode ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-800">
+                    {language === "hi" ? "अपनी नई फसल का नाम दर्ज करें:" : "Enter New Custom Crop Name:"}
+                  </label>
+                  <input
+                    type="text"
+                    value={customCropText}
+                    onChange={(e) => setCustomCropText(e.target.value)}
+                    placeholder="e.g. Dragon Fruit, Garlic (लहसुन), Saffron, Strawberry, Chia Seeds..."
+                    className="w-full px-4 py-3 bg-emerald-50/60 border-2 border-emerald-500 rounded-xl text-slate-900 font-bold text-sm focus:outline-none"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    💡 AASRA AI will automatically estimate base Growing Degree Days (GDD), thermal limit curves, and local MSP benchmarks for this crop.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customCropText.trim()) {
+                      const saved = saveCustomCrop({ name: customCropText.trim() });
+                      handleUpdateCrop(saved.name);
+                      setCustomCropText("");
+                      setShowCropSwitchModal(false);
+                    }
+                  }}
+                  disabled={!customCropText.trim()}
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Save &amp; Switch to {customCropText.trim() || "New Crop"}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                  {regionalCrops.map((c) => {
+                    const isSelected = profile.primaryCrop?.toLowerCase().includes(c.id) || profile.primaryCrop === c.name;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          handleUpdateCrop(c.name);
+                          setShowCropSwitchModal(false);
+                        }}
+                        className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-emerald-50 border-emerald-500 text-emerald-950 font-bold"
+                            : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800"
+                        }`}
+                      >
+                        <div>
+                          <div className="font-extrabold text-xs">{c.name} {c.isCustom ? "★" : ""}</div>
+                          <div className="text-[10px] text-slate-500">{c.defaultVariety} · {c.season}</div>
+                        </div>
+                        {isSelected && <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

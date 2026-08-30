@@ -38,14 +38,28 @@ export interface FieldRecord {
   healthScore?: number;
 }
 
-export const CROP_OPTIONS = [
-  { id: "soybean", name: "Soybean (सोयाबीन)", defaultVariety: "JS-335", stage: "R2 Flowering" },
-  { id: "rice", name: "Rice / Paddy (धान)", defaultVariety: "Pusa Basmati 1121", stage: "Flowering / Grain Filling" },
-  { id: "wheat", name: "Wheat (गेहूं)", defaultVariety: "HD-2967", stage: "Tillering Stage" },
-  { id: "cotton", name: "Cotton (कपास)", defaultVariety: "Bt Cotton II", stage: "Square Formation" },
-  { id: "sugarcane", name: "Sugarcane (गन्ना)", defaultVariety: "Co-86032", stage: "Grand Growth Phase" },
-  { id: "maize", name: "Maize (मक्का)", defaultVariety: "HQPM-1", stage: "Tasseling Stage" },
-];
+import { MASTER_CROPS, getRegionalCrops, saveCustomCrop, CropInfo } from "./cropRegistry";
+
+export { saveCustomCrop };
+export type { CropInfo };
+
+export const CROP_OPTIONS = MASTER_CROPS.map((c) => ({
+  id: c.id,
+  name: c.name,
+  defaultVariety: c.defaultVariety,
+  stage: c.stage,
+}));
+
+export function getFieldCropOptions(district?: string, state?: string) {
+  const regional = getRegionalCrops(district, state);
+  return regional.map((c) => ({
+    id: c.id,
+    name: c.name,
+    defaultVariety: c.defaultVariety,
+    stage: c.stage,
+    isCustom: c.isCustom,
+  }));
+}
 
 const STORAGE_KEY_FIELDS = "aasra_farmer_real_fields_v4";
 const STORAGE_KEY_ACTIVE_FIELD = "aasra_active_field_id_v4";

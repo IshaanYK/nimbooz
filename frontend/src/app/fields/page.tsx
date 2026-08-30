@@ -15,6 +15,8 @@ import {
   setActiveField,
   getInitialFarmerField,
   CROP_OPTIONS,
+  getFieldCropOptions,
+  saveCustomCrop,
   FieldRecord
 } from "@/lib/fieldStore";
 import {
@@ -42,12 +44,23 @@ export default function MyFieldsPage() {
   const [activeField, setActiveFieldState] = useState<FieldRecord>(getInitialFarmerField());
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
 
+  const regionalCrops = getFieldCropOptions(weather.district, weather.state);
+
   // New field form state
   const [newFieldName, setNewFieldName] = useState<string>("");
-  const [newCrop, setNewCrop] = useState<string>("Soybean");
+  const [newCrop, setNewCrop] = useState<string>(regionalCrops[0]?.name || "Soybean (सोयाबीन)");
+  const [isCustomCropMode, setIsCustomCropMode] = useState<boolean>(false);
+  const [customCropName, setCustomCropName] = useState<string>("");
   const [newAcres, setNewAcres] = useState<number>(5.0);
-  const [newLat, setNewLat] = useState<number>(23.2599);
-  const [newLon, setNewLon] = useState<number>(77.4126);
+  const [newLat, setNewLat] = useState<number>(weather.lat || 23.2599);
+  const [newLon, setNewLon] = useState<number>(weather.lon || 77.4126);
+
+  useEffect(() => {
+    if (weather.lat && weather.lon) {
+      setNewLat(weather.lat);
+      setNewLon(weather.lon);
+    }
+  }, [weather.lat, weather.lon]);
 
   useEffect(() => {
     const list = getSavedFields();
@@ -87,11 +100,23 @@ export default function MyFieldsPage() {
     const lon = Number(newLon) || 77.4126;
     const acres = Number(newAcres) || 5.0;
 
+    let finalCropName = newCrop;
+    let finalVariety = "Standard Farm Variety";
+
+    if (isCustomCropMode && customCropName.trim()) {
+      const saved = saveCustomCrop({ name: customCropName.trim() });
+      finalCropName = saved.name;
+      finalVariety = saved.defaultVariety;
+    } else {
+      const matched = regionalCrops.find((c) => c.name === newCrop);
+      if (matched) finalVariety = matched.defaultVariety;
+    }
+
     const newFieldObj: FieldRecord = {
       id: `field_${Date.now()}`,
       name: newFieldName.trim() || `Farm Plot ${savedFields.length + 1}`,
-      crop: newCrop,
-      cropVariety: "JS-335",
+      crop: finalCropName,
+      cropVariety: finalVariety,
       areaAcres: acres,
       areaHa: Math.round((acres * 0.404686) * 10) / 10,
       center: [lat, lon],
@@ -102,7 +127,7 @@ export default function MyFieldsPage() {
         [lat - 0.003, lon - 0.002],
       ],
       sowingDate: new Date().toISOString().split("T")[0],
-      growthStage: "R2 Flowering Stage",
+      growthStage: "Vegetative Stage",
       soilType: "Black Cotton Vertisol",
       irrigationType: "Rainfed + Borewell",
       color: "#10B981",
@@ -115,6 +140,8 @@ export default function MyFieldsPage() {
     setActiveField(newFieldObj.id);
     setShowAddModal(false);
     setNewFieldName("");
+    setIsCustomCropMode(false);
+    setCustomCropName("");
   };
 
   const currentField = activeField || savedFields[0] || getInitialFarmerField();
@@ -326,19 +353,57 @@ export default function MyFieldsPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Primary Crop</label>
-                  <select
-                    value={newCrop}
-                    onChange={(e) => setNewCrop(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs"
-                  >
-                    <option value="Soybean">Soybean (सोयाबीन)</option>
-                    <option value="Cotton">Cotton (कपास)</option>
-                    <option value="Wheat">Wheat (गेहूं)</option>
-                    <option value="Rice / Paddy">Rice / Paddy (धान)</option>
-                    <option value="Maize">Maize (मक्का)</option>
-                  </select>
+                <div className="col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-slate-700 block text-xs">
+                      {language === "hi" ? "फसल चुनें (क्षेत्रीय और कस्टम)" : "Primary Crop (Regional & Custom)"}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomCropMode(!isCustomCropMode);
+                        if (!isCustomCropMode) setCustomCropName("");
+                      }}
+                      className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold underline cursor-pointer"
+                    >
+                      {isCustomCropMode ? "← Choose from list" : "+ Add Custom Crop"}
+                    </button>
+                  </div>
+
+                  {isCustomCropMode ? (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        required
+                        value={customCropName}
+                        onChange={(e) => setCustomCropName(e.target.value)}
+                        placeholder="e.g. Dragon Fruit, Garlic, Mustard, Saffron..."
+                        className="w-full p-2.5 bg-emerald-50/60 border-2 border-emerald-500 rounded-xl font-medium text-xs text-slate-900 focus:outline-none"
+                      />
+                      <span className="text-[10px] text-slate-500 block">
+                        ✨ AI will calculate real thermal limits, GDD, and market rates for this crop.
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      value={newCrop}
+                      onChange={(e) => {
+                        if (e.target.value === "ADD_CUSTOM") {
+                          setIsCustomCropMode(true);
+                        } else {
+                          setNewCrop(e.target.value);
+                        }
+                      }}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs cursor-pointer"
+                    >
+                      {regionalCrops.map((c) => (
+                        <option key={c.id} value={c.name}>
+                          {c.name} {c.isCustom ? "★ (Custom)" : ""}
+                        </option>
+                      ))}
+                      <option value="ADD_CUSTOM">+ Add Custom Crop...</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>

@@ -248,3 +248,75 @@ export async function executeGoogleGeminiPrompt(prompt: string, systemInstructio
 
   return null;
 }
+
+/**
+ * Execute multimodal prompt with image on Google Gemini 2.5 Flash
+ */
+export async function executeGoogleGeminiVisionPrompt(
+  prompt: string,
+  imageBase64: string,
+  mimeType: string = "image/jpeg",
+  systemInstruction?: string
+): Promise<any | null> {
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+  const uniqueKeys = Array.from(new Set(GOOGLE_AI_KEYS));
+
+  // Strip potential base64 prefix
+  const cleanBase64 = imageBase64.replace(/^data:[a-zA-Z0-9/+-]+;base64,/, "");
+
+  for (const key of uniqueKeys) {
+    for (const model of models) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+        const reqBody: any = {
+          contents: [
+            {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: mimeType || "image/jpeg",
+                    data: cleanBase64,
+                  },
+                },
+                { text: prompt },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 2048,
+            responseMimeType: "application/json",
+          },
+        };
+
+        if (systemInstruction) {
+          reqBody.systemInstruction = {
+            parts: [{ text: systemInstruction }],
+          };
+        }
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reqBody),
+          signal: AbortSignal.timeout(12000),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const parsed = extractAndParseJson(rawText);
+            if (parsed && typeof parsed === "object") {
+              return { data: parsed, model, keyUsed: key.slice(0, 10) + "..." };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[Gemini Vision] ${model} with key ${key.slice(0, 8)}... failed:`, err);
+      }
+    }
+  }
+
+  return null;
+}

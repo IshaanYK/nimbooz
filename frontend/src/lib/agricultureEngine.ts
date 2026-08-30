@@ -6,6 +6,8 @@
  * Formulas sourced from AASRA_TECHNICAL_RESEARCH.md (Syngenta Algorithm Document)
  */
 
+import { resolveCropThresholds } from "@/lib/cropRegistry";
+
 // ─────────────────────────────────────────────────────────
 // Crop thresholds (T_opt = optimal, T_limit = critical)
 // ─────────────────────────────────────────────────────────
@@ -19,62 +21,22 @@ export interface CropThresholds {
   t_base_gdd: number;    // Base temperature for GDD accumulation (°C)
 }
 
-export const CROP_THRESHOLDS: Record<string, CropThresholds> = {
-  soybean: {
-    name: "Soybean",
-    t_opt_day: 30,
-    t_limit_day: 40,
-    t_opt_night: 22,
-    t_limit_night: 30,
-    t_frost: 2,
-    t_base_gdd: 10,
-  },
-  rice: {
-    name: "Rice / Paddy",
-    t_opt_day: 30,
-    t_limit_day: 38,
-    t_opt_night: 24,
-    t_limit_night: 30,
-    t_frost: 8,
-    t_base_gdd: 10,
-  },
-  wheat: {
-    name: "Wheat",
-    t_opt_day: 22,
-    t_limit_day: 35,
-    t_opt_night: 15,
-    t_limit_night: 25,
-    t_frost: 0,
-    t_base_gdd: 5,
-  },
-  cotton: {
-    name: "Cotton",
-    t_opt_day: 32,
-    t_limit_day: 40,
-    t_opt_night: 22,
-    t_limit_night: 30,
-    t_frost: 5,
-    t_base_gdd: 15,
-  },
-  maize: {
-    name: "Maize",
-    t_opt_day: 28,
-    t_limit_day: 38,
-    t_opt_night: 18,
-    t_limit_night: 27,
-    t_frost: 2,
-    t_base_gdd: 10,
-  },
-  sugarcane: {
-    name: "Sugarcane",
-    t_opt_day: 30,
-    t_limit_day: 40,
-    t_opt_night: 20,
-    t_limit_night: 28,
-    t_frost: 5,
-    t_base_gdd: 12,
-  },
-};
+export function getEffectiveCropThresholds(cropId: string): CropThresholds {
+  const resolved = resolveCropThresholds(cropId);
+  return {
+    name: resolved.name,
+    t_opt_day: resolved.t_opt_day,
+    t_limit_day: resolved.t_limit_day,
+    t_opt_night: resolved.t_opt_night,
+    t_limit_night: resolved.t_limit_night,
+    t_frost: resolved.t_frost,
+    t_base_gdd: resolved.t_base_gdd,
+  };
+}
+
+export const CROP_THRESHOLDS: Record<string, CropThresholds> = new Proxy({}, {
+  get: (_, prop: string) => getEffectiveCropThresholds(prop),
+});
 
 // ─────────────────────────────────────────────────────────
 // 4.1 — Daytime Heat Stress (0–9 scale)
@@ -83,7 +45,7 @@ export function calcDayHeatStress(
   tmax: number,
   cropId: string
 ): { score: number; interpretation: string } {
-  const thresholds = CROP_THRESHOLDS[cropId.toLowerCase()] ?? CROP_THRESHOLDS.soybean;
+  const thresholds = getEffectiveCropThresholds(cropId);
   const { t_opt_day: tOpt, t_limit_day: tLimit, name } = thresholds;
 
   let score: number;

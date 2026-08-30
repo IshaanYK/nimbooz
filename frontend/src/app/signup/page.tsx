@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { saveProfile, EMPTY_FARMER_PROFILE, INDIAN_LANGUAGES, FarmerProfile } from "@/lib/userStore";
 import { saveFarmerField, setActiveField, FieldRecord } from "@/lib/fieldStore";
+import { getRegionalCrops, saveCustomCrop } from "@/lib/cropRegistry";
 import { saveFieldToBackend } from "@/lib/api";
 import { reverseGeocode } from "@/context/WeatherContext";
 import {
@@ -51,6 +52,10 @@ export default function SignupPage() {
     irrigationType: "Drip + Monsoon Rainfed",
     soilType: "Black Cotton Soil",
   });
+
+  const [isCustomCropMode, setIsCustomCropMode] = useState<boolean>(false);
+  const [customCropInput, setCustomCropInput] = useState<string>("");
+  const regionalCrops = getRegionalCrops(formData.district, formData.state);
 
   const [gpsDetected, setGpsDetected] = useState<boolean>(false);
   const [loadingGps, setLoadingGps] = useState<boolean>(false);
@@ -164,8 +169,19 @@ export default function SignupPage() {
     const acres = formData.fieldAreaAcres || 5.0;
     const ha = Math.round((acres / 2.471) * 100) / 100;
 
+    let primaryCrop = formData.primaryCrop;
+    let cropVariety = formData.cropVariety || "High Yield Certified";
+
+    if (isCustomCropMode && customCropInput.trim()) {
+      const saved = saveCustomCrop({ name: customCropInput.trim() });
+      primaryCrop = saved.name;
+      cropVariety = saved.defaultVariety;
+    }
+
     const finalProfile: FarmerProfile = {
       ...formData,
+      primaryCrop,
+      cropVariety,
       fieldAreaHa: ha,
       gpsLocation: { lat, lon },
     };
@@ -561,24 +577,57 @@ export default function SignupPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.primaryCropLabel}
-                    </label>
-                    <select
-                      value={formData.primaryCrop}
-                      onChange={(e) => setFormData({ ...formData, primaryCrop: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none cursor-pointer"
-                    >
-                      <option value="Soybean">Soybean (सोयाबीन)</option>
-                      <option value="Rice">Rice / Paddy (धान)</option>
-                      <option value="Cotton">Cotton (कपास)</option>
-                      <option value="Wheat">Wheat (गेहूँ)</option>
-                      <option value="Maize">Maize (मक्का)</option>
-                      <option value="Mustard">Mustard (सरसों)</option>
-                      <option value="Gram">Gram / Chickpea (चना)</option>
-                      <option value="Sugarcane">Sugarcane (गन्ना)</option>
-                    </select>
+                  <div className="sm:col-span-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                        {t.primaryCropLabel}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomCropMode(!isCustomCropMode);
+                          if (!isCustomCropMode) setCustomCropInput("");
+                        }}
+                        className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold underline cursor-pointer"
+                      >
+                        {isCustomCropMode ? "← List" : "+ Custom"}
+                      </button>
+                    </div>
+
+                    {isCustomCropMode ? (
+                      <div>
+                        <input
+                          type="text"
+                          required
+                          value={customCropInput}
+                          onChange={(e) => setCustomCropInput(e.target.value)}
+                          placeholder="e.g. Dragon Fruit, Garlic, Saffron, Chia..."
+                          className="w-full bg-emerald-50/60 border-2 border-emerald-500 rounded-xl p-3 text-sm font-bold text-slate-900 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          ✨ AI detects GDD &amp; MSP
+                        </span>
+                      </div>
+                    ) : (
+                      <select
+                        value={formData.primaryCrop}
+                        onChange={(e) => {
+                          if (e.target.value === "ADD_CUSTOM") {
+                            setIsCustomCropMode(true);
+                          } else {
+                            setFormData({ ...formData, primaryCrop: e.target.value });
+                          }
+                        }}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none cursor-pointer"
+                      >
+                        {regionalCrops.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name} {c.isCustom ? "★ (Custom)" : ""}
+                          </option>
+                        ))}
+                        <option value="ADD_CUSTOM">+ Add Custom Crop...</option>
+                      </select>
+                    )}
                   </div>
 
                   <div>

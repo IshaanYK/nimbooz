@@ -12,6 +12,8 @@ import {
   setActiveField,
   calculatePolygonAreaAcres,
   CROP_OPTIONS,
+  getFieldCropOptions,
+  saveCustomCrop,
 } from "@/lib/fieldStore";
 import {
   MapPin,
@@ -81,7 +83,10 @@ export function InteractiveWeatherMap({
   const [drawnPoints, setDrawnPoints] = useState<Array<[number, number]>>([]);
   const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
   const [newPlotName, setNewPlotName] = useState<string>("");
-  const [newPlotCrop, setNewPlotCrop] = useState<string>(CROP_OPTIONS[0].name);
+  const regionalCropList = getFieldCropOptions(weather.district, weather.state);
+  const [newPlotCrop, setNewPlotCrop] = useState<string>(regionalCropList[0]?.name || "Soybean (सोयाबीन)");
+  const [isCustomCropMode, setIsCustomCropMode] = useState<boolean>(false);
+  const [customCropInput, setCustomCropInput] = useState<string>("");
 
   // GPS State
   const [isLocating, setIsLocating] = useState<boolean>(false);
@@ -213,11 +218,23 @@ export function InteractiveWeatherMap({
     const centerLat = drawnPoints.reduce((acc, curr) => acc + curr[0], 0) / drawnPoints.length;
     const centerLon = drawnPoints.reduce((acc, curr) => acc + curr[1], 0) / drawnPoints.length;
 
+    let finalCropName = newPlotCrop;
+    let finalVariety = "Standard Farm Cultivar";
+
+    if (isCustomCropMode && customCropInput.trim()) {
+      const saved = saveCustomCrop({ name: customCropInput.trim() });
+      finalCropName = saved.name;
+      finalVariety = saved.defaultVariety;
+    } else {
+      const matched = regionalCropList.find((c) => c.name === newPlotCrop);
+      if (matched) finalVariety = matched.defaultVariety;
+    }
+
     const newField: FieldRecord = {
       id: `field_${Date.now()}`,
       name: newPlotName.trim() || `Plot #${fields.length + 1}`,
-      crop: newPlotCrop,
-      cropVariety: "JS-335",
+      crop: finalCropName,
+      cropVariety: finalVariety,
       sowingDate: new Date().toISOString().split("T")[0],
       growthStage: "Vegetative Stage",
       areaAcres: calculatedArea.acres,
@@ -238,6 +255,8 @@ export function InteractiveWeatherMap({
     setDrawnPoints([]);
     setShowSaveModal(false);
     setNewPlotName("");
+    setIsCustomCropMode(false);
+    setCustomCropInput("");
 
     if (onFieldSelected) onFieldSelected(newField);
     if (onLocationSelect) onLocationSelect(centerLat, centerLon);
@@ -514,18 +533,55 @@ export function InteractiveWeatherMap({
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Crop:</label>
-                <select
-                  value={newPlotCrop}
-                  onChange={(e) => setNewPlotCrop(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:border-emerald-500"
-                >
-                  {CROP_OPTIONS.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700 block text-xs">
+                    {language === "hi" ? "फसल चुनें (क्षेत्रीय और कस्टम):" : "Crop (Regional & Custom):"}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomCropMode(!isCustomCropMode);
+                      if (!isCustomCropMode) setCustomCropInput("");
+                    }}
+                    className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold underline cursor-pointer"
+                  >
+                    {isCustomCropMode ? "← Choose from list" : "+ Add Custom Crop"}
+                  </button>
+                </div>
+
+                {isCustomCropMode ? (
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      value={customCropInput}
+                      onChange={(e) => setCustomCropInput(e.target.value)}
+                      placeholder="e.g. Dragon Fruit, Garlic, Saffron, Chia Seeds..."
+                      className="w-full px-3.5 py-2 bg-emerald-50/60 border-2 border-emerald-500 rounded-xl text-slate-900 font-medium text-xs focus:outline-none"
+                    />
+                    <span className="text-[10px] text-slate-500 block">
+                      ✨ AI will automatically calculate GDD, heat tolerance, and market rates for your custom crop.
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    value={newPlotCrop}
+                    onChange={(e) => {
+                      if (e.target.value === "ADD_CUSTOM") {
+                        setIsCustomCropMode(true);
+                      } else {
+                        setNewPlotCrop(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    {regionalCropList.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name} {c.isCustom ? "★ (Custom)" : ""}
+                      </option>
+                    ))}
+                    <option value="ADD_CUSTOM">+ Add Custom Crop...</option>
+                  </select>
+                )}
               </div>
 
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs text-emerald-950 font-bold">
