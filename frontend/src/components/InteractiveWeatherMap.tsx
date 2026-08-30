@@ -467,7 +467,7 @@ export function InteractiveWeatherMap({
       </div>
 
       {/* 4. The Map Canvas */}
-      <div className="h-[460px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-inner relative bg-slate-100">
+      <div className="h-[460px] w-full rounded-2xl border border-slate-200 shadow-inner relative bg-slate-100" style={{ minHeight: "460px", overflow: "clip" }}>
         <LeafletMapInner
           center={center}
           fields={fields}
