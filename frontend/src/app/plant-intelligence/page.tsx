@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -8,6 +8,7 @@ import {
   runPlantIntelligencePipeline,
   parseFarmerIntent,
   submitFarmerYieldFeedback,
+  searchLocation,
 } from "@/lib/api";
 import {
   ShieldAlert,
@@ -32,8 +33,9 @@ import {
   Check,
   Package,
   Bug,
-  Sprout,
-  DollarSign,
+  MapPin,
+  Search,
+  Navigation,
   ChevronDown,
   ChevronUp
 } from "lucide-react";
@@ -156,6 +158,15 @@ export default function PlantIntelligencePage() {
   const [selectedRegionKey, setSelectedRegionKey] = useState<string>("bhopal");
   const [selectedCrop, setSelectedCrop] = useState<string>("soybean");
 
+  // Universal Location State (GPS / Search)
+  const [customLocation, setCustomLocation] = useState<{ name: string; lat: number; lon: number } | null>(null);
+  const [locationSearchQuery, setLocationSearchQuery] = useState<string>("");
+  const [locationSearchResults, setLocationSearchResults] = useState<Array<any>>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
+  const [gpsLoading, setGpsLoading] = useState<boolean>(false);
+  const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [growthStage, setGrowthStage] = useState<string>("Flowering");
   const [symptoms, setSymptoms] = useState<string>("None");
   const [soilMoisture, setSoilMoisture] = useState<string>("Optimal");
@@ -166,7 +177,7 @@ export default function PlantIntelligencePage() {
   const [pipelineData, setPipelineData] = useState<PipelineResponse | null>(null);
   const [selectedDayModal, setSelectedDayModal] = useState<DayForecast | null>(null);
 
-  // New High-Impact Feature States
+  // High-Impact Feature States
   const [delayDays, setDelayDays] = useState<number>(0);
   const [selectedTankMix, setSelectedTankMix] = useState<string>("urea");
   const [catalogCategory, setCatalogCategory] = useState<string>("all");
@@ -192,16 +203,26 @@ export default function PlantIntelligencePage() {
     loadRegions();
   }, []);
 
-  const currentRegion = regions[selectedRegionKey] || {
-    name: "Bhopal / Central India",
-    crops: ["soybean", "wheat", "chickpea"],
-    lat: 23.2599,
-    lon: 77.4126,
-    soil_type: "Medium Black Clay",
-    dominant_stresses: ["Drought", "Heat Waves"],
-  };
+  const currentRegion = customLocation
+    ? {
+        name: customLocation.name,
+        crops: pipelineData?.region?.crops || ["soybean", "wheat", "cotton_bt", "rice"],
+        lat: customLocation.lat,
+        lon: customLocation.lon,
+        soil_type: pipelineData?.region?.soil_type || "Regional Agricultural Soil",
+        dominant_stresses: pipelineData?.region?.dominant_stresses || ["Weather Deviation", "Moisture Deficit"],
+      }
+    : regions[selectedRegionKey] || {
+        name: "Bhopal / Central India",
+        crops: ["soybean", "wheat", "chickpea"],
+        lat: 23.2599,
+        lon: 77.4126,
+        soil_type: "Medium Black Clay",
+        dominant_stresses: ["Drought", "Heat Waves"],
+      };
 
   const handleRegionChange = (newKey: string) => {
+    setCustomLocation(null);
     setSelectedRegionKey(newKey);
     const targetRegion = regions[newKey];
     if (targetRegion && targetRegion.crops?.length > 0) {
@@ -215,7 +236,7 @@ export default function PlantIntelligencePage() {
 
   const handleCropChange = (newCrop: string) => {
     setSelectedCrop(newCrop);
-    executePipeline(selectedRegionKey, newCrop, growthStage, symptoms, soilMoisture);
+    executePipeline(selectedRegionKey, newCrop, growthStage, symptoms, soilMoisture, customLocation?.lat, customLocation?.lon, customLocation?.name);
   };
 
   const executePipeline = async (
@@ -223,7 +244,10 @@ export default function PlantIntelligencePage() {
     crop: string,
     stage: string,
     sym: string,
-    moisture: string
+    moisture: string,
+    customLat?: number | null,
+    customLon?: number | null,
+    customName?: string | null
   ) => {
     setLoading(true);
     setFeedbackSubmitted(false);
@@ -235,6 +259,9 @@ export default function PlantIntelligencePage() {
         growth_stage: stage,
         symptoms: sym,
         soil_moisture: moisture,
+        lat: customLat,
+        lon: customLon,
+        custom_location_name: customName
       });
       if (data) {
         setPipelineData(data);
@@ -242,6 +269,69 @@ export default function PlantIntelligencePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Universal Location Search Handler
+  const handleLocationSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocationSearchQuery(val);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    if (val.trim().length >= 2) {
+      setIsSearchingLocation(true);
+      setShowSearchResults(true);
+      searchTimeoutRef.current = setTimeout(async () => {
+        const results = await searchLocation(val);
+        setLocationSearchResults(results);
+        setIsSearchingLocation(false);
+      }, 350);
+    } else {
+      setLocationSearchResults([]);
+      setShowSearchResults(false);
+      setIsSearchingLocation(false);
+    }
+  };
+
+  const handleSelectSearchResult = (result: any) => {
+    const loc = {
+      name: result.name,
+      lat: Number(result.lat),
+      lon: Number(result.lon)
+    };
+    setCustomLocation(loc);
+    setLocationSearchQuery(result.name);
+    setShowSearchResults(false);
+    executePipeline(selectedRegionKey, selectedCrop, growthStage, symptoms, soilMoisture, loc.lat, loc.lon, loc.name);
+  };
+
+  // Auto-Detect Device GPS Coordinates
+  const handleAutoDetectGPS = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const loc = {
+          name: `My GPS Field (${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E)`,
+          lat,
+          lon
+        };
+        setCustomLocation(loc);
+        setLocationSearchQuery(`GPS: ${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`);
+        setShowSearchResults(false);
+        setGpsLoading(false);
+        executePipeline(selectedRegionKey, selectedCrop, growthStage, symptoms, soilMoisture, lat, lon, loc.name);
+      },
+      (err) => {
+        setGpsLoading(false);
+        alert("GPS location access was denied or unavailable. You can search any city/district name instead.");
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
   };
 
   const handleExtractContext = async () => {
@@ -256,7 +346,7 @@ export default function PlantIntelligencePage() {
         setGrowthStage(newStage);
         setSymptoms(newSymptoms);
         setSoilMoisture(newMoisture);
-        executePipeline(selectedRegionKey, selectedCrop, newStage, newSymptoms, newMoisture);
+        executePipeline(selectedRegionKey, selectedCrop, newStage, newSymptoms, newMoisture, customLocation?.lat, customLocation?.lon, customLocation?.name);
       }
     } finally {
       setParsingContext(false);
@@ -313,28 +403,28 @@ export default function PlantIntelligencePage() {
               </span>
               <span className="text-xs font-mono font-bold text-blue-700 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                LIVE GPS TELEMETRY: OPEN-METEO ({currentRegion?.name?.split("/")[0]?.trim() || "BHOPAL"} {currentRegion?.lat ?? 23.26}°N, {currentRegion?.lon ?? 77.41}°E)
+                LIVE GPS TELEMETRY: OPEN-METEO ({currentRegion?.name?.split(",")[0] || "BHOPAL"} {Number(currentRegion?.lat).toFixed(2)}°N, {Number(currentRegion?.lon).toFixed(2)}°E)
               </span>
               <span className="text-[10px] font-mono font-bold text-amber-700 uppercase bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                13 SYNGENTA INDIA PRODUCTS
+                UNIVERSAL LOCATION ENABLED
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 mt-1">
               {t?.plantIntelligenceTitle || "Plant Intelligence Engine"}
             </h1>
             <p className="text-sm text-slate-600 font-medium max-w-3xl">
-              14-Day Real Weather Phenology Forecast, Multi-Criteria Syngenta Advisor &amp; Microclimate Radar
+              14-Day Real Weather Phenology Forecast for Any Location in India, Multi-Criteria Syngenta Advisor &amp; Spray Radar
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => executePipeline(selectedRegionKey, selectedCrop, growthStage, symptoms, soilMoisture)}
+              onClick={() => executePipeline(selectedRegionKey, selectedCrop, growthStage, symptoms, soilMoisture, customLocation?.lat, customLocation?.lon, customLocation?.name)}
               disabled={loading}
               className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              <span>{loading ? "Fetching Real Telemetry..." : "Re-run Live Pipeline"}</span>
+              <span>{loading ? "Fetching Live Telemetry..." : "Re-run Live Pipeline"}</span>
             </button>
           </div>
         </div>
@@ -344,17 +434,17 @@ export default function PlantIntelligencePage() {
           <summary className="flex items-center justify-between font-bold text-slate-900 text-sm list-none">
             <span className="flex items-center gap-2">
               <Info className="h-4 w-4 text-emerald-600" />
-              How the Multi-Criteria PS-02 &amp; PS-03 Pipeline Operates
+              How the Universal PS-02 &amp; PS-03 Pipeline Works for Any Indian Location
             </span>
             <span className="text-xs text-slate-500 font-mono group-open:hidden">Click to expand</span>
             <span className="text-xs text-slate-500 font-mono hidden group-open:block">Click to collapse</span>
           </summary>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
             {[
-              { step: "01", title: "Live Open-Meteo Feed", desc: "Real GPS weather (TMax, TMin, Rain, RH, Wind, VPD) for accurate local telemetry", color: "emerald" },
-              { step: "02", title: "Mechanistic GDD & ET", desc: "Tracks physiological stage accumulation and reproductive vulnerability", color: "sky" },
-              { step: "03", title: "Compound Stress (3.2)", desc: "HSI + DSI non-linear multiplication identifies silent damage & flower abortion", color: "blue" },
-              { step: "04", title: "Multi-Criteria Matrix", desc: "Evaluates Biostimulants + Fungicide/Insecticide secondary tank partner", color: "amber" },
+              { step: "01", title: "Universal Location", desc: "Auto-detect GPS or search any Indian district/village (Indore, Varanasi, Akola, etc.)", color: "emerald" },
+              { step: "02", title: "Live Open-Meteo Feed", desc: "Extracts real 14-day weather (TMax, TMin, Rain, RH, Wind, VPD) for exact coordinates", color: "sky" },
+              { step: "03", title: "Mechanistic GDD & Stress", desc: "HSI + DSI non-linear multiplication identifies silent damage & flower abortion", color: "blue" },
+              { step: "04", title: "Multi-Criteria Matrix", desc: "Matches Biostimulants + Fungicide/Insecticide secondary partner based on moisture", color: "amber" },
               { step: "05", title: "ROBI & Spray Radar", desc: "Calculates net Mandi cash ROI and safe early-morning spray window", color: "purple" },
             ].map(({ step, title, desc, color }) => (
               <div key={step} className={`p-3.5 rounded-xl border space-y-1 ${
@@ -384,22 +474,75 @@ export default function PlantIntelligencePage() {
           {/* Left Column (4 cols) */}
           <div className="lg:col-span-4 space-y-6">
             
-            {/* Region & Crop Selector Card */}
+            {/* Universal Location & Crop Selector Card */}
             <div className="stripe-card p-5 space-y-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                <Compass className="h-4 w-4 text-emerald-600" />
-                <span>Agro-Climatic Zone &amp; Crop</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                  <Compass className="h-4 w-4 text-emerald-600" />
+                  <span>Field Location &amp; Crop</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAutoDetectGPS}
+                  disabled={gpsLoading}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  title="Auto-detect exact GPS location of your field"
+                >
+                  <Navigation className={`h-3 w-3 ${gpsLoading ? "animate-spin" : ""}`} />
+                  <span>{gpsLoading ? "Locating..." : "📍 Auto-Detect GPS"}</span>
+                </button>
+              </div>
+
+              {/* Universal Search Bar for any District/Village in India */}
+              <div className="relative">
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
+                  Search Any District / Village in India
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={locationSearchQuery}
+                    onChange={handleLocationSearchInput}
+                    onFocus={() => locationSearchResults.length > 0 && setShowSearchResults(true)}
+                    placeholder="e.g. Indore, Varanasi, Akola, Karnal, Nashik..."
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500 font-medium"
+                  />
+                  <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  {isSearchingLocation && (
+                    <RefreshCw className="h-3.5 w-3.5 text-slate-400 absolute right-3 top-2.5 animate-spin" />
+                  )}
+                </div>
+
+                {/* Autocomplete Dropdown */}
+                {showSearchResults && locationSearchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-100">
+                    {locationSearchResults.map((res) => (
+                      <button
+                        key={res.id}
+                        type="button"
+                        onClick={() => handleSelectSearchResult(res)}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-slate-800 font-medium flex items-center justify-between cursor-pointer"
+                      >
+                        <span className="truncate">{res.name}</span>
+                        <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-2">
+                          {Number(res.lat).toFixed(2)}°N, {Number(res.lon).toFixed(2)}°E
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-                  Target Agro-Climatic Zone
+                  Or Quick Select Agro-Climatic Preset
                 </label>
                 <select
-                  value={selectedRegionKey}
+                  value={customLocation ? "" : selectedRegionKey}
                   onChange={(e) => handleRegionChange(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500 font-medium cursor-pointer"
                 >
+                  {customLocation && <option value="">Custom: {customLocation.name.split(",")[0]}</option>}
                   {Object.entries(regions || {}).map(([key, info]) => (
                     <option key={key} value={key}>
                       {info?.name || key}
@@ -411,18 +554,24 @@ export default function PlantIntelligencePage() {
               {currentRegion && (
                 <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-xs space-y-1.5">
                   <div className="text-slate-800 font-semibold flex items-center justify-between">
-                    <span>Coordinates:</span>
+                    <span>Target Location:</span>
+                    <span className="font-mono text-slate-700 truncate max-w-[170px]" title={currentRegion.name}>
+                      {currentRegion.name.split(",")[0]}
+                    </span>
+                  </div>
+                  <div className="text-slate-800 font-semibold flex items-center justify-between">
+                    <span>Live GPS Coordinates:</span>
                     <span className="font-mono text-slate-700">
-                      {currentRegion?.lat ?? 23.25}°N, {currentRegion?.lon ?? 77.41}°E
+                      {Number(currentRegion?.lat).toFixed(2)}°N, {Number(currentRegion?.lon).toFixed(2)}°E
                     </span>
                   </div>
                   <div className="text-slate-800">
-                    <span className="font-semibold">Soil Type:</span> {currentRegion?.soil_type || "Medium Black Clay"}
+                    <span className="font-semibold">Soil Classification:</span> {currentRegion?.soil_type || "Medium Black Clay"}
                   </div>
                   <div>
-                    <span className="font-semibold text-slate-800 block mb-1">Dominant Stresses:</span>
+                    <span className="font-semibold text-slate-800 block mb-1">Dominant Regional Stresses:</span>
                     <div className="flex flex-wrap gap-1">
-                      {(currentRegion?.dominant_stresses || ["Heat Waves", "Drought"]).map((s, idx) => (
+                      {(currentRegion?.dominant_stresses || ["Heat Waves", "Drought"]).map((s: string, idx: number) => (
                         <span
                           key={idx}
                           className="px-2 py-0.5 rounded-md bg-amber-100/80 text-amber-900 border border-amber-300 text-[10px] font-bold"
@@ -444,7 +593,7 @@ export default function PlantIntelligencePage() {
                   onChange={(e) => handleCropChange(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-500 font-medium capitalize cursor-pointer"
                 >
-                  {(currentRegion?.crops || ["soybean", "wheat", "cotton_bt"]).map((c) => (
+                  {(currentRegion?.crops || ["soybean", "wheat", "cotton_bt", "rice", "groundnut", "chilli"]).map((c: string) => (
                     <option key={c} value={c}>
                       {c.replace("_", " ")}
                     </option>
@@ -504,7 +653,7 @@ export default function PlantIntelligencePage() {
                       value={growthStage}
                       onChange={(e) => {
                         setGrowthStage(e.target.value);
-                        executePipeline(selectedRegionKey, selectedCrop, e.target.value, symptoms, soilMoisture);
+                        executePipeline(selectedRegionKey, selectedCrop, e.target.value, symptoms, soilMoisture, customLocation?.lat, customLocation?.lon, customLocation?.name);
                       }}
                       className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
                     >
@@ -524,7 +673,7 @@ export default function PlantIntelligencePage() {
                       value={symptoms}
                       onChange={(e) => {
                         setSymptoms(e.target.value);
-                        executePipeline(selectedRegionKey, selectedCrop, growthStage, e.target.value, soilMoisture);
+                        executePipeline(selectedRegionKey, selectedCrop, growthStage, e.target.value, soilMoisture, customLocation?.lat, customLocation?.lon, customLocation?.name);
                       }}
                       className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
                     >
@@ -543,7 +692,7 @@ export default function PlantIntelligencePage() {
                       value={soilMoisture}
                       onChange={(e) => {
                         setSoilMoisture(e.target.value);
-                        executePipeline(selectedRegionKey, selectedCrop, growthStage, symptoms, e.target.value);
+                        executePipeline(selectedRegionKey, selectedCrop, growthStage, symptoms, e.target.value, customLocation?.lat, customLocation?.lon, customLocation?.name);
                       }}
                       className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
                     >
@@ -556,7 +705,7 @@ export default function PlantIntelligencePage() {
               </div>
             </div>
 
-            {/* Savings Advisory Card (Stop Futile Pesticides) */}
+            {/* Savings Advisory Card */}
             <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-2 text-xs">
               <div className="flex items-center gap-2 text-amber-900 font-bold">
                 <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />

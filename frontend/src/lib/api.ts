@@ -247,6 +247,9 @@ export async function runPlantIntelligencePipeline(payload: {
   growth_stage: string;
   symptoms: string;
   soil_moisture: string;
+  lat?: number | null;
+  lon?: number | null;
+  custom_location_name?: string | null;
 }) {
   // 1. Try FastAPI backend
   try {
@@ -279,6 +282,28 @@ export async function runPlantIntelligencePipeline(payload: {
   } catch {}
 
   return null;
+}
+
+export async function searchLocation(query: string) {
+  if (!query || query.trim().length < 2) return [];
+  try {
+    const res = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query.trim())}&count=6&language=en&format=json`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      return (data.results || []).map((r: any) => ({
+        id: `loc_${r.latitude}_${r.longitude}`,
+        name: [r.name, r.admin2, r.admin1, r.country].filter(Boolean).join(", "),
+        short_name: r.name,
+        lat: r.latitude,
+        lon: r.longitude,
+        state: r.admin1 || "",
+        district: r.admin2 || ""
+      }));
+    }
+  } catch {}
+  return [];
 }
 
 export async function parseFarmerIntent(text: string) {
