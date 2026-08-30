@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useLanguage } from "@/context/LanguageContext";
+import { useWeather } from "@/context/WeatherContext";
 import {
   FieldRecord,
   getSavedFields,
@@ -52,16 +53,20 @@ interface InteractiveWeatherMapProps {
 }
 
 export function InteractiveWeatherMap({
-  lat = 23.2599,
-  lon = 77.4126,
+  lat,
+  lon,
   locationName,
   onLocationSelect,
   onFieldSelected,
 }: InteractiveWeatherMapProps) {
   const { language } = useLanguage();
+  const { weather } = useWeather();
+
+  const effectiveLat = lat ?? weather.lat ?? 23.2599;
+  const effectiveLon = lon ?? weather.lon ?? 77.4126;
 
   // Coordinates and Fields State
-  const [center, setCenter] = useState<[number, number]>([lat, lon]);
+  const [center, setCenter] = useState<[number, number]>([effectiveLat, effectiveLon]);
   const [fields, setFields] = useState<FieldRecord[]>([]);
   const [activeField, setActiveFieldState] = useState<FieldRecord | null>(null);
   const [mapType, setMapType] = useState<"satellite" | "streets" | "terrain">("satellite");
@@ -90,12 +95,14 @@ export function InteractiveWeatherMap({
     }
   }, []);
 
-  // Update center if parent lat/lon changes
+  // Update center if parent lat/lon or weather context changes
   useEffect(() => {
     if (lat && lon) {
       setCenter([lat, lon]);
+    } else if (weather.lat && weather.lon) {
+      setCenter([weather.lat, weather.lon]);
     }
-  }, [lat, lon]);
+  }, [lat, lon, weather.lat, weather.lon]);
 
   // Autocomplete Geocoding Search
   useEffect(() => {

@@ -6,6 +6,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { getStoredProfile } from "@/lib/userStore";
 import { getActiveField } from "@/lib/fieldStore";
 
+import { useWeather } from "@/context/WeatherContext";
+
 interface MandiCommodity {
   commodity: string;
   commodityHi: string;
@@ -27,6 +29,7 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
   state: propState,
 }) => {
   const { language } = useLanguage();
+  const { weather } = useWeather();
   const [rates, setRates] = useState<MandiCommodity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [sourceTag, setSourceTag] = useState<string>("APMC Daily");
@@ -47,6 +50,12 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
   useEffect(() => {
     if (propDistrict && propDistrict.trim()) return;
 
+    if (weather.district && weather.district !== "Local District") {
+      setResolvedDistrict(weather.district);
+      setResolvedState(weather.state || "India");
+      return;
+    }
+
     const profile = getStoredProfile();
     if (profile && profile.district && profile.district.trim()) {
       setResolvedDistrict(profile.district.trim());
@@ -60,41 +69,22 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
       setResolvedState(activeField.state || "India");
       return;
     }
+  }, [propDistrict, weather.district, weather.state]);
 
-    if (typeof window !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const res = await fetch(`/api/geocode?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-            if (res.ok) {
-              const geo = await res.json();
-              if (geo.district) {
-                setResolvedDistrict(geo.district);
-                setResolvedState(geo.state || "India");
-                return;
-              }
-            }
-          } catch (_) {}
-          setResolvedDistrict("Your Local Mandi");
-          setResolvedState("India");
-        },
-        () => {
-          setResolvedDistrict("Your Local Mandi");
-          setResolvedState("India");
-        },
-        { timeout: 5000 }
-      );
-    }
-  }, [propDistrict]);
-
-  const activeDistrict = resolvedDistrict || "Your Local Mandi";
-  const activeState = resolvedState || "India";
+  const activeDistrict = resolvedDistrict || weather.district || "Your Local Mandi";
+  const activeState = resolvedState || weather.state || "India";
 
   const fetchRates = useCallback(async () => {
     if (!activeDistrict) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/mandi/rates?district=${encodeURIComponent(activeDistrict)}&state=${encodeURIComponent(activeState)}`);
+      const queryParams = new URLSearchParams({
+        district: activeDistrict,
+        state: activeState,
+        lat: String(weather.lat || 23.2599),
+        lon: String(weather.lon || 77.4126),
+      });
+      const res = await fetch(`/api/mandi/rates?${queryParams.toString()}`);
       if (res.ok) {
         const data = await res.json();
         if (data.rates && Array.isArray(data.rates)) {
@@ -107,7 +97,7 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [activeDistrict, activeState]);
+  }, [activeDistrict, activeState, weather.lat, weather.lon]);
 
   useEffect(() => {
     if (activeDistrict) {

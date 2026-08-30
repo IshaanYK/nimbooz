@@ -133,22 +133,30 @@ export async function fetchLiveAgronomicTelemetry(
       humidity = Math.round((data?.current?.relative_humidity_2m ?? humidity) * 10) / 10;
       windSpeed = Math.round((data?.current?.wind_speed_10m ?? windSpeed) * 10) / 10;
 
-      const hourlyTemps = data?.hourly?.temperature_2m || [];
-      const hourlyMoist = data?.hourly?.soil_moisture_0_to_1cm || [];
+      const hourlyTimes: string[] = data?.hourly?.time || [];
+      const hourlyTemps: number[] = data?.hourly?.temperature_2m || [];
+      const hourlyMoist: number[] = data?.hourly?.soil_moisture_0_to_1cm || [];
 
-      // Calculate real night average (8 PM to 6 AM)
-      const nightHours = [20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6];
-      const validNight = nightHours.map((h) => hourlyTemps[h]).filter((t: any) => typeof t === "number");
-      if (validNight.length > 0) {
-        nightTemp = Math.round((validNight.reduce((a: number, b: number) => a + b, 0) / validNight.length) * 10) / 10;
+      // Calculate real night average (8 PM to 6 AM) using actual ISO timestamps
+      const nightTemps: number[] = [];
+      for (let i = 0; i < Math.min(hourlyTimes.length, 36); i++) {
+        const timePart = hourlyTimes[i]?.split("T")?.[1];
+        if (timePart) {
+          const hour = parseInt(timePart.split(":")[0], 10);
+          if ([20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6].includes(hour)) {
+            if (typeof hourlyTemps[i] === "number") {
+              nightTemps.push(hourlyTemps[i]);
+            }
+          }
+        }
       }
 
-      if (hourlyMoist.length > 0) {
-        const moistSlice = hourlyMoist.slice(0, 24).filter((m: any) => typeof m === "number");
-        if (moistSlice.length > 0) {
-          const avgM = moistSlice.reduce((a: number, b: number) => a + b, 0) / moistSlice.length;
-          soilMoisture = Math.round(avgM * 1000) / 10;
-        }
+      if (nightTemps.length > 0) {
+        nightTemp = Math.round((nightTemps.reduce((a, b) => a + b, 0) / nightTemps.length) * 10) / 10;
+      }
+
+      if (hourlyMoist.length > 0 && typeof hourlyMoist[0] === "number") {
+        soilMoisture = Math.round(hourlyMoist[0] * 100);
       }
     }
   } catch (err) {

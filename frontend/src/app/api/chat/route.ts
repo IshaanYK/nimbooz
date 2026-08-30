@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
       crop_variety = "Standard Variety",
       district = "Local District",
       village = "",
+      state = "",
     } = body;
 
     reqLang = language;
@@ -105,11 +106,19 @@ export async function POST(req: NextRequest) {
 
     // 1. Fetch Real Live Telemetry & Real APMC Mandi Data FIRST
     const telemetry = await fetchLiveAgronomicTelemetry(Number(lat) || 23.2599, Number(lon) || 77.4126, crop);
-    const mandiInfo = findCropMandiRate(message || crop, district);
 
     const activeTemp = temperature != null ? Number(temperature) : telemetry.temp;
     const activeNightTemp = night_temp != null ? Number(night_temp) : telemetry.nightTemp;
     const activeSoil = soil_moisture != null ? Number(soil_moisture) : telemetry.soilMoisture;
+
+    const mandiInfo = findCropMandiRate(message || crop, district, state, {
+      temp: activeTemp,
+      nightTemp: activeNightTemp,
+      soilMoisture: activeSoil,
+      windSpeed: telemetry.windSpeed,
+      isNightHeatStress: activeNightTemp > 25.0,
+      isRaining: false,
+    });
     const dosePerAcreMl = 250;
     const totalDoseLiters = Math.round((dosePerAcreMl * acresNum) / 100) / 10;
     const waterLiters = Math.round(175 * acresNum);

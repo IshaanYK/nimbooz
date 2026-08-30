@@ -443,8 +443,31 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     // If for any reason replyText is still empty, generate instant localized fallback
     if (!replyText || !replyText.trim()) {
       const lowerQ = textClean.toLowerCase();
-      if (lowerQ.includes("मूल्य") || lowerQ.includes("भाव") || lowerQ.includes("rate") || lowerQ.includes("price") || lowerQ.includes("bhav") || lowerQ.includes("सोयाबीन") || lowerQ.includes("soybean") || lowerQ.includes("गेहूं") || lowerQ.includes("wheat") || lowerQ.includes("कपास") || lowerQ.includes("cotton")) {
-        const m = findCropMandiRate(textClean || crop, effectiveDistrict);
+      if (
+        lowerQ.includes("मूल्य") ||
+        lowerQ.includes("भाव") ||
+        lowerQ.includes("rate") ||
+        lowerQ.includes("price") ||
+        lowerQ.includes("bhav") ||
+        lowerQ.includes("सोयाबीन") ||
+        lowerQ.includes("soybean") ||
+        lowerQ.includes("गेहूं") ||
+        lowerQ.includes("wheat") ||
+        lowerQ.includes("कपास") ||
+        lowerQ.includes("cotton") ||
+        lowerQ.includes("सरसों") ||
+        lowerQ.includes("mustard") ||
+        lowerQ.includes("प्याज") ||
+        lowerQ.includes("onion")
+      ) {
+        const m = findCropMandiRate(textClean || crop, effectiveDistrict, weather.state, {
+          temp: weather.temperature,
+          nightTemp: weather.nightTemperature,
+          soilMoisture: weather.soilMoistureEst,
+          windSpeed: weather.windSpeed,
+          isNightHeatStress: weather.isNightHeatStress,
+          isRaining: weather.isRaining,
+        });
         replyText = language === "hi"
           ? `${m.mandi} में आज ${m.commodityHi} का मॉडल भाव ₹${m.modalPrice.toLocaleString("en-IN")} प्रति क्विंटल (दायरा: ₹${m.minPrice.toLocaleString("en-IN")} - ₹${m.maxPrice.toLocaleString("en-IN")}/क्विंटल) है।`
           : `In ${m.mandi} today, ${m.commodity} modal price is ₹${m.modalPrice.toLocaleString("en-IN")}/quintal (Range: ₹${m.minPrice.toLocaleString("en-IN")} – ₹${m.maxPrice.toLocaleString("en-IN")}/q).`;
