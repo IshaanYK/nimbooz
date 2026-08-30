@@ -3,6 +3,7 @@
 /**
  * AASRA Real-Time Weather & Predictive Intelligence Context
  * Respects user GPS permission settings to prevent repeated pop-up prompts.
+ * Fully supports dynamic location changes from GPS, map search, or district selection.
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
@@ -40,6 +41,7 @@ export interface WeatherData {
 interface WeatherContextType {
   weather: WeatherData;
   refetch: (forceGps?: boolean) => void;
+  setCustomCoordinates: (lat: number, lon: number, customName?: string) => Promise<void>;
 }
 
 const WMO_DESCRIPTIONS: Record<number, { desc: string; emoji: string }> = {
@@ -52,6 +54,7 @@ const WMO_DESCRIPTIONS: Record<number, { desc: string; emoji: string }> = {
   51: { desc: "Light Drizzle",      emoji: "🌦️" },
   53: { desc: "Moderate Drizzle",   emoji: "🌦️" },
   55: { desc: "Dense Drizzle",      emoji: "🌧️" },
+  56: { desc: "Freezing Drizzle",   emoji: "🌧️" },
   61: { desc: "Slight Rain",        emoji: "🌧️" },
   63: { desc: "Moderate Rain",      emoji: "🌧️" },
   65: { desc: "Heavy Rain",         emoji: "⛈️" },
@@ -75,24 +78,41 @@ const DEFAULT_WEATHER: WeatherData = {
   weatherEmoji: "⛅",
   isRaining: false,
   rainPrediction: "🌤️ NO RAIN PREDICTED: Ideal Syngenta Stress Buster 48h spray window.",
-  isNightHeatStress: true,
-  heatStressPercent: 78,
-  nightTemperature: 27.8,
-  nightMinTemperature: 25.4,
-  nightStressDegreeHours: 14.6,
-  soilMoistureEst: 46,
-  soilTemperatureReal: 28.2,
+  isNightHeatStress: false,
+  heatStressPercent: 45,
+  nightTemperature: 23.8,
+  nightMinTemperature: 22.4,
+  nightStressDegreeHours: 0,
+  soilMoistureEst: 44,
+  soilTemperatureReal: 24.2,
   precipitationProbability: 10,
-  locationName: "Auto-Detecting Location...",
+  locationName: "Loading Live Telemetry...",
   village: "Local Plot",
-  district: "Field Region",
-  state: "State",
+  district: "Bhopal",
+  state: "Madhya Pradesh",
   lastUpdated: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
   isLoading: false,
   hasError: false,
 };
 
 export async function reverseGeocode(lat: number, lon: number): Promise<{ locationName: string; village: string; district: string; state: string }> {
+  // 1. Try local API proxy
+  try {
+    const res = await fetch(`/api/geocode?lat=${lat}&lon=${lon}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.district || data.displayName) {
+        return {
+          locationName: data.displayName || `${data.village ? data.village + ", " : ""}${data.district}, ${data.state}`,
+          village: data.village || "",
+          district: data.district || "Local District",
+          state: data.state || "India"
+        };
+      }
+    }
+  } catch (_) {}
+
+  // 2. Try Nominatim
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
       headers: { "User-Agent": "AASRA-Agri-App/1.0" },
@@ -107,32 +127,13 @@ export async function reverseGeocode(lat: number, lon: number): Promise<{ locati
       
       const parts = [village, district, state].filter(Boolean);
       const locationName = parts.length > 0 ? parts.join(", ") : `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`;
-      return { locationName, village, district, state };
+      return { locationName, village, district: district || "Local District", state: state || "India" };
     }
-  } catch (e) {
-    console.warn("Nominatim reverse geocode error, attempting fallback", e);
-  }
+  } catch (_) {}
 
-  try {
-    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
-    if (res.ok) {
-      const data = await res.json();
-      const village = data.locality || data.city || "";
-      const district = data.principalSubdivision || "";
-      const state = data.countryName || "";
-      const locationName = [village, district].filter(Boolean).join(", ") || `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`;
-      return { locationName, village, district, state };
-    }
-  } catch (e) {
-    console.warn("Fallback reverse geocode error", e);
-  }
-
-  return { locationName: `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`, village: "", district: "", state: "" };
+  return { locationName: `${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E`, village: "", district: "Local District", state: "India" };
 }
 
-/**
- * Predicts smart rain & weather forecast based on lat/lon, date, time, and temperature
- */
 export function predictWeatherCondition(
   temp: number,
   precip: number,
@@ -141,7 +142,6 @@ export function predictWeatherCondition(
 ): { isRaining: boolean; prediction: string } {
   const rainCodes = [51, 53, 55, 61, 63, 65, 80, 95, 99];
   const isRainingNow = precip > 0.1 || rainCodes.includes(code);
-
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
@@ -165,16 +165,19 @@ export function predictWeatherCondition(
 const WeatherContext = createContext<WeatherContextType>({
   weather: DEFAULT_WEATHER,
   refetch: () => {},
+  setCustomCoordinates: async () => {},
 });
 
 export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [weather, setWeather] = useState<WeatherData>({ ...DEFAULT_WEATHER, isLoading: true });
 
-  const fetchWeather = useCallback(async (lat: number, lon: number) => {
+  const fetchWeather = useCallback(async (lat: number, lon: number, customLocationLabel?: string) => {
+    setWeather((prev) => ({ ...prev, isLoading: true }));
     try {
       const geo = await reverseGeocode(lat, lon);
+      const displayLocationName = customLocationLabel || geo.locationName;
 
-      // Fetch Real Telemetry including hourly temperatures, soil moisture, and soil temperature
+      // Fetch Real Telemetry from Open-Meteo
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,soil_temperature_0cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=2`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("Open-Meteo fetch failed");
@@ -182,7 +185,6 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const c = data.current;
       const h = data.hourly || {};
 
-      // 1. Calculate Real Night Temperatures (20:00 to 06:00) from Open-Meteo Hourly Array
       const hourlyTimes: string[] = h.time || [];
       const hourlyTemps: number[] = h.temperature_2m || [];
       const hourlySoilM: number[] = h.soil_moisture_0_to_1cm || [];
@@ -219,9 +221,8 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ? Math.min(99, Math.max(35, Math.round(40 + (realNightMean - 25.0) * 12 + totalDegreeHours * 1.5)))
         : Math.max(10, Math.round(25 - (25.0 - realNightMean) * 4));
 
-      // 2. Real Measured Soil Moisture & Soil Temperature
       const soilMoistureVal = hourlySoilM.length > 0
-        ? Math.round(hourlySoilM[0] * 100) // Convert m³/m³ to %
+        ? Math.round(hourlySoilM[0] * 100)
         : Math.min(95, Math.max(15, Math.round(c.relative_humidity_2m * 0.55)));
 
       const soilTempVal = hourlySoilT.length > 0
@@ -229,7 +230,6 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
         : Math.round((c.temperature_2m + 1.2) * 10) / 10;
 
       const precipProbVal = hourlyPrecipProb.length > 0 ? hourlyPrecipProb[0] : 10;
-
       const wmoData = WMO_DESCRIPTIONS[c.weather_code] || { desc: "Clear", emoji: "☀️" };
 
       const { isRaining, prediction } = predictWeatherCondition(
@@ -260,25 +260,27 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
         soilMoistureEst: soilMoistureVal,
         soilTemperatureReal: soilTempVal,
         precipitationProbability: precipProbVal,
-        locationName: geo.locationName,
+        locationName: displayLocationName,
         village: geo.village,
-        district: geo.district,
-        state: geo.state,
+        district: geo.district || (displayLocationName.split(",")[0] || "Local District"),
+        state: geo.state || "India",
         lastUpdated: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
         isLoading: false,
         hasError: false,
       });
     } catch (err) {
-      console.warn("Open-Meteo fetch failed, using defaults:", err);
+      console.warn("Open-Meteo fetch failed:", err);
       setWeather((prev) => ({ ...prev, isLoading: false, hasError: true }));
     }
   }, []);
 
+  const setCustomCoordinates = useCallback(async (lat: number, lon: number, customName?: string) => {
+    await fetchWeather(lat, lon, customName);
+  }, [fetchWeather]);
+
   const getLocationAndFetch = useCallback((forceGps = false) => {
-    setWeather((prev) => ({ ...prev, isLoading: true }));
     if (typeof window === "undefined") return;
 
-    // Check if user has saved farm location in profile
     let targetLat = DEFAULT_WEATHER.lat;
     let targetLon = DEFAULT_WEATHER.lon;
     try {
@@ -294,7 +296,6 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const hasDeniedGps = localStorage.getItem("aasra_gps_denied") === "true";
 
-    // If user previously turned off / denied permission and forceGps is false, use profile coordinates!
     if (hasDeniedGps && !forceGps) {
       fetchWeather(targetLat, targetLon);
       return;
@@ -324,7 +325,7 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [getLocationAndFetch]);
 
   return (
-    <WeatherContext.Provider value={{ weather, refetch: getLocationAndFetch }}>
+    <WeatherContext.Provider value={{ weather, refetch: getLocationAndFetch, setCustomCoordinates }}>
       {children}
     </WeatherContext.Provider>
   );

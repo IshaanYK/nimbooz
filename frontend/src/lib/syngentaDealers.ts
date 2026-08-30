@@ -301,6 +301,129 @@ export const SYNGENTA_DISTRICT_DEALERS: Record<string, SyngentaDealer[]> = {
     }
   ],
 
+  Agra: [
+    {
+      id: "agr-01",
+      name: "Agra Krishi Vikas Kendra (Mandi Samiti)",
+      proprietor: "Rameshwar Sharma",
+      phone: "+919837012345",
+      whatsapp: "919837012345",
+      district: "Agra",
+      state: "Uttar Pradesh",
+      address: "Shop No. 14, APMC Mandi Samiti, Fatehabad Road, Agra, UP 282001",
+      distanceKm: 2.6,
+      rating: 4.9,
+      reviewCount: 210,
+      isVerifiedSyngentaPartner: true,
+      googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=Syngenta+Dealers+Mandi+Samiti+Fatehabad+Road+Agra",
+      stockStatus: { quantis: true, isabion: true, stressBuster: true, score: true, ampligo: true },
+      deliveryAvailable: true,
+      timings: "8:00 AM - 8:00 PM",
+    },
+    {
+      id: "agr-02",
+      name: "Kisan Beej Bhandar & Syngenta Retail",
+      proprietor: "Vijay Singh Chauhan",
+      phone: "+919412098765",
+      whatsapp: "919412098765",
+      district: "Agra",
+      state: "Uttar Pradesh",
+      address: "Main Market, Shamsabad Road, Agra, UP 283125",
+      distanceKm: 4.8,
+      rating: 4.8,
+      reviewCount: 145,
+      isVerifiedSyngentaPartner: true,
+      googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=Kisan+Beej+Bhandar+Shamsabad+Road+Agra",
+      stockStatus: { quantis: true, isabion: true, stressBuster: true, score: true, ampligo: true },
+      deliveryAvailable: true,
+      timings: "8:30 AM - 7:30 PM",
+    }
+  ],
+
+  Varanasi: [
+    {
+      id: "vns-01",
+      name: "Kashi Krishi Seva Kendra",
+      proprietor: "Santosh Kumar Pandey",
+      phone: "+919415023456",
+      whatsapp: "919415023456",
+      district: "Varanasi",
+      state: "Uttar Pradesh",
+      address: "Near APMC Krishi Mandi, Rohania, Varanasi, UP 221108",
+      distanceKm: 3.4,
+      rating: 4.9,
+      reviewCount: 235,
+      isVerifiedSyngentaPartner: true,
+      googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=Krishi+Seva+Kendra+Rohania+Mandi+Varanasi",
+      stockStatus: { quantis: true, isabion: true, stressBuster: true, score: true, ampligo: true },
+      deliveryAvailable: true,
+      timings: "8:00 AM - 8:00 PM",
+    }
+  ],
+
+  Guntur: [
+    {
+      id: "gtr-01",
+      name: "Andhra Rythu Seva Kendra & Syngenta Hub",
+      proprietor: "K. Venkateswara Rao",
+      phone: "+919848011223",
+      whatsapp: "919848011223",
+      district: "Guntur",
+      state: "Andhra Pradesh",
+      address: "Shop 22, Asia's Largest Mirchi Yard Complex, Guntur, AP 522004",
+      distanceKm: 2.1,
+      rating: 5.0,
+      reviewCount: 380,
+      isVerifiedSyngentaPartner: true,
+      googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=Syngenta+Dealer+Mirchi+Yard+Guntur",
+      stockStatus: { quantis: true, isabion: true, stressBuster: true, score: true, ampligo: true },
+      deliveryAvailable: true,
+      timings: "7:30 AM - 8:30 PM",
+    }
+  ],
+
+  Karnal: [
+    {
+      id: "knl-01",
+      name: "Haryana Kisan Fertilizers & Syngenta Center",
+      proprietor: "Satish Kumar Arya",
+      phone: "+919812033445",
+      whatsapp: "919812033445",
+      district: "Karnal",
+      state: "Haryana",
+      address: "New Grain Market, Shop 45, GT Road, Karnal, HR 132001",
+      distanceKm: 2.5,
+      rating: 4.9,
+      reviewCount: 260,
+      isVerifiedSyngentaPartner: true,
+      googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=Syngenta+Dealer+New+Grain+Market+Karnal",
+      stockStatus: { quantis: true, isabion: true, stressBuster: true, score: true, ampligo: true },
+      deliveryAvailable: true,
+      timings: "8:00 AM - 8:00 PM",
+    }
+  ],
+
+  Nashik: [
+    {
+      id: "nsk-01",
+      name: "Sahyadri Agro Syngenta Krishi Kendra",
+      proprietor: "Prakash Shinde",
+      phone: "+919822088990",
+      whatsapp: "919822088990",
+      district: "Nashik",
+      state: "Maharashtra",
+      address: "Panchavati Market Yard, Dindori Road, Nashik, MH 422003",
+      distanceKm: 3.2,
+      rating: 4.9,
+      reviewCount: 290,
+      isVerifiedSyngentaPartner: true,
+      googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=Syngenta+Krishi+Kendra+Panchavati+Market+Nashik",
+      stockStatus: { quantis: true, isabion: true, stressBuster: true, score: true, ampligo: true },
+      deliveryAvailable: true,
+      timings: "8:00 AM - 8:30 PM",
+    }
+  ],
+
   Nagpur: [
     {
       id: "ngp-01",

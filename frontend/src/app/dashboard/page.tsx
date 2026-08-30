@@ -24,7 +24,7 @@ import {
 
 export default function DashboardPage() {
   const { language } = useLanguage();
-  const { weather, refetch } = useWeather();
+  const { weather, refetch, setCustomCoordinates } = useWeather();
   const t = getTranslation(language);
 
   const [profile, setProfile] = useState<FarmerProfile>(getStoredProfile());
@@ -276,7 +276,21 @@ export default function DashboardPage() {
             lat={activeField.center[0]}
             lon={activeField.center[1]}
             crop={activeField.crop}
-            onFieldSelected={(f) => setActiveFieldState(f)}
+            onLocationSelect={async (newLat, newLon) => {
+              if (setCustomCoordinates) {
+                await setCustomCoordinates(newLat, newLon);
+              }
+              setActiveFieldState((prev) => ({
+                ...prev,
+                center: [newLat, newLon]
+              }));
+            }}
+            onFieldSelected={(f) => {
+              setActiveFieldState(f);
+              if (setCustomCoordinates) {
+                setCustomCoordinates(f.center[0], f.center[1]);
+              }
+            }}
           />
 
           {/* Live Real-Time Telemetry & Sensor Card */}
@@ -466,17 +480,17 @@ export default function DashboardPage() {
 
           {/* Verified Syngenta Authorized Dealer Locator Section */}
           <SyngentaDealerLocator
-            district={profile.district || activeField.district || weather.district || "Your Location"}
+            district={weather.district || profile.district || activeField.district || "Your Location"}
             farmerName={profile.fullName || "Farm Owner"}
-            crop={profile.primaryCrop || "Soybean"}
+            crop={profile.primaryCrop || activeField.crop || "Soybean"}
             fieldAcres={currentAcres}
             productName="Syngenta Quantis & Stress Buster"
           />
 
           {/* Daily APMC Mandi Commodity Rates Ticker */}
           <MandiPriceTicker
-            district={profile.district || activeField.district || weather.district}
-            state={profile.state || activeField.state}
+            district={weather.district || profile.district || activeField.district || "Your Location"}
+            state={weather.state || profile.state || activeField.state || "India"}
           />
 
         </div>
