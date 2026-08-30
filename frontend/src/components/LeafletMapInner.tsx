@@ -3,37 +3,42 @@
 import React, { useEffect, useRef, memo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { FieldRecord, FieldPin } from "@/lib/fieldStore";
+import { FieldRecord } from "@/lib/fieldStore";
+
+export type BaseMapMode = "satellite" | "streets" | "terrain";
 
 interface LeafletMapInnerProps {
   center: [number, number];
+  zoom?: number;
   savedFields: FieldRecord[];
   activeFieldId?: string;
   isDrawingMode?: boolean;
   drawnNodes?: Array<[number, number]>;
-  baseMapType?: "satellite" | "streets" | "hybrid";
-  pinsList?: FieldPin[];
+  baseMapType?: BaseMapMode;
   onMapClick?: (lat: number, lon: number) => void;
   onSelectField?: (field: FieldRecord) => void;
 }
 
 export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
   center,
-  savedFields,
+  zoom = 16,
+  savedFields = [],
   activeFieldId,
   isDrawingMode = false,
   drawnNodes = [],
   baseMapType = "satellite",
-  pinsList = [],
   onMapClick,
   onSelectField,
 }) => {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const labelsLayerRef = useRef<L.TileLayer | null>(null);
+  const fieldsLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const drawingLayerGroupRef = useRef<L.LayerGroup | null>(null);
-  const lastCenterRef = useRef<[number, number]>([23.2599, 77.4126]);
+  const userPinLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
+  // Mutable refs to prevent stale closure bugs
   const onMapClickRef = useRef(onMapClick);
   useEffect(() => {
     onMapClickRef.current = onMapClick;
@@ -44,16 +49,17 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     onSelectFieldRef.current = onSelectField;
   }, [onSelectField]);
 
-  // Safe coordinates check
-  const safeLat = (typeof center?.[0] === "number" && !isNaN(center[0]) && center[0] !== 0) ? center[0] : 23.2599;
-  const safeLon = (typeof center?.[1] === "number" && !isNaN(center[1]) && center[1] !== 0) ? center[1] : 77.4126;
+  // Sanitize coordinates
+  const safeLat = typeof center?.[0] === "number" && !isNaN(center[0]) && center[0] !== 0 ? center[0] : 23.2599;
+  const safeLon = typeof center?.[1] === "number" && !isNaN(center[1]) && center[1] !== 0 ? center[1] : 77.4126;
 
-  // 1. Initialize Leaflet Map (ONCE on mount)
+  // 1. Initialize Map Instance (Only on mount)
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    if (!containerRef.current) return;
 
-    if ((mapContainerRef.current as any)._leaflet_id) {
-      delete (mapContainerRef.current as any)._leaflet_id;
+    // Reset container leaflet id if hot reloaded
+    if ((containerRef.current as any)._leaflet_id) {
+      delete (containerRef.current as any)._leaflet_id;
     }
 
     try {
@@ -65,125 +71,141 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       });
     } catch {}
 
-    const map = L.map(mapContainerRef.current, {
+    const map = L.map(containerRef.current, {
       center: [safeLat, safeLon],
-      zoom: 16,
+      zoom: zoom,
       minZoom: 3,
-      maxZoom: 19,
+      maxZoom: 20,
       zoomControl: false,
       attributionControl: false,
       trackResize: true,
+      preferCanvas: true,
     });
 
-    mapInstanceRef.current = map;
-    lastCenterRef.current = [safeLat, safeLon];
+    mapRef.current = map;
 
-    // Zoom control in bottom right
+    // Zoom control at bottom-right
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // 100% Reliable ESRI High-Resolution World Imagery Tile Layer
-    const esriSatellite = L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      {
-        maxZoom: 19,
-        attribution: "Esri Satellite",
-        keepBuffer: 12,
-        updateWhenIdle: false,
-        updateWhenZooming: true,
-      }
-    );
-
-    // Labels & Boundaries Overlay
-    const esriLabels = L.tileLayer(
-      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-      {
-        maxZoom: 19,
-        opacity: 0.9,
-        keepBuffer: 12,
-      }
-    );
-
-    esriSatellite.addTo(map);
-    esriLabels.addTo(map);
-
-    // Vector layer groups
-    layerGroupRef.current = L.layerGroup().addTo(map);
+    // Create vector layer groups
+    fieldsLayerGroupRef.current = L.layerGroup().addTo(map);
     drawingLayerGroupRef.current = L.layerGroup().addTo(map);
+    userPinLayerGroupRef.current = L.layerGroup().addTo(map);
 
-    // Map click handler
+    // Click handler
     map.on("click", (e: L.LeafletMouseEvent) => {
       if (onMapClickRef.current) {
         onMapClickRef.current(e.latlng.lat, e.latlng.lng);
       }
     });
 
-    // Invalidate map size multiple times
+    // Invalidation hooks for smooth initial sizing
     const t1 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 100);
     const t2 = setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch {} }, 400);
 
-    const handleResize = () => {
+    const onResize = () => {
       try { map.invalidateSize({ animate: false }); } catch {}
     };
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", onResize);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", onResize);
       try {
         map.remove();
       } catch {}
-      mapInstanceRef.current = null;
-      layerGroupRef.current = null;
+      mapRef.current = null;
+      tileLayerRef.current = null;
+      labelsLayerRef.current = null;
+      fieldsLayerGroupRef.current = null;
       drawingLayerGroupRef.current = null;
+      userPinLayerGroupRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. Handle Drawing Mode Transition (Forces tile re-render and prevents black map)
+  // 2. Base Tile Layer Switcher
   useEffect(() => {
-    const map = mapInstanceRef.current;
+    const map = mapRef.current;
     if (!map) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+      tileLayerRef.current = null;
+    }
+    if (labelsLayerRef.current) {
+      map.removeLayer(labelsLayerRef.current);
+      labelsLayerRef.current = null;
+    }
+
+    if (baseMapType === "satellite") {
+      // High-Res Google Satellite Hybrid
+      const satLayer = L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+        maxZoom: 20,
+        subdomains: ["mt0", "mt1", "mt2", "mt3"],
+        attribution: "Google Satellite",
+      });
+      satLayer.addTo(map);
+      tileLayerRef.current = satLayer;
+    } else if (baseMapType === "terrain") {
+      // Google Terrain / Topo
+      const terrLayer = L.tileLayer("https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}", {
+        maxZoom: 20,
+        subdomains: ["mt0", "mt1", "mt2", "mt3"],
+        attribution: "Google Terrain",
+      });
+      terrLayer.addTo(map);
+      tileLayerRef.current = terrLayer;
+    } else {
+      // OpenStreetMap Streets
+      const osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "OpenStreetMap",
+      });
+      osmLayer.addTo(map);
+      tileLayerRef.current = osmLayer;
+    }
 
     try {
       map.invalidateSize({ animate: false });
-    } catch (_) {}
+    } catch {}
+  }, [baseMapType]);
 
-    const timer = setTimeout(() => {
-      try {
-        map.invalidateSize({ animate: false });
-      } catch (_) {}
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [isDrawingMode]);
-
-  // 3. Smooth Pan to center ONLY if center actually changed
+  // 3. Center Pan & Viewport Invalidation
   useEffect(() => {
-    const map = mapInstanceRef.current;
+    const map = mapRef.current;
     if (!map || safeLat == null || safeLon == null) return;
-    const [lastLat, lastLon] = lastCenterRef.current;
-    const diff = Math.abs(lastLat - safeLat) + Math.abs(lastLon - safeLon);
-    if (diff > 0.0001) {
-      lastCenterRef.current = [safeLat, safeLon];
-      try {
-        map.setView([safeLat, safeLon], map.getZoom() || 16, { animate: true });
-        map.invalidateSize({ animate: false });
-      } catch {}
-    }
+    try {
+      map.setView([safeLat, safeLon], map.getZoom() || 16, { animate: true });
+      map.invalidateSize({ animate: false });
+    } catch {}
   }, [safeLat, safeLon]);
 
-  // 4. Render Real Saved Field Polygons
+  // 4. Drawing Mode Invalidation
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    const layerGroup = layerGroupRef.current;
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      map.invalidateSize({ animate: false });
+    } catch {}
+    const t = setTimeout(() => {
+      try { map.invalidateSize({ animate: false }); } catch {}
+    }, 150);
+    return () => clearTimeout(t);
+  }, [isDrawingMode]);
+
+  // 5. Render Saved Field Polygons & Markers
+  useEffect(() => {
+    const map = mapRef.current;
+    const layerGroup = fieldsLayerGroupRef.current;
     if (!map || !layerGroup) return;
 
     layerGroup.clearLayers();
 
-    const fieldsToRender = savedFields && savedFields.length > 0 ? savedFields : [];
+    if (!savedFields || savedFields.length === 0) return;
 
-    fieldsToRender.forEach((field) => {
+    savedFields.forEach((field) => {
       if (!field.polygon || field.polygon.length < 3) return;
       const isActive = field.id === activeFieldId;
 
@@ -196,15 +218,15 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       });
 
       poly.bindPopup(`
-        <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; color: #0F172A; min-width: 160px; padding: 2px;">
-          <strong style="font-size: 13px; color: #065F46; display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+        <div style="font-family: system-ui, sans-serif; font-size: 12px; color: #0F172A; min-width: 170px; padding: 2px;">
+          <div style="font-size: 13px; font-weight: 800; color: #065F46; margin-bottom: 2px;">
             🌾 ${field.name}
-          </strong>
-          <span style="color: #475569; font-size: 11px; display: block; margin-bottom: 4px;">
+          </div>
+          <div style="color: #475569; font-size: 11px; margin-bottom: 6px;">
             ${field.crop} · ${field.areaAcres} Acres
-          </span>
-          <div style="padding: 3px 6px; background: #ECFDF5; border-radius: 6px; border: 1px solid #A7F3D0; font-size: 10px; font-weight: bold; color: #065F46;">
-            ✓ Real Verified Farm
+          </div>
+          <div style="display: inline-block; padding: 3px 8px; background: #ECFDF5; border-radius: 6px; border: 1px solid #A7F3D0; font-size: 10px; font-weight: bold; color: #065F46;">
+            ✓ Active Field Plot
           </div>
         </div>
       `);
@@ -227,9 +249,9 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
     });
   }, [savedFields, activeFieldId]);
 
-  // 5. Render Active Drawing Nodes & Polygon Preview
+  // 6. Render Active Drawing Nodes & Real-Time Polygon Trace
   useEffect(() => {
-    const map = mapInstanceRef.current;
+    const map = mapRef.current;
     const drawGroup = drawingLayerGroupRef.current;
     if (!map || !drawGroup) return;
 
@@ -237,7 +259,7 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
 
     if (!isDrawingMode || drawnNodes.length === 0) return;
 
-    // Connect nodes with dashed guideline
+    // Draw connecting line between points
     if (drawnNodes.length > 1) {
       const line = L.polyline(drawnNodes, {
         color: "#F59E0B",
@@ -247,24 +269,25 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
       drawGroup.addLayer(line);
     }
 
-    // Closed preview polygon if 3+ points
+    // Draw closed polygon preview if 3+ points
     if (drawnNodes.length >= 3) {
-      const polyPreview = L.polygon(drawnNodes, {
+      const previewPoly = L.polygon(drawnNodes, {
         color: "#10B981",
         weight: 2,
         fillColor: "#34D399",
         fillOpacity: 0.35,
       });
-      drawGroup.addLayer(polyPreview);
+      drawGroup.addLayer(previewPoly);
     }
 
-    // Point corner markers
+    // Draw corner markers
     drawnNodes.forEach((node, index) => {
+      const isStart = index === 0;
       const marker = L.circleMarker(node, {
-        radius: index === 0 ? 8 : 6,
+        radius: isStart ? 8 : 6,
         color: "#FFFFFF",
         weight: 2,
-        fillColor: index === 0 ? "#10B981" : "#F59E0B",
+        fillColor: isStart ? "#10B981" : "#F59E0B",
         fillOpacity: 1,
       });
       drawGroup.addLayer(marker);
@@ -273,9 +296,9 @@ export const LeafletMapInner: React.FC<LeafletMapInnerProps> = memo(({
 
   return (
     <div
-      ref={mapContainerRef}
+      ref={containerRef}
       className={`h-full w-full relative z-0 ${isDrawingMode ? "cursor-crosshair" : "cursor-grab"}`}
-      style={{ minHeight: "440px" }}
+      style={{ minHeight: "440px", height: "100%", width: "100%" }}
     />
   );
 });

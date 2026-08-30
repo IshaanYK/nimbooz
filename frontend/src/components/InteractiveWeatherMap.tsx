@@ -1,42 +1,43 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useTransition } from "react";
 import dynamic from "next/dynamic";
-import { useWeather } from "@/context/WeatherContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
+  FieldRecord,
   getSavedFields,
   saveFarmerField,
   deleteFarmerField,
   setActiveField,
   calculatePolygonAreaAcres,
   CROP_OPTIONS,
-  FieldRecord,
 } from "@/lib/fieldStore";
 import {
+  Layers,
   MapPin,
   PenTool,
+  RotateCcw,
   Check,
   X,
-  Sprout,
-  Search,
-  RotateCcw,
-  Sparkles,
-  Navigation,
-  Layers,
-  AlertTriangle,
-  ShieldCheck,
   Plus,
   Trash2,
-  Info
+  Navigation,
+  Search,
+  Sprout,
+  AlertTriangle,
+  Eye,
+  Globe2,
+  Mountain,
 } from "lucide-react";
+import type { BaseMapMode } from "./LeafletMapInner";
 
+// Dynamic import with SSR disabled
 const LeafletMapInner = dynamic(
   () => import("./LeafletMapInner").then((m) => m.LeafletMapInner),
   {
     ssr: false,
     loading: () => (
-      <div className="h-[440px] w-full bg-slate-950 flex flex-col items-center justify-center text-emerald-400 font-sans text-xs gap-3">
+      <div className="h-[440px] w-full bg-slate-900 flex flex-col items-center justify-center text-emerald-400 font-sans text-xs gap-3">
         <div className="h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
         <span className="font-bold">🛰️ Loading High-Resolution Satellite GIS &amp; Farm Polygons...</span>
       </div>
@@ -48,6 +49,7 @@ interface InteractiveWeatherMapProps {
   lat?: number;
   lon?: number;
   crop?: string;
+  locationName?: string;
   onLocationSelect?: (lat: number, lon: number) => void;
   onFieldSelected?: (field: FieldRecord) => void;
 }
@@ -55,16 +57,18 @@ interface InteractiveWeatherMapProps {
 export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   lat = 23.2599,
   lon = 77.4126,
-  crop = "Soybean",
+  locationName,
   onLocationSelect,
   onFieldSelected,
 }) => {
-  const { weather } = useWeather();
   const { language } = useLanguage();
+  const [, startTransition] = useTransition();
 
+  // Core state
   const [currentCenter, setCurrentCenter] = useState<[number, number]>([lat, lon]);
-  const [savedFields, setSavedFields] = useState<FieldRecord[]>(getSavedFields());
-  const [activeField, setActiveFieldState] = useState<FieldRecord>(savedFields[0] || getSavedFields()[0]);
+  const [savedFields, setSavedFields] = useState<FieldRecord[]>([]);
+  const [activeField, setActiveFieldState] = useState<FieldRecord | null>(null);
+  const [baseMapType, setBaseMapType] = useState<BaseMapMode>("satellite");
 
   // Search & Geocoding Autocomplete
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -80,7 +84,6 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   const [newCropOption, setNewCropOption] = useState<string>(CROP_OPTIONS[0].name);
 
   // AI Land-Use Verification State
-  const [isValidatingLand, setIsValidatingLand] = useState<boolean>(false);
   const [landValidationResult, setLandValidationResult] = useState<{
     is_agricultural: boolean;
     land_type: string;
@@ -91,29 +94,25 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
   // GPS Auto-Locate State
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
-  // Sync center when parent changes lat/lon
+  // Load saved fields on client mount
   useEffect(() => {
-    if (lat && lon) {
+    const list = getSavedFields();
+    if (list && list.length > 0) {
+      setSavedFields(list);
+      setActiveFieldState(list[0]);
+    }
+  }, []);
+
+  // Sync center when parent lat/lon changes
+  useEffect(() => {
+    if (lat && lon && (currentCenter[0] !== lat || currentCenter[1] !== lon)) {
       setCurrentCenter([lat, lon]);
     }
   }, [lat, lon]);
 
-  // Reload saved fields from store
-  const refreshFields = () => {
-    const list = getSavedFields();
-    setSavedFields(list);
-    if (list.length > 0) {
-      setActiveFieldState(list[0]);
-    }
-  };
-
+  // Geocoding Autocomplete Search with Debounce
   useEffect(() => {
-    refreshFields();
-  }, []);
-
-  // Geocoding live search with debouncing
-  useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.length < 2) {
+    if (!searchQuery || searchQuery.trim().length < 2) {
       setSearchResults([]);
       setShowResultsDropdown(false);
       return;
@@ -122,14 +121,19 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const res = await fetch(`/api/geocode?q=${encodeURIComponent(searchQuery)}`);
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(searchQuery.trim())}`);
         if (res.ok) {
           const data = await res.json();
-          setSearchResults(data?.results || []);
-          setShowResultsDropdown(true);
+          if (Array.isArray(data) && data.length > 0) {
+            setSearchResults(data);
+            setShowResultsDropdown(true);
+          } else {
+            setSearchResults([]);
+            setShowResultsDropdown(false);
+          }
         }
-      } catch (err) {
-        console.warn("Geocoding search failed:", err);
+      } catch (e) {
+        console.warn("Geocode error:", e);
       } finally {
         setIsSearching(false);
       }
@@ -138,83 +142,64 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleSelectField = (field: FieldRecord) => {
+  const handleSelectSearchResult = (result: { name: string; lat: number; lon: number }) => {
+    setCurrentCenter([result.lat, result.lon]);
+    setSearchQuery(result.name);
+    setShowResultsDropdown(false);
+    if (onLocationSelect) onLocationSelect(result.lat, result.lon);
+  };
+
+  // Switch Active Field
+  const handleSelectField = useCallback((field: FieldRecord) => {
     setActiveFieldState(field);
     setActiveField(field.id);
     setCurrentCenter(field.center);
     if (onFieldSelected) onFieldSelected(field);
     if (onLocationSelect) onLocationSelect(field.center[0], field.center[1]);
-  };
+  }, [onFieldSelected, onLocationSelect]);
 
+  // Delete Field
   const handleDeleteField = (e: React.MouseEvent, fieldId: string) => {
     e.stopPropagation();
     if (savedFields.length <= 1) {
-      alert(language === "hi" ? "कम से कम एक खेत का होना आवश्यक है।" : "At least one farm plot is required.");
+      alert(language === "hi" ? "आप अपने पास कम से कम एक खेत का रिकॉर्ड रखें।" : "You must keep at least one registered farm plot.");
       return;
     }
-    deleteFarmerField(fieldId);
-    refreshFields();
-  };
-
-  const handleSelectSearchResult = (result: { name: string; lat: number; lon: number }) => {
-    setCurrentCenter([result.lat, result.lon]);
-    setSearchQuery(result.name.split(",")[0]);
-    setShowResultsDropdown(false);
-    if (onLocationSelect) onLocationSelect(result.lat, result.lon);
-  };
-
-  // Live GPS Locate
-  const handleFetchLiveGPS = () => {
-    if ("geolocation" in navigator) {
-      setIsLocating(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const newCenter: [number, number] = [
-            Math.round(pos.coords.latitude * 10000) / 10000,
-            Math.round(pos.coords.longitude * 10000) / 10000,
-          ];
-          setCurrentCenter(newCenter);
-          setIsLocating(false);
-          if (onLocationSelect) onLocationSelect(newCenter[0], newCenter[1]);
-
-          // Trigger AI Land Use Check for GPS coordinates
-          validateLandWithGemini(newCenter[0], newCenter[1]);
-        },
-        () => {
-          alert(language === "hi" ? "जीपीएस सिग्नल उपलब्ध नहीं है।" : "GPS signal unavailable. Please search your district.");
-          setIsLocating(false);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    }
-  };
-
-  // AI Verification
-  const validateLandWithGemini = async (centerLat: number, centerLon: number, poly: Array<[number, number]> = []) => {
-    setIsValidatingLand(true);
-    try {
-      const res = await fetch("/api/plant-intelligence/validate-boundary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat: centerLat, lon: centerLon, polygon: poly }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setLandValidationResult({
-          is_agricultural: data.is_agricultural,
-          land_type: data.land_type || "Farmland",
-          assessment: data.assessment || "Verified coordinates.",
-          warning: data.warning || null,
-        });
+    if (confirm(language === "hi" ? "क्या आप इस खेत को हटाना चाहते हैं?" : "Delete this farm plot?")) {
+      const updated = deleteFarmerField(fieldId);
+      setSavedFields(updated);
+      if (updated.length > 0) {
+        setActiveFieldState(updated[0]);
+        setActiveField(updated[0].id);
+        setCurrentCenter(updated[0].center);
       }
-    } catch (e) {
-      console.warn("Land validation error:", e);
-    } finally {
-      setIsValidatingLand(false);
     }
   };
 
-  // Handle map click
+  // Live GPS Fetch
+  const handleFetchLiveGPS = () => {
+    if (!navigator.geolocation) {
+      alert(language === "hi" ? "आपका ब्राउज़र जीपीएस का समर्थन नहीं करता है।" : "GPS geolocation is not supported by your browser.");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const newLat = Math.round(pos.coords.latitude * 100000) / 100000;
+        const newLon = Math.round(pos.coords.longitude * 100000) / 100000;
+        setCurrentCenter([newLat, newLon]);
+        setIsLocating(false);
+        if (onLocationSelect) onLocationSelect(newLat, newLon);
+      },
+      () => {
+        alert(language === "hi" ? "जीपीएस सिग्नल उपलब्ध नहीं है। कृपया जिला खोजें।" : "GPS signal unavailable. Please search your district.");
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Map Click Handler for Drawing or Relocation
   const handleMapClick = (mapLat: number, mapLon: number) => {
     const latRound = Math.round(mapLat * 100000) / 100000;
     const lonRound = Math.round(mapLon * 100000) / 100000;
@@ -242,11 +227,11 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
 
     const newFieldObj: FieldRecord = {
       id: `field_${Date.now()}`,
-      name: newFieldName.trim() || `${newCropOption} Plot (${acres} Ac)`,
+      name: newFieldName.trim() || `Plot #${savedFields.length + 1}`,
       crop: newCropOption,
-      cropVariety: "JS-335 / High-Yield",
+      cropVariety: "JS-335",
       sowingDate: new Date().toISOString().split("T")[0],
-      growthStage: "R2 Flowering",
+      growthStage: "Vegetative Phase",
       areaAcres: acres,
       areaHa: ha,
       soilType: "Black Cotton Vertisol",
@@ -256,10 +241,10 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
       polygon: drawnNodes,
     };
 
-    saveFarmerField(newFieldObj);
+    const updated = saveFarmerField(newFieldObj);
+    setSavedFields(updated);
     setActiveField(newFieldObj.id);
     setActiveFieldState(newFieldObj);
-    refreshFields();
 
     setIsDrawingMode(false);
     setDrawnNodes([]);
@@ -268,9 +253,6 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
 
     if (onFieldSelected) onFieldSelected(newFieldObj);
     if (onLocationSelect) onLocationSelect(centerLat, centerLon);
-
-    // Validate land use with Gemini AI
-    validateLandWithGemini(centerLat, centerLon, drawnNodes);
   };
 
   return (
@@ -293,87 +275,112 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
           </h2>
         </div>
 
-        {/* Search Input with Autocomplete */}
-        <div className="relative w-full md:w-80">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        {/* Layer Switcher & Search Bar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Map Layer Switcher */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
+            <button
+              onClick={() => setBaseMapType("satellite")}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer ${
+                baseMapType === "satellite" ? "bg-white text-emerald-900 shadow-xs" : "hover:text-slate-900"
+              }`}
+            >
+              <Eye className="h-3 w-3" />
+              <span>Satellite</span>
+            </button>
+            <button
+              onClick={() => setBaseMapType("streets")}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer ${
+                baseMapType === "streets" ? "bg-white text-blue-900 shadow-xs" : "hover:text-slate-900"
+              }`}
+            >
+              <Globe2 className="h-3 w-3" />
+              <span>Streets</span>
+            </button>
+            <button
+              onClick={() => setBaseMapType("terrain")}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer ${
+                baseMapType === "terrain" ? "bg-white text-amber-900 shadow-xs" : "hover:text-slate-900"
+              }`}
+            >
+              <Mountain className="h-3 w-3" />
+              <span>Terrain</span>
+            </button>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery.length >= 2 && setShowResultsDropdown(true)}
-              placeholder={language === "hi" ? "शहर, जिला या गांव खोजें..." : "Search city, district, village..."}
-              className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              placeholder={language === "hi" ? "शहर या गांव खोजें..." : "Search city, village..."}
+              className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
             {searchQuery && (
               <button
                 onClick={() => { setSearchQuery(""); setShowResultsDropdown(false); }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3 w-3" />
               </button>
             )}
-          </div>
 
-          {/* Autocomplete Dropdown */}
-          {showResultsDropdown && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden max-h-56 overflow-y-auto">
-              {searchResults.map((res, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleSelectSearchResult(res)}
-                  className="w-full text-left px-3.5 py-2.5 text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-950 flex items-center gap-2 border-b border-slate-50 last:border-0 transition-colors cursor-pointer"
-                >
-                  <MapPin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                  <span className="truncate">{res.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
+            {showResultsDropdown && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden max-h-56 overflow-y-auto">
+                {searchResults.map((res, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectSearchResult(res)}
+                    className="w-full text-left px-3.5 py-2.5 text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-950 flex items-center gap-2 border-b border-slate-50 last:border-0 transition-colors cursor-pointer"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">{res.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 2. Registered Farms / Fields Strip */}
+      {/* 2. Registered Farms Strip */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
         <span className="text-[10px] font-mono font-bold text-slate-500 uppercase shrink-0 flex items-center gap-1">
           <Layers className="h-3.5 w-3.5 text-emerald-600" />
-          {language === "hi" ? "आपके पंजीकृत खेत:" : "Your Farm Plots:"}
+          {language === "hi" ? "पंजीकृत खेत:" : "Farm Plots:"}
         </span>
 
-        {savedFields.length === 0 ? (
-          <span className="text-xs text-slate-500 font-medium italic px-2">
-            {language === "hi" ? "कोई खेत रेखांकित नहीं है — नया खेत जोड़ें या सीमा बनाएं" : "No farm plots drawn yet — click Add New Field"}
-          </span>
-        ) : (
-          savedFields.map((f) => {
-            const isSelected = activeField?.id === f.id;
-            return (
-              <div
-                key={f.id}
-                onClick={() => handleSelectField(f)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-2 cursor-pointer border ${
-                  isSelected
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-                }`}
+        {savedFields.map((f) => {
+          const isSelected = activeField?.id === f.id;
+          return (
+            <div
+              key={f.id}
+              onClick={() => handleSelectField(f)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-2 cursor-pointer border ${
+                isSelected
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+              }`}
+            >
+              <Sprout className="h-3.5 w-3.5" />
+              <span>{f.name}</span>
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${isSelected ? "bg-emerald-700 text-white" : "bg-slate-200 text-slate-700"}`}>
+                {f.areaAcres} Ac · {f.crop}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => handleDeleteField(e, f.id)}
+                className={`p-0.5 rounded-md hover:bg-rose-500 hover:text-white transition-colors ${isSelected ? "text-emerald-200" : "text-slate-400"}`}
+                title="Delete plot"
               >
-                <Sprout className="h-3.5 w-3.5" />
-                <span>{f.name}</span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${isSelected ? "bg-emerald-700 text-white" : "bg-slate-200 text-slate-700"}`}>
-                  {f.areaAcres} Ac · {f.crop}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => handleDeleteField(e, f.id)}
-                  className={`p-0.5 rounded-md hover:bg-rose-500 hover:text-white transition-colors ${isSelected ? "text-emerald-200" : "text-slate-400"}`}
-                  title="Delete plot"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })
-        )}
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          );
+        })}
 
         <button
           onClick={() => {
@@ -383,7 +390,7 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
           className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center gap-1 border border-emerald-300 shrink-0 cursor-pointer"
         >
           <Plus className="h-3 w-3" />
-          <span>{language === "hi" ? "+ नया खेत जोड़ें" : "+ Add New Field"}</span>
+          <span>{language === "hi" ? "+ नया खेत जोड़ें" : "+ Add Field"}</span>
         </button>
 
         <button
@@ -396,22 +403,7 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
         </button>
       </div>
 
-      {/* 3. AI Land-Use & Boundary Verification Advisory Banner */}
-      {landValidationResult && !landValidationResult.is_agricultural && (
-        <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-amber-900 animate-in fade-in duration-200">
-          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <span className="font-bold font-mono text-[10px] uppercase text-amber-800 block">
-              AI Land-Use Verification: {landValidationResult.land_type}
-            </span>
-            <p className="text-xs text-amber-950 font-medium">
-              {landValidationResult.warning || "Detected residential/commercial zone. For biophysical soil moisture and GDD telemetry, boundaries should be placed on active farm fields."}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Unified Stable Action Bar (No DOM layout shift) */}
+      {/* 3. Unified Stable Action Bar */}
       <div className={`p-3 rounded-2xl text-xs transition-colors ${
         isDrawingMode ? "bg-emerald-950 text-white border-2 border-emerald-400 shadow-md" : "bg-slate-900 text-white"
       }`}>
@@ -427,8 +419,8 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
                 </span>
                 <p className="text-[11px] text-slate-300">
                   {language === "hi"
-                    ? "सैटेलाइट मैप पर अपने खेत के 3 या 4 कोनों पर क्लिक करें।"
-                    : "Click 3 or 4 corner points directly on the satellite map."}
+                    ? "मैप पर अपने खेत के 3 या 4 कोनों पर क्लिक करें।"
+                    : "Click 3 or 4 corner points directly on the map."}
                 </p>
               </div>
             </div>
@@ -451,7 +443,7 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
                 type="button"
                 onClick={() => {
                   if (drawnNodes.length < 3) {
-                    alert(language === "hi" ? "कृपया कम से कम 3 बिंदुओं पर क्लिक करें।" : "Click at least 3 points on the satellite map.");
+                    alert(language === "hi" ? "कृपया कम से कम 3 बिंदुओं पर क्लिक करें।" : "Click at least 3 points on the map.");
                     return;
                   }
                   setShowSaveModal(true);
@@ -506,21 +498,21 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
         )}
       </div>
 
-      {/* 6. Leaflet Satellite Map Container */}
-      <div className="h-[440px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-inner relative">
+      {/* 4. Leaflet Map Container */}
+      <div className="h-[460px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-inner relative bg-slate-100">
         <LeafletMapInner
           center={currentCenter}
           savedFields={savedFields}
           activeFieldId={activeField?.id}
           isDrawingMode={isDrawingMode}
           drawnNodes={drawnNodes}
-          baseMapType="satellite"
+          baseMapType={baseMapType}
           onMapClick={handleMapClick}
           onSelectField={(f) => handleSelectField(f)}
         />
       </div>
 
-      {/* 7. Save Field Modal Dialog */}
+      {/* 5. Save Field Modal Dialog */}
       {showSaveModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150">
@@ -534,59 +526,59 @@ export const InteractiveWeatherMap: React.FC<InteractiveWeatherMapProps> = ({
               </button>
             </div>
 
-            <div className="space-y-3 font-sans text-xs">
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
-                <span className="text-[10px] font-mono text-emerald-800 font-bold block uppercase">
-                  {language === "hi" ? "सैटेलाइट द्वारा मापा गया क्षेत्रफल:" : "Calculated Satellite Acreage:"}
-                </span>
-                <span className="text-xl font-black text-emerald-950 font-mono">
-                  {currentDrawnArea.acres} {language === "hi" ? "एकड़" : "Acres"} ({currentDrawnArea.ha} Ha)
-                </span>
-              </div>
-
+            <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                  {language === "hi" ? "खेत का नाम" : "Field Name"}
+                <label className="font-bold text-slate-700 block mb-1">
+                  {language === "hi" ? "खेत का नाम:" : "Plot / Field Name:"}
                 </label>
                 <input
                   type="text"
                   value={newFieldName}
                   onChange={(e) => setNewFieldName(e.target.value)}
-                  placeholder={language === "hi" ? "उदा. उत्तर का खेत, बोरवेल वाला प्लॉट" : "e.g. North River Plot"}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  placeholder="e.g. North Plot / उत्तर खलिहान"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                  {language === "hi" ? "मुख्य फसल" : "Primary Crop"}
+                <label className="font-bold text-slate-700 block mb-1">
+                  {language === "hi" ? "बोई गई फसल:" : "Crop Grown:"}
                 </label>
                 <select
                   value={newCropOption}
                   onChange={(e) => setNewCropOption(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 >
                   {CROP_OPTIONS.map((c) => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
+
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs text-emerald-950 font-bold">
+                <span>{language === "hi" ? "गणना किया गया क्षेत्रफल:" : "Calculated Boundary Area:"}</span>
+                <span className="font-mono text-emerald-800 text-sm">
+                  {currentDrawnArea.acres} Acres ({currentDrawnArea.ha} Ha)
+                </span>
+              </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-2">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setShowSaveModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold text-xs cursor-pointer"
               >
                 {language === "hi" ? "रद्द करें" : "Cancel"}
               </button>
               <button
                 type="button"
                 onClick={handleSaveDrawnField}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-sm cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md cursor-pointer"
               >
-                {language === "hi" ? "✓ खेत सहेजें" : "✓ Confirm & Save Field"}
+                {language === "hi" ? "खेत सहेजें और जोड़ें" : "Save & Register Plot"}
               </button>
             </div>
           </div>
