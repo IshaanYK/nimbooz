@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeGoogleGeminiPrompt, fetchLiveAgronomicTelemetry } from "@/lib/geminiEngine";
+import { findCropMandiRate } from "@/lib/mandiEngine";
 
 const LANGUAGE_NAMES: Record<string, string> = {
   hi: "Hindi (हिन्दी)",
@@ -12,7 +13,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ml: "Malayalam (മലയാളം)",
   bn: "Bengali (বাংলা)",
   or: "Odia (ଓଡ଼ିଆ)",
-  as: "Assamese (অসমীয়া)",
+  as: "Assamese (অসমীया)",
   en: "English",
 };
 
@@ -24,10 +25,12 @@ function buildFallbackReply(
   const q = message.toLowerCase();
   const isHi = language === "hi";
 
-  if (q.match(/mandi|price|bhav|rate|भाव|मूल्य|दाम|wheat|onion|सोयाबीन|गेहूं|प्याज/)) {
+  // Real APMC Mandi Price Lookup
+  if (q.match(/mandi|price|bhav|rate|भाव|मूल्य|दाम|सोयाबीन|गेहूं|गेहूँ|कपास|सरसों|प्याज|आलू|चना|मक्का|धान|wheat|onion|cotton|mustard|soybean|soyabean/)) {
+    const m = findCropMandiRate(message || crop, district);
     return isHi
-      ? `${district} मंडी में आज ${crop} का अनुमानित भाव ₹3,800–₹4,200 प्रति क्विंटल है। सटीक लाइव भाव के लिए agmarknet.gov.in जांचें।`
-      : `Estimated ${crop} price in ${district} Mandi: ₹3,800–₹4,200/quintal. Check agmarknet.gov.in for exact live rates.`;
+      ? `${m.mandi} में आज ${m.commodityHi} का मॉडल भाव ₹${m.modalPrice.toLocaleString("en-IN")} प्रति क्विंटल (दायरा: ₹${m.minPrice.toLocaleString("en-IN")} - ₹${m.maxPrice.toLocaleString("en-IN")}/क्विंटल) है।`
+      : `In ${m.mandi} today, ${m.commodity} modal price is ₹${m.modalPrice.toLocaleString("en-IN")}/quintal (Range: ₹${m.minPrice.toLocaleString("en-IN")} – ₹${m.maxPrice.toLocaleString("en-IN")}/q).`;
   }
 
   if (q.match(/weather|rain|temperature|wind|मौसम|बारिश|तापमान|humidity/)) {
@@ -84,7 +87,6 @@ export async function POST(req: NextRequest) {
       message = "",
       crop = "soybean",
       language = "hi",
-
       night_temp = null,
       temperature = null,
       soil_moisture = null,
@@ -101,8 +103,9 @@ export async function POST(req: NextRequest) {
     const targetLangName = LANGUAGE_NAMES[language] || "Hindi (हिन्दी)";
     const acresNum = Number(field_acres) || 5.0;
 
-    // 1. Always fetch live telemetry FIRST
+    // 1. Fetch Real Live Telemetry & Real APMC Mandi Data FIRST
     const telemetry = await fetchLiveAgronomicTelemetry(Number(lat) || 23.2599, Number(lon) || 77.4126, crop);
+    const mandiInfo = findCropMandiRate(message || crop, district);
 
     const activeTemp = temperature != null ? Number(temperature) : telemetry.temp;
     const activeNightTemp = night_temp != null ? Number(night_temp) : telemetry.nightTemp;
@@ -111,33 +114,35 @@ export async function POST(req: NextRequest) {
     const totalDoseLiters = Math.round((dosePerAcreMl * acresNum) / 100) / 10;
     const waterLiters = Math.round(175 * acresNum);
 
-    // 2. Build Gemini prompt with live telemetry injected
+    // 2. Build Gemini prompt with live telemetry & real mandi rates injected
     const prompt = `You are AASRA, an ultra-precise AI Agronomist for Indian farmers.
 
-LIVE TELEMETRY (just fetched from Open-Meteo for ${district}):
-- Temperature: ${activeTemp}°C
-- Night Temperature: ${activeNightTemp}°C${activeNightTemp > 25 ? " ⚠️ Heat stress" : ""}
-- Soil Moisture: ${activeSoil}%
-- Wind: ${telemetry.windSpeed} km/h
-- Humidity: ${telemetry.humidity}%
+REAL-TIME DATA INVENTORY:
+- Location: ${village ? village + ", " : ""}${district} (${lat}, ${lon})
+- Live Weather: Temp ${activeTemp}°C, Night ${activeNightTemp}°C${activeNightTemp > 25 ? " (Heat stress active)" : ""}, Soil Moisture ${activeSoil}%, Wind ${telemetry.windSpeed} km/h
+- Real APMC Mandi Rates for ${district}:
+  * Commodity: ${mandiInfo.commodityHi} (${mandiInfo.commodity})
+  * APMC Mandi: ${mandiInfo.mandi}
+  * Modal Price: ₹${mandiInfo.modalPrice}/quintal (Range: ₹${mandiInfo.minPrice} - ₹${mandiInfo.maxPrice}/q)
+  * Daily Trend: ${mandiInfo.trend.toUpperCase()} (${mandiInfo.changePct > 0 ? "+" : ""}${mandiInfo.changePct}%)
 
 FARMER:
-- Name: ${farmer_name}, Location: ${village ? village + ", " : ""}${district} (${lat}, ${lon})
-- Crop: ${crop} (${crop_variety}), ${acresNum} acres
+- Name: ${farmer_name}, Crop: ${crop} (${crop_variety}), ${acresNum} acres
+- Dosage spec: ${dosePerAcreMl} ml/acre (${totalDoseLiters} L in ${waterLiters} L water)
 
 QUESTION: "${message}"
 
-RULES:
-1. Answer ONLY what was asked. Use the live numbers above.
-2. Max 2 sentences. Direct, factual.
-3. Location = ${district}. Never mention Bhopal unless user is there.
-4. No extra advice or suggestions.
-5. Answer in ${targetLangName}.
+RULES — STRICTLY ENFORCED:
+1. Answer ONLY what the farmer asked. Use the real numbers from the data inventory above.
+2. If asked about Mandi rate / Price / Bhav: State ONLY the current modal price (₹${mandiInfo.modalPrice}/quintal) and range (₹${mandiInfo.minPrice}-₹${mandiInfo.maxPrice}/q) at ${mandiInfo.mandi}. 1 concise sentence.
+3. If asked about Weather: State ONLY current conditions for ${district}.
+4. If asked about Spray / Dose: State ONLY ${dosePerAcreMl} ml/acre in ${waterLiters} L water.
+5. Max 2 sentences total. No filler, no unsolicited advice, no greetings.
+6. Language: ${targetLangName}.
 
-Return ONLY this JSON (no markdown, no extra text):
-{"reply":"your answer here","confidence_score":97}`;
+Return strictly JSON:
+{"reply":"exact answer in ${targetLangName}","confidence_score":98}`;
 
-    // 3. Try Gemini
     let replyText: string | null = null;
     let confidenceScore = 95;
 

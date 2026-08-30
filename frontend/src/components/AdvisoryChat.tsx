@@ -63,6 +63,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { getTranslation } from "@/lib/translations";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
+import { findCropMandiRate } from "@/lib/mandiEngine";
 
 export interface Message {
   id: string;
@@ -442,16 +443,17 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     // If for any reason replyText is still empty, generate instant localized fallback
     if (!replyText || !replyText.trim()) {
       const lowerQ = textClean.toLowerCase();
-      if (lowerQ.includes("मूल्य") || lowerQ.includes("भाव") || lowerQ.includes("rate") || lowerQ.includes("price") || lowerQ.includes("प्याज") || lowerQ.includes("bhav")) {
+      if (lowerQ.includes("मूल्य") || lowerQ.includes("भाव") || lowerQ.includes("rate") || lowerQ.includes("price") || lowerQ.includes("bhav") || lowerQ.includes("सोयाबीन") || lowerQ.includes("soybean") || lowerQ.includes("गेहूं") || lowerQ.includes("wheat") || lowerQ.includes("कपास") || lowerQ.includes("cotton")) {
+        const m = findCropMandiRate(textClean || crop, effectiveDistrict);
         replyText = language === "hi"
-          ? `${effectiveDistrict} मंडी में आज प्याज का भाव ₹1500 - ₹2000 प्रति क्विंटल (औसत ₹1800/क्विंटल) है।`
-          : `In ${effectiveDistrict} Mandi today, the prevailing modal price is ₹1,800/quintal (Range: ₹1,500 - ₹2,000/q).`;
+          ? `${m.mandi} में आज ${m.commodityHi} का मॉडल भाव ₹${m.modalPrice.toLocaleString("en-IN")} प्रति क्विंटल (दायरा: ₹${m.minPrice.toLocaleString("en-IN")} - ₹${m.maxPrice.toLocaleString("en-IN")}/क्विंटल) है।`
+          : `In ${m.mandi} today, ${m.commodity} modal price is ₹${m.modalPrice.toLocaleString("en-IN")}/quintal (Range: ₹${m.minPrice.toLocaleString("en-IN")} – ₹${m.maxPrice.toLocaleString("en-IN")}/q).`;
       } else {
         replyText = language === "hi"
-          ? `${effectiveDistrict} में आपकी ${crop} फसल के लिए तापमान ${weather.temperature}°C है। सुरक्षित छिड़काव के लिए सुबह या शाम का समय सबसे उपयुक्त है।`
+          ? `${effectiveDistrict} में आपकी ${crop} फसल के लिए तापमान ${weather.temperature}°C और मिट्टी नमी ${weather.soilMoistureEst || 40}% है।`
           : `For ${crop} in ${effectiveDistrict}, current temperature is ${weather.temperature}°C with ${weather.humidity}% humidity.`;
       }
-      whyReason = `Live Open-Meteo telemetry for ${effectiveDistrict}.`;
+      whyReason = `Live Open-Meteo & APMC data for ${effectiveDistrict}.`;
     }
 
     const botMsg: Message = {
