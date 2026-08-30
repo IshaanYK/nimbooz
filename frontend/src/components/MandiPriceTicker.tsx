@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { TrendingUp, TrendingDown, Store, MapPin, Sparkles, RefreshCw, Navigation } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { getStoredProfile } from "@/lib/userStore";
@@ -33,68 +33,64 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
   const [resolvedDistrict, setResolvedDistrict] = useState<string>(propDistrict || "");
   const [resolvedState, setResolvedState] = useState<string>(propState || "");
 
-  // Auto-detect user's actual location if district is not provided
+  // Sync prop changes immediately
   useEffect(() => {
-    async function resolveLocation() {
-      if (propDistrict && propDistrict.trim()) {
-        setResolvedDistrict(propDistrict.trim());
-        setResolvedState(propState || "India");
-        return;
-      }
+    if (propDistrict && propDistrict.trim()) {
+      setResolvedDistrict(propDistrict.trim());
+    }
+    if (propState && propState.trim()) {
+      setResolvedState(propState.trim());
+    }
+  }, [propDistrict, propState]);
 
-      // 1. Check saved farmer profile
-      const profile = getStoredProfile();
-      if (profile && profile.district && profile.district.trim()) {
-        setResolvedDistrict(profile.district.trim());
-        setResolvedState(profile.state || "India");
-        return;
-      }
+  // Fallback auto-detection if props are absent
+  useEffect(() => {
+    if (propDistrict && propDistrict.trim()) return;
 
-      // 2. Check active field
-      const activeField = getActiveField();
-      if (activeField && activeField.district && activeField.district.trim()) {
-        setResolvedDistrict(activeField.district.trim());
-        setResolvedState(activeField.state || "India");
-        return;
-      }
-
-      // 3. Auto-detect from browser GPS position if available
-      if (typeof window !== "undefined" && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            try {
-              const res = await fetch(`/api/geocode?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-              if (res.ok) {
-                const geo = await res.json();
-                if (geo.district) {
-                  setResolvedDistrict(geo.district);
-                  setResolvedState(geo.state || "India");
-                  return;
-                }
-              }
-            } catch (_) {}
-            setResolvedDistrict("Your Local Mandi");
-            setResolvedState("India");
-          },
-          () => {
-            setResolvedDistrict("Your Local Mandi");
-            setResolvedState("India");
-          },
-          { timeout: 5000 }
-        );
-      } else {
-        setResolvedDistrict("Your Local Mandi");
-        setResolvedState("India");
-      }
+    const profile = getStoredProfile();
+    if (profile && profile.district && profile.district.trim()) {
+      setResolvedDistrict(profile.district.trim());
+      setResolvedState(profile.state || "India");
+      return;
     }
 
-    resolveLocation();
-  }, [propDistrict, propState]);
+    const activeField = getActiveField();
+    if (activeField && activeField.district && activeField.district.trim()) {
+      setResolvedDistrict(activeField.district.trim());
+      setResolvedState(activeField.state || "India");
+      return;
+    }
+
+    if (typeof window !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const res = await fetch(`/api/geocode?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+            if (res.ok) {
+              const geo = await res.json();
+              if (geo.district) {
+                setResolvedDistrict(geo.district);
+                setResolvedState(geo.state || "India");
+                return;
+              }
+            }
+          } catch (_) {}
+          setResolvedDistrict("Your Local Mandi");
+          setResolvedState("India");
+        },
+        () => {
+          setResolvedDistrict("Your Local Mandi");
+          setResolvedState("India");
+        },
+        { timeout: 5000 }
+      );
+    }
+  }, [propDistrict]);
 
   const activeDistrict = resolvedDistrict || "Your Local Mandi";
   const activeState = resolvedState || "India";
 
-  const fetchRates = async () => {
+  const fetchRates = useCallback(async () => {
     if (!activeDistrict) return;
     setLoading(true);
     try {
@@ -111,13 +107,13 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeDistrict, activeState]);
 
   useEffect(() => {
     if (activeDistrict) {
       fetchRates();
     }
-  }, [activeDistrict, activeState]);
+  }, [activeDistrict, activeState, fetchRates]);
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 space-y-4 shadow-xs font-sans">
@@ -139,67 +135,79 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
           <h3 className="text-lg font-black text-slate-900 font-display flex items-center gap-2">
             <span>🏛️ {language === "hi" ? `प्रमुख मंडी भाव और फसल दर (${activeDistrict})` : `Major market prices and crop rates (${activeDistrict})`}</span>
           </h3>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-slate-500">
             {language === "hi"
-              ? `आपके ${activeDistrict} क्षेत्र की मंडियों में आज का मॉडल भाव (₹/क्विंटल) — लाभ व बचत गणना इसी दर पर आधारित है`
-              : `Official APMC modal prices per quintal for ${activeDistrict} used for live farm ROI & financial yield protection`}
+              ? `आपके क्षेत्र (${activeDistrict}) में वास्तविक उत्पादित फसलों के सरकारी APMC मॉडल भाव`
+              : `Official APMC modal prices per quintal for crops actively cultivated in ${activeDistrict}`}
           </p>
         </div>
 
         <button
           onClick={fetchRates}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold shrink-0 self-start sm:self-auto cursor-pointer transition-all"
+          className="px-3 py-1.5 text-xs font-mono font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto disabled:opacity-50"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-emerald-600" : ""}`} />
-          <span>{loading ? (language === "hi" ? "लोड हो रहा है..." : "Refreshing...") : (language === "hi" ? "दर रिफ्रेश करें" : "Refresh Rates")}</span>
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          <span>{language === "hi" ? "दरें रीफ्रेश करें" : "Refresh Rates"}</span>
         </button>
       </div>
 
-      {/* Grid of Commodity Prices */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        {rates.map((item, idx) => (
-          <div
-            key={idx}
-            className="bg-slate-50/70 border border-slate-200 hover:border-emerald-400 rounded-2xl p-4 space-y-2.5 transition-all group"
-          >
-            <div className="flex items-start justify-between gap-1">
-              <div>
-                <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
-                  {language === "hi" ? (item.commodityHi || item.commodity) : item.commodity}
-                </h4>
-                <p className="text-[11px] text-slate-500 font-medium">{item.mandi}</p>
-              </div>
-              <div className="text-right">
-                <span className="font-mono font-black text-sm text-slate-900 block">
-                  ₹{item.modalPrice.toLocaleString("en-IN")}/q
-                </span>
-                <span
-                  className={`text-[10px] font-mono font-bold inline-flex items-center gap-0.5 ${
-                    item.trend === "up"
-                      ? "text-emerald-600"
-                      : item.trend === "down"
-                      ? "text-rose-600"
-                      : "text-slate-500"
-                  }`}
-                >
-                  {item.trend === "up" ? (
-                    <TrendingUp className="h-3 w-3" />
-                  ) : item.trend === "down" ? (
-                    <TrendingDown className="h-3 w-3" />
-                  ) : null}
-                  {item.changePct > 0 ? `+${item.changePct}%` : `${item.changePct}%`}
-                </span>
-              </div>
-            </div>
+      {loading && rates.length === 0 ? (
+        <div className="py-8 flex flex-col items-center justify-center text-slate-400 gap-2 font-mono text-xs">
+          <div className="h-6 w-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <span>Fetching official APMC rates for {activeDistrict}...</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {rates.map((item, idx) => (
+            <div
+              key={idx}
+              className="bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-2xl p-4 transition-all space-y-2 relative overflow-hidden"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="font-extrabold text-sm text-slate-900 leading-snug">
+                    {language === "hi" ? item.commodityHi : item.commodity}
+                  </h4>
+                  <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                    <Store className="h-3 w-3 text-slate-400" />
+                    {item.mandi}
+                  </span>
+                </div>
 
-            <div className="flex items-center justify-between text-[10px] text-slate-500 border-t border-slate-200/60 pt-2">
-              <span>Minimum : ₹ {item.minPrice.toLocaleString("en-IN")}</span>
-              <span>Maximum : ₹ {item.maxPrice.toLocaleString("en-IN")}</span>
+                <div className="text-right">
+                  <span className="text-base sm:text-lg font-black text-slate-900 font-mono block">
+                    ₹{item.modalPrice.toLocaleString("en-IN")}
+                    <span className="text-[10px] text-slate-500 font-normal">/q</span>
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-0.5 text-[10px] font-mono font-bold ${
+                      item.trend === "up"
+                        ? "text-emerald-700 bg-emerald-100/80 px-1.5 py-0.2 rounded"
+                        : item.trend === "down"
+                        ? "text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded"
+                        : "text-slate-600 bg-slate-200/80 px-1.5 py-0.2 rounded"
+                    }`}
+                  >
+                    {item.trend === "up" ? (
+                      <TrendingUp className="h-2.5 w-2.5" />
+                    ) : item.trend === "down" ? (
+                      <TrendingDown className="h-2.5 w-2.5" />
+                    ) : null}
+                    {item.changePct > 0 ? `+${item.changePct}%` : `${item.changePct}%`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Price Band Min - Max */}
+              <div className="pt-2 border-t border-slate-200/60 flex justify-between text-[10px] font-mono text-slate-500">
+                <span>Minimum : ₹{item.minPrice.toLocaleString("en-IN")}</span>
+                <span>Maximum : ₹{item.maxPrice.toLocaleString("en-IN")}</span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
