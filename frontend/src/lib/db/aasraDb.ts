@@ -88,7 +88,7 @@ export interface WhatsAppConnectionRecord {
   farmerId: string;
   phoneNumber: string;
   phoneNumberNormalized: string;
-  provider: "meta_cloud" | "mock";
+  provider: "meta_cloud" | "mock" | "personal";
   status: "active" | "pending" | "disconnected";
   verifiedAt: string;
   connectedAt: string;

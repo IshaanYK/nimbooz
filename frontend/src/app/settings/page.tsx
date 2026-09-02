@@ -57,8 +57,8 @@ export default function SettingsPage() {
   }>({
     connected: false,
     connection: null,
-    displayPhone: "+1 555 025 8921",
-    provider: "meta_cloud",
+    displayPhone: "+91 72229 49347",
+    provider: "personal_whatsapp",
   });
   const [waTokenData, setWaTokenData] = useState<{
     tokenDisplay: string;
@@ -71,6 +71,28 @@ export default function SettingsPage() {
   const [waDisconnecting, setWaDisconnecting] = useState(false);
   const [waSendingTest, setWaSendingTest] = useState(false);
   const [waTestSuccess, setWaTestSuccess] = useState(false);
+
+  const handleManualVerify = async (phoneToUse?: string) => {
+    setWaGenerating(true);
+    try {
+      const res = await fetch("/api/whatsapp/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          farmerId: "farmer-001",
+          action: "manual_verify",
+          phoneNumber: phoneToUse || profile.mobileNumber || "7222949347",
+        }),
+      });
+      if (res.ok) {
+        await fetchWhatsAppStatus();
+      }
+    } catch (err) {
+      console.error("Manual verify error:", err);
+    } finally {
+      setWaGenerating(false);
+    }
+  };
 
   // Notification Preferences State
   const [waPrefs, setWaPrefs] = useState({

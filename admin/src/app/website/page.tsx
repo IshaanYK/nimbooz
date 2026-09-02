@@ -354,7 +354,7 @@ export default function WebsiteControlsPage() {
           <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--hairline)" }}>
             <div style={{ fontSize: 11, color: "var(--ink-tertiary)", fontWeight: 600, textTransform: "uppercase" }}>Bot Display Number</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#25D366", marginTop: 4, fontFamily: "monospace" }}>
-              {waAdminStats?.displayPhone || "+1 555 025 8921"}
+              {waAdminStats?.displayPhone || "+91 72229 49347"}
             </div>
             <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 2 }}>Test Sandbox Recipient Active</div>
           </div>

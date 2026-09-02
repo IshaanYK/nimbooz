@@ -61,8 +61,8 @@ function ProfileContent() {
   }>({
     connected: false,
     connection: null,
-    displayPhone: "+1 555 025 8921",
-    provider: "meta_cloud",
+    displayPhone: "+91 72229 49347",
+    provider: "personal_whatsapp",
   });
 
   const [waTokenData, setWaTokenData] = useState<{
@@ -77,6 +77,28 @@ function ProfileContent() {
   const [waDisconnecting, setWaDisconnecting] = useState(false);
   const [waSendingTest, setWaSendingTest] = useState(false);
   const [waTestSuccess, setWaTestSuccess] = useState(false);
+
+  const handleManualVerify = async (phoneToUse?: string) => {
+    setWaGenerating(true);
+    try {
+      const res = await fetch("/api/whatsapp/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          farmerId: "farmer-001",
+          action: "manual_verify",
+          phoneNumber: phoneToUse || profile.mobileNumber || "7222949347",
+        }),
+      });
+      if (res.ok) {
+        await fetchWhatsAppStatus();
+      }
+    } catch (err) {
+      console.error("Manual verify error:", err);
+    } finally {
+      setWaGenerating(false);
+    }
+  };
 
   // Notification Preferences State
   const [waPrefs, setWaPrefs] = useState({
@@ -580,18 +602,29 @@ function ProfileContent() {
                             Connect Your WhatsApp in 30 Seconds
                           </h3>
                           <p className="text-xs text-slate-600 font-medium mt-0.5">
-                            Click below to generate a secure 16-character code and pre-filled WhatsApp activation link.
+                            Bot WhatsApp Number: <strong className="text-emerald-700 font-mono">+91 72229 49347</strong>. Click below to generate activation code or connect instantly.
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={handleGenerateWaToken}
-                        disabled={waGenerating}
-                        className="px-6 py-3.5 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer shrink-0 disabled:opacity-50"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                        <span>{waGenerating ? "Generating Code..." : "Connect WhatsApp Now"}</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleGenerateWaToken}
+                          disabled={waGenerating}
+                          className="px-5 py-3 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer shrink-0 disabled:opacity-50"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          <span>{waGenerating ? "Generating..." : "Connect WhatsApp Now"}</span>
+                        </button>
+                        <button
+                          onClick={() => handleManualVerify(profile.mobileNumber || "7222949347")}
+                          disabled={waGenerating}
+                          className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
+                          title="Instant 1-click connection for +91 72229 49347"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                          <span>⚡ Quick Connect</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     /* Active Activation Token Card with Live 15-min countdown */
@@ -611,7 +644,7 @@ function ProfileContent() {
 
                       <div className="bg-white border border-emerald-300 rounded-2xl p-6 text-center space-y-3 shadow-xs">
                         <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">
-                          Send this exact message from your phone
+                          Send this exact message from your phone to AASRA Bot: <strong className="text-emerald-700 font-mono">+91 72229 49347</strong>
                         </span>
                         <div className="text-2xl sm:text-3xl font-mono font-black text-slate-900 tracking-wider">
                           AASRA CONNECT {waTokenData.tokenDisplay}
@@ -639,6 +672,21 @@ function ProfileContent() {
                             <span>Open WhatsApp App</span>
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
+                        </div>
+
+                        {/* Instant Verify Helper */}
+                        <div className="pt-4 mt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                          <span className="text-slate-500 font-medium">
+                            Already sent the message or want instant activation?
+                          </span>
+                          <button
+                            onClick={() => handleManualVerify(profile.mobileNumber || "7222949347")}
+                            disabled={waGenerating}
+                            className="px-4 py-2 rounded-xl font-bold bg-slate-900 hover:bg-slate-800 text-white transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                            <span>⚡ Verify & Activate Now (+91 72229 49347)</span>
+                          </button>
                         </div>
                       </div>
 
