@@ -615,7 +615,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="w-full py-3 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300 font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active-press hover:scale-[1.01]"
               >
                 <Sparkles className="h-4 w-4 text-emerald-600" />
-                <span>{language === "hi" ? "🌱 1-टैप डेमो खोलें (ईशान सेन · 5 एकड़ भोपाल)" : "🌱 1-Tap Demo Farm (Ishaan Sen · 5 Acres)"}</span>
+                <span>{language === "hi" ? "🌾 किसान प्रोफ़ाइल सक्रिय करें (ईशान सेन · 5 एकड़ भोपाल)" : "🌾 Activate Farmer Profile (Ishaan Sen · 5 Acres)"}</span>
               </button>
 
               <Link
@@ -723,45 +723,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               }`}
             >
               <Sparkles className="h-4 w-4" />
-              <span>{language === "hi" ? "जानकारी" : "How it works"}</span>
+              <span>{language === "hi" ? "प्रणाली" : "How it Works"}</span>
               {pathname === "/how-it-works" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
-
-            {/* 1-Tap Demo Farm Instant Access for Mobile Judges */}
-            <button
-              type="button"
-              onClick={() => {
-                saveProfile({
-                  fullName: "Ishaan Sen",
-                  mobileNumber: "9876543210",
-                  language: language || "hi",
-                  state: "Madhya Pradesh",
-                  district: "Bhopal",
-                  village: "Phanda Kalan",
-                  fieldAreaAcres: 5.0,
-                  primaryCrop: "Soybean",
-                  cropVariety: "JS-9560 High Yield",
-                  sowingDate: "2026-06-25",
-                  soilType: "Deep Black Clay Soil",
-                  irrigationType: "Rainfed + Borewell Drip",
-                  hasKisanCreditCard: true,
-                  pmKisanBeneficiary: true,
-                  preferredCommunication: "Voice & WhatsApp",
-                  voiceResponsesEnabled: true,
-                  helpTopics: ["Heat Stress", "Quantis Sprays"],
-                  dataConsent: true,
-                });
-                setLoggedIn(true);
-                setProfile(getStoredProfile());
-                router.push("/dashboard");
-              }}
-              className="flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold text-emerald-700 active-press cursor-pointer"
-            >
-              <div className="h-9 w-9 -mt-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md animate-bounce-subtle">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <span className="font-extrabold">{language === "hi" ? "डेमो खोलें" : "Try Demo"}</span>
-            </button>
 
             <Link
               href="/product"
@@ -770,8 +734,19 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               }`}
             >
               <Layers className="h-4 w-4" />
-              <span>{language === "hi" ? "फीचर्स" : "Product"}</span>
+              <span>{language === "hi" ? "विशेषताएं" : "Product"}</span>
               {pathname === "/product" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
+            </Link>
+
+            <Link
+              href="/impact"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative transition-all ${
+                pathname === "/impact" ? "text-[#533afd]" : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              <span>{language === "hi" ? "ROBI लाभ" : "ROBI Impact"}</span>
+              {pathname === "/impact" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
 
             <Link

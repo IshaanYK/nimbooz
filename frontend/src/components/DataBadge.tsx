@@ -57,11 +57,11 @@ export function DataBadge({ type, customText, size = "sm", className = "" }: Dat
       icon: <Eye className="w-3 h-3 text-emerald-400" />,
     },
     DEMO: {
-      label: customText || "DEMO DATA",
-      bg: "bg-gray-800 text-gray-300 border-gray-600",
-      text: "text-gray-300",
-      border: "border-gray-600",
-      icon: <AlertCircle className="w-3 h-3 text-gray-400" />,
+      label: customText || "BENCHMARK DATA",
+      bg: "bg-indigo-950/80 text-indigo-300 border-indigo-600/50",
+      text: "text-indigo-300",
+      border: "border-indigo-600/50",
+      icon: <Sparkles className="w-3 h-3 text-indigo-400" />,
     },
   };
 

@@ -129,7 +129,7 @@ export default function DatabasePage() {
               className="px-3.5 py-2 rounded-xl bg-[#533afd] hover:bg-[#4434d4] text-white text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active-press"
             >
               <HardDrive className="h-3.5 w-3.5" />
-              <span>Seed Demo Data</span>
+              <span>Seed MVP Records</span>
             </button>
           </div>
         </div>
