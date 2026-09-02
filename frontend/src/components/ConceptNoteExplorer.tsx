@@ -113,28 +113,28 @@ export const ConceptNoteExplorer: React.FC = () => {
     { model: "SVR", rmsle: 0.35, note: "High compute latency, moderate fit", color: "bg-slate-600" },
     { model: "DNN", rmsle: 0.28, note: "Overfits on small tabular sample size", color: "bg-slate-500" },
     { model: "Random Forest", rmsle: 0.22, note: "Good ensemble, lacks gradient refinement", color: "bg-amber-600" },
-    { model: "GBR (Our MVP)", rmsle: 0.18, note: "Fast baseline gradient boosting", color: "bg-emerald-600" },
-    { model: "XGBoost (Chosen)", rmsle: 0.16, note: "Best RMSLE accuracy + feature interpretability", color: "bg-emerald-400" },
+    { model: "GBR (Our MVP)", rmsle: 0.18, note: "Fast baseline gradient boosting", color: "bg-indigo-600" },
+    { model: "XGBoost (Chosen)", rmsle: 0.16, note: "Best RMSLE accuracy + feature interpretability", color: "bg-violet-400" },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-12 font-sans text-slate-100">
+    <div className="max-w-[1240px] mx-auto px-4 sm:px-6 py-10 space-y-12 font-sans text-slate-100">
       
       {/* Top Header & Concept Note Banner */}
       <section className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-10 relative overflow-hidden shadow-2xl space-y-6">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="px-3.5 py-1 rounded-full text-xs font-mono font-bold tracking-wider uppercase bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                 TEAM-2 CONCEPT NOTE & ARCHITECTURE SPECIFICATION
               </span>
               <span className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
                 HACK CORE 2026
               </span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-black font-display tracking-tight text-white">
+            <h1 className="text-3xl sm:text-5xl font-extrabold font-display tracking-tight text-white">
               AASRA Hybrid AI/ML Intelligence Platform
             </h1>
             <p className="text-sm sm:text-base text-slate-400 max-w-3xl leading-relaxed">
@@ -149,7 +149,7 @@ export const ConceptNoteExplorer: React.FC = () => {
               rel="noreferrer"
               className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-bold border border-slate-700 transition-all flex items-center gap-2"
             >
-              <Code2 className="h-4 w-4 text-emerald-400" />
+              <Code2 className="h-4 w-4 text-indigo-400" />
               <span>GitHub Repo</span>
               <ExternalLink className="h-3 w-3 text-slate-400" />
             </a>
@@ -169,7 +169,7 @@ export const ConceptNoteExplorer: React.FC = () => {
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-            <span className="text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider block">
+            <span className="text-[11px] font-mono font-bold text-violet-400 uppercase tracking-wider block">
               PS-03 : CropFit Product Advisor
             </span>
             <h4 className="text-sm font-bold text-white">Personalised Biological Match</h4>
@@ -179,7 +179,7 @@ export const ConceptNoteExplorer: React.FC = () => {
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-            <span className="text-[11px] font-mono font-bold text-cyan-400 uppercase tracking-wider block">
+            <span className="text-[11px] font-mono font-bold text-blue-400 uppercase tracking-wider block">
               PS-07 : Yield Impact Predictor
             </span>
             <h4 className="text-sm font-bold text-white">Double ML Causal Proof</h4>
@@ -189,7 +189,7 @@ export const ConceptNoteExplorer: React.FC = () => {
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-            <span className="text-[11px] font-mono font-bold text-purple-400 uppercase tracking-wider block">
+            <span className="text-[11px] font-mono font-bold text-orange-400 uppercase tracking-wider block">
               PS-04 : Multilingual Chatbot
             </span>
             <h4 className="text-sm font-bold text-white">Voice-First Low-Literacy AI</h4>
@@ -205,7 +205,7 @@ export const ConceptNoteExplorer: React.FC = () => {
         <button
           onClick={() => setActiveSection("hybrid_pipeline")}
           className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeSection === "hybrid_pipeline" ? "bg-emerald-600 text-white shadow-md font-black" : "text-slate-400 hover:text-white hover:bg-slate-900"
+            activeSection === "hybrid_pipeline" ? "bg-indigo-600 text-white shadow-md font-extrabold" : "text-slate-400 hover:text-white hover:bg-slate-900"
           }`}
         >
           <Layers className="h-4 w-4" /> 1. Hybrid AI/ML Pipeline
@@ -214,7 +214,7 @@ export const ConceptNoteExplorer: React.FC = () => {
         <button
           onClick={() => setActiveSection("formulas")}
           className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeSection === "formulas" ? "bg-emerald-600 text-white shadow-md font-black" : "text-slate-400 hover:text-white hover:bg-slate-900"
+            activeSection === "formulas" ? "bg-indigo-600 text-white shadow-md font-extrabold" : "text-slate-400 hover:text-white hover:bg-slate-900"
           }`}
         >
           <Calculator className="h-4 w-4" /> 2. Core Mathematical Engines

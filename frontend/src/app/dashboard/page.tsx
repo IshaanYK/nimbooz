@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
-import { InteractiveWeatherMap } from "@/components/InteractiveWeatherMap";
 import { DataBadge } from "@/components/DataBadge";
 import { PageHelpModal } from "@/components/PageHelpModal";
 import { FarmerProfile, getStoredProfile, saveProfile } from "@/lib/userStore";
@@ -101,28 +100,28 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8 font-sans">
+      <div className="max-w-[1240px] w-full mx-auto px-4 sm:px-6 py-8 space-y-8 font-sans">
         
         {/* Header Greeting */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
           <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              <span className="text-xs font-mono font-bold text-indigo-700 uppercase bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200/80">
                 {t.fieldCommandCenter}
               </span>
               <DataBadge type="LIVE_CEHUB" customText="OPEN-METEO TELEMETRY" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 mt-1">
+            <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-[#111827] tracking-tight">
               {t.welcomePrefix} {profile.fullName || "Kisan Sathi"}
             </h1>
-            <p className="text-sm text-slate-600 font-medium flex items-center gap-2 flex-wrap mt-1">
+            <p className="text-sm text-[#64748B] font-medium flex items-center gap-2 flex-wrap mt-1.5">
               <span>{profile.village ? `${profile.village}, ` : ""}{profile.district || weather.district || "Live GPS Location"}{profile.state ? `, ${profile.state}` : ""}</span>
-              <span>·</span>
-              <strong className="text-slate-900">{currentAcres} Acres</strong>
-              <span>·</span>
+              <span className="text-slate-300">·</span>
+              <strong className="text-slate-900 font-mono">{currentAcres} Acres</strong>
+              <span className="text-slate-300">·</span>
               <button
                 onClick={() => setShowCropSwitchModal(true)}
-                className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs px-2.5 py-0.5 rounded-lg cursor-pointer transition-all shadow-2xs"
+                className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs px-2.5 py-0.5 rounded-lg cursor-pointer transition-all shadow-2xs"
                 title="Click to change or add crop"
               >
                 <Sprout className="h-3.5 w-3.5 text-emerald-600" />
@@ -135,10 +134,10 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={handlePlayBriefing}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 ${
                 isSpeakingBriefing
                   ? "bg-rose-600 text-white animate-pulse"
-                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                  : "bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 text-white shadow-indigo-500/20"
               }`}
             >
               {isSpeakingBriefing ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-amber-300" />}
@@ -158,41 +157,41 @@ export default function DashboardPage() {
 
             <Link
               href="/assistant"
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
             >
-              <Mic className="h-4 w-4 text-emerald-400" />
+              <Mic className="h-4 w-4 text-violet-400" />
               <span>{t.openAiAssistant}</span>
             </Link>
           </div>
         </div>
 
         {/* Interactive Farmer Quick-Tuning Bar */}
-        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300 rounded-3xl p-5 shadow-sm space-y-4">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg font-black shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-xs">
                 👨‍🌾
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-[11px] font-mono font-black text-amber-950 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
-                    PS-04: Voice Advisory AI
+                  <span className="text-[10px] font-mono font-bold text-orange-800 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+                    PS-04: Voice AI
                   </span>
-                  <span className="text-[11px] font-mono font-black text-purple-950 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-300">
-                    PS-03: Syngenta Prescription
+                  <span className="text-[10px] font-mono font-bold text-violet-800 bg-violet-50 px-2.5 py-0.5 rounded-full border border-violet-200">
+                    PS-03: Prescription
                   </span>
-                  <span className="text-[11px] font-mono font-black text-emerald-950 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                     PS-07: ROBI Return
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 font-display">
                     {profile.fullName
                       ? `${profile.fullName} · ${profile.district || "Registered Farm"} ${profile.village ? `(${profile.village})` : ""}`
                       : `Your Farm · ${activeFarm.name || "Main Field Plot"}`}
                   </h3>
                 </div>
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-slate-500">
                   {language === "hi"
                     ? "नीचे से अपनी फसल और एकड़ चुनें — पूरी वेबसाइट आपके खेत के अनुसार गणना करेगी"
                     : "Select your crop and land acreage below to recalculate all farm metrics in real time"}
@@ -202,16 +201,16 @@ export default function DashboardPage() {
 
             <Link
               href="/settings"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white/80 hover:bg-white px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs transition-all shrink-0"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs transition-all shrink-0"
             >
-              <Edit3 className="h-3.5 w-3.5" />
+              <Edit3 className="h-3.5 w-3.5 text-slate-500" />
               <span>{language === "hi" ? "प्रोफ़ाइल बदलें" : "Edit Profile"}</span>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-emerald-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
             {/* Quick Crop Selector */}
-            <div className="bg-white/90 p-3 rounded-2xl border border-emerald-200 space-y-1.5">
+            <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-1.5">
               <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">
                 {language === "hi" ? "मुख्य फसल (Crop)" : "Primary Crop"}
               </span>
@@ -225,10 +224,10 @@ export default function DashboardPage() {
                   <button
                     key={c.key}
                     onClick={() => handleUpdateCrop(c.key)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       (profile.primaryCrop || "soybean").toLowerCase() === c.key
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
                     }`}
                   >
                     {c.label}
@@ -238,7 +237,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Acreage Selector */}
-            <div className="bg-white/90 p-3 rounded-2xl border border-emerald-200 space-y-1.5">
+            <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-1.5">
               <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">
                 {language === "hi" ? "खेत का क्षेत्रफल (Acres)" : "Farm Acreage"}
               </span>
@@ -247,10 +246,10 @@ export default function DashboardPage() {
                   <button
                     key={ac}
                     onClick={() => handleUpdateAcreage(ac)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       currentAcres === ac
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
                     }`}
                   >
                     {ac} Ac
@@ -260,7 +259,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Calculated Farm Extra Profit */}
-            <div className="bg-white/90 p-3 rounded-2xl border border-emerald-200 space-y-1">
+            <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-1">
               <span className="text-[10px] font-mono font-bold text-emerald-800 uppercase block">
                 {language === "hi" ? "कुल अतिरिक्त शुद्ध लाभ" : "Total Extra Farm Income"}
               </span>
@@ -273,7 +272,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Syngenta Dosage Requirement */}
-            <div className="bg-white/90 p-3 rounded-2xl border border-emerald-200 space-y-1">
+            <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-1">
               <span className="text-[10px] font-mono font-bold text-amber-800 uppercase block">
                 {language === "hi" ? "आवश्यक सिंजेंटा दवा" : "Total Syngenta Dosage"}
               </span>
@@ -306,34 +305,6 @@ export default function DashboardPage() {
         {/* Full Width Overwatch Layout */}
         <div className="space-y-8">
           
-          {/* Interactive Satellite Map */}
-          <InteractiveWeatherMap
-            lat={activeFarm.center[0]}
-            lon={activeFarm.center[1]}
-            crop={activeFarm.primaryCrop}
-            onLocationSelect={async (newLat, newLon) => {
-              if (setCustomCoordinates) {
-                await setCustomCoordinates(newLat, newLon);
-              }
-              updateActiveFarm({
-                center: [newLat, newLon]
-              });
-            }}
-            onFieldSelected={(f) => {
-              updateActiveFarm({
-                primaryCrop: f.crop,
-                cropVariety: f.cropVariety,
-                areaAcres: f.areaAcres,
-                areaHa: f.areaHa,
-                center: f.center,
-                polygon: f.polygon,
-              });
-              if (setCustomCoordinates) {
-                setCustomCoordinates(f.center[0], f.center[1]);
-              }
-            }}
-          />
-
           {/* Live Real-Time Telemetry & Sensor Card */}
           <div className="stripe-card p-6 space-y-4 rounded-3xl border border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -439,80 +410,80 @@ export default function DashboardPage() {
           </div>
 
           {/* 4 Core Hackathon Problem Statement Pillar Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             
             {/* PS-04 AI Assistant Card */}
-            <div className="stripe-card p-5 space-y-3 border-2 border-emerald-300 bg-gradient-to-b from-white to-emerald-50/30 rounded-3xl">
+            <div className="bg-white p-5 space-y-3 border border-slate-200/80 border-t-4 border-t-violet-500 rounded-2xl shadow-xs hover:shadow-md transition-all hover:-translate-y-1 group">
               <div className="flex justify-between items-start">
-                <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                <div className="h-10 w-10 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center transition-transform group-hover:scale-105">
                   <Mic className="h-5 w-5" />
                 </div>
-                <span className="text-[10px] font-mono font-black bg-emerald-100 text-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                <span className="text-[10px] font-mono font-bold bg-violet-50 text-violet-800 px-2.5 py-0.5 rounded-full border border-violet-200">
                   PS-04 AI Voice
                 </span>
               </div>
               <div>
-                <h4 className="font-extrabold text-base text-slate-900 font-display">AASRA Voice Studio</h4>
-                <p className="text-xs text-slate-600 mt-1">12 Indian languages, voice-first agronomist, crop leaf camera diagnostics, and live sensor citations.</p>
+                <h4 className="font-bold text-base text-slate-900 font-display">AASRA Voice Studio</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">12 Indian languages, voice-first agronomist, crop leaf camera diagnostics, and live sensor citations.</p>
               </div>
-              <Link href="/assistant" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 hover:text-emerald-900 pt-2">
+              <Link href="/assistant" className="inline-flex items-center gap-1.5 text-xs font-bold text-violet-700 hover:text-violet-900 pt-1">
                 Open AI Studio <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
             {/* PS-02 Plant Intelligence Card */}
-            <div className="stripe-card p-5 space-y-3 rounded-3xl border border-slate-200">
+            <div className="bg-white p-5 space-y-3 border border-slate-200/80 border-t-4 border-t-blue-500 rounded-2xl shadow-xs hover:shadow-md transition-all hover:-translate-y-1 group">
               <div className="flex justify-between items-start">
-                <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center transition-transform group-hover:scale-105">
                   <Zap className="h-5 w-5" />
                 </div>
-                <span className="text-[10px] font-mono font-black bg-blue-100 text-blue-950 px-2.5 py-0.5 rounded-full border border-blue-300">
+                <span className="text-[10px] font-mono font-bold bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-full border border-blue-200">
                   PS-02 Stress
                 </span>
               </div>
               <div>
-                <h4 className="font-extrabold text-base text-slate-900 font-display">14-Day Plant Stress Early Warning</h4>
-                <p className="text-xs text-slate-600 mt-1">Predictive thermal heat respiration models & CE Hub GDD tracking before visual symptoms appear.</p>
+                <h4 className="font-bold text-base text-slate-900 font-display">14-Day Plant Stress Radar</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">Predictive thermal heat respiration models & CE Hub GDD tracking before visual symptoms appear.</p>
               </div>
-              <Link href="/plant-intelligence" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-700 hover:text-blue-900 pt-2">
+              <Link href="/plant-intelligence" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 pt-1">
                 Inspect Predictions <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
             {/* PS-03 Syngenta Matcher Card */}
-            <div className="stripe-card p-5 space-y-3 rounded-3xl border border-slate-200">
+            <div className="bg-white p-5 space-y-3 border border-slate-200/80 border-t-4 border-t-purple-500 rounded-2xl shadow-xs hover:shadow-md transition-all hover:-translate-y-1 group">
               <div className="flex justify-between items-start">
-                <div className="h-10 w-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center transition-transform group-hover:scale-105">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
-                <span className="text-[10px] font-mono font-black bg-purple-100 text-purple-950 px-2.5 py-0.5 rounded-full border border-purple-300">
+                <span className="text-[10px] font-mono font-bold bg-purple-50 text-purple-800 px-2.5 py-0.5 rounded-full border border-purple-200">
                   PS-03 CropFit
                 </span>
               </div>
               <div>
-                <h4 className="font-extrabold text-base text-slate-900 font-display">Syngenta CropFit Solution</h4>
-                <p className="text-xs text-slate-600 mt-1">Quantis & Isabion biological prescriptions with exact dosage calculated for {currentAcres} acres.</p>
+                <h4 className="font-bold text-base text-slate-900 font-display">Syngenta CropFit Solution</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">Quantis & Isabion biological prescriptions with exact dosage calculated for {currentAcres} acres.</p>
               </div>
-              <Link href="/product" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple-700 hover:text-purple-900 pt-2">
+              <Link href="/product" className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-900 pt-1">
                 View Prescriptions <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
             {/* PS-07 ROBI Financial Return Card */}
-            <div className="stripe-card p-5 space-y-3 rounded-3xl border border-slate-200">
+            <div className="bg-white p-5 space-y-3 border border-slate-200/80 border-t-4 border-t-amber-500 rounded-2xl shadow-xs hover:shadow-md transition-all hover:-translate-y-1 group">
               <div className="flex justify-between items-start">
-                <div className="h-10 w-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center transition-transform group-hover:scale-105">
                   <TrendingUp className="h-5 w-5" />
                 </div>
-                <span className="text-[10px] font-mono font-black bg-amber-100 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300">
+                <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-200">
                   PS-07 ROBI
                 </span>
               </div>
               <div>
-                <h4 className="font-extrabold text-base text-slate-900 font-display">Return on Biologicals (ROBI)</h4>
-                <p className="text-xs text-slate-600 mt-1">Weather-adjusted yield attribution proving +₹{netProfitEst.toLocaleString("en-IN")} extra net income.</p>
+                <h4 className="font-bold text-base text-slate-900 font-display">Return on Biologicals (ROBI)</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">Weather-adjusted yield attribution proving +₹{netProfitEst.toLocaleString("en-IN")} extra net income.</p>
               </div>
-              <Link href="/impact" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-800 hover:text-amber-950 pt-2">
+              <Link href="/impact" className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 hover:text-amber-950 pt-1">
                 Calculate ROI Proof <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -533,6 +504,77 @@ export default function DashboardPage() {
             district={currentDistrict}
             state={currentState}
           />
+
+          {/* Connected Action Tools Ribbon */}
+          <div className="p-6 rounded-3xl bg-white border border-[#e3e8ee] shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#533afd]" />
+                <h3 className="text-base font-bold text-[#0d253d] font-display">
+                  {language === "hi" ? "त्वरित कृषि उपकरण (Connected Workflows)" : "Connected Farm Workflows"}
+                </h3>
+              </div>
+              <span className="text-xs text-slate-400 font-mono">PS-01 to PS-07</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-bold">
+              <Link
+                href="/plant-intelligence"
+                className="p-3.5 rounded-2xl bg-indigo-50/70 hover:bg-indigo-50 border border-indigo-100 text-indigo-950 transition-all flex flex-col justify-between gap-2"
+              >
+                <div className="flex items-center justify-between">
+                  <Sprout className="h-5 w-5 text-[#533afd]" />
+                  <ArrowRight className="h-3.5 w-3.5 text-indigo-400" />
+                </div>
+                <div>
+                  <span className="block font-black">{language === "hi" ? "पौधा स्वास्थ्य AI" : "Plant Health AI"}</span>
+                  <span className="text-[10px] text-indigo-700 font-medium">{language === "hi" ? "14-दिन तनाव रडार" : "14-Day Stress Early Warning"}</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/assistant"
+                className="p-3.5 rounded-2xl bg-amber-50/70 hover:bg-amber-50 border border-amber-100 text-amber-950 transition-all flex flex-col justify-between gap-2"
+              >
+                <div className="flex items-center justify-between">
+                  <Mic className="h-5 w-5 text-amber-600" />
+                  <ArrowRight className="h-3.5 w-3.5 text-amber-400" />
+                </div>
+                <div>
+                  <span className="block font-black">{language === "hi" ? "AI कृषि सलाह" : "Voice AI Assistant"}</span>
+                  <span className="text-[10px] text-amber-700 font-medium">{language === "hi" ? "बोलकर या फोटो भेजकर" : "Multimodal Voice & Chat"}</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/what-if"
+                className="p-3.5 rounded-2xl bg-sky-50/70 hover:bg-sky-50 border border-sky-100 text-sky-950 transition-all flex flex-col justify-between gap-2"
+              >
+                <div className="flex items-center justify-between">
+                  <Sliders className="h-5 w-5 text-sky-600" />
+                  <ArrowRight className="h-3.5 w-3.5 text-sky-400" />
+                </div>
+                <div>
+                  <span className="block font-black">{language === "hi" ? "ROBI सिमुलेटर" : "What-If Simulator"}</span>
+                  <span className="text-[10px] text-sky-700 font-medium">{language === "hi" ? "खर्च बनाम मुनाफा" : "Dosage vs Profit Model"}</span>
+                </div>
+              </Link>
+
+              <Link
+                href="/journal"
+                className="p-3.5 rounded-2xl bg-emerald-50/70 hover:bg-emerald-50 border border-emerald-100 text-emerald-950 transition-all flex flex-col justify-between gap-2"
+              >
+                <div className="flex items-center justify-between">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                  <ArrowRight className="h-3.5 w-3.5 text-emerald-400" />
+                </div>
+                <div>
+                  <span className="block font-black">{language === "hi" ? "फार्म स्प्रे डायरी" : "Farm Journal"}</span>
+                  <span className="text-[10px] text-emerald-700 font-medium">{language === "hi" ? "स्प्रे रिकॉर्ड व इतिहास" : "Intervention Logs"}</span>
+                </div>
+              </Link>
+            </div>
+          </div>
 
         </div>
 

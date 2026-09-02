@@ -4,8 +4,8 @@ import { getAllProducts } from "@/lib/syngentaProductsDB";
 
 const REGIONS_DATA: Record<string, { name: string; lat: number; lon: number; soil_type: string; soil_buffer: number; salinity_index: number; crops: string[]; dominant_stresses: string[] }> = {
   punjab: {
-    name: "Punjab / Indo-Gangetic Plain",
-    crops: ["wheat", "rice", "cotton_bt"],
+    name: "Indo-Gangetic Plain (Punjab / Haryana)",
+    crops: ["wheat", "rice", "cotton_bt", "mustard"],
     lat: 30.9,
     lon: 75.86,
     soil_type: "Alluvial Loam",
@@ -14,8 +14,8 @@ const REGIONS_DATA: Record<string, { name: string; lat: number; lon: number; soi
     dominant_stresses: ["Heat Waves", "Waterlogging"]
   },
   bhopal: {
-    name: "Bhopal / Central India",
-    crops: ["soybean", "wheat", "chickpea"],
+    name: "Central Plateau & Malwa (Madhya Pradesh)",
+    crops: ["soybean", "wheat", "chickpea", "mustard"],
     lat: 23.2599,
     lon: 77.4126,
     soil_type: "Medium Black Clay",
@@ -23,9 +23,19 @@ const REGIONS_DATA: Record<string, { name: string; lat: number; lon: number; soi
     salinity_index: 0.15,
     dominant_stresses: ["Drought", "Heat Waves"]
   },
+  rajasthan_arid: {
+    name: "Western Arid Zone (Rajasthan)",
+    crops: ["mustard", "wheat", "chickpea", "cluster_bean", "cumin"],
+    lat: 26.45,
+    lon: 74.64,
+    soil_type: "Arid Sandy Loam",
+    soil_buffer: 0.20,
+    salinity_index: 0.35,
+    dominant_stresses: ["Severe Heat", "Extreme Drought", "High VPD"]
+  },
   maharashtra_vidarbha: {
-    name: "Vidarbha / Maharashtra",
-    crops: ["cotton_bt", "soybean", "pigeon_pea"],
+    name: "Deccan Plateau & Vidarbha (Maharashtra)",
+    crops: ["cotton_bt", "soybean", "pigeon_pea", "onion"],
     lat: 20.93,
     lon: 77.75,
     soil_type: "Deep Black Clay (Vertisol)",
@@ -34,18 +44,38 @@ const REGIONS_DATA: Record<string, { name: string; lat: number; lon: number; soi
     dominant_stresses: ["Drought", "Heat Waves"]
   },
   gujarat_saurashtra: {
-    name: "Saurashtra / Gujarat",
-    crops: ["groundnut", "cotton_bt", "sesame"],
+    name: "Saurashtra & Semi-Arid Zone (Gujarat)",
+    crops: ["groundnut", "cotton_bt", "sesame", "cumin"],
     lat: 21.52,
     lon: 70.45,
-    soil_type: "Sandy Loam / Coastal",
+    soil_type: "Medium Black / Sandy Loam",
     soil_buffer: 0.25,
     salinity_index: 0.45,
     dominant_stresses: ["Severe Drought", "Soil Salinity"]
   },
+  karnataka_deccan: {
+    name: "Deccan Plateau (Karnataka)",
+    crops: ["maize", "cotton_bt", "chilli", "tomato"],
+    lat: 15.41,
+    lon: 75.09,
+    soil_type: "Red Clay Loam",
+    soil_buffer: 0.40,
+    salinity_index: 0.20,
+    dominant_stresses: ["Early Season Drought", "Nutrient Leaching"]
+  },
+  eastern_gangetic: {
+    name: "Eastern Gangetic Plain (Bihar / West Bengal)",
+    crops: ["rice", "wheat", "maize", "jute", "potato"],
+    lat: 25.59,
+    lon: 85.14,
+    soil_type: "Deep Alluvial Silt",
+    soil_buffer: 0.60,
+    salinity_index: 0.15,
+    dominant_stresses: ["Waterlogging / Flood", "High Humidity Fungal Pressure"]
+  },
   jammu: {
-    name: "Jammu & Kashmir Valley",
-    crops: ["apple", "saffron", "mustard"],
+    name: "North-Western Himalayan Zone (J&K / Himachal)",
+    crops: ["apple", "saffron", "mustard", "maize"],
     lat: 34.08,
     lon: 74.79,
     soil_type: "Mountain Meadow / Karewa",
@@ -54,8 +84,8 @@ const REGIONS_DATA: Record<string, { name: string; lat: number; lon: number; soi
     dominant_stresses: ["Frost / Cold Snap", "Erratic Rainfall"]
   },
   andhra_telangana: {
-    name: "Rayalaseema / Andhra Pradesh",
-    crops: ["chilli", "groundnut", "rice"],
+    name: "Rayalaseema & Telangana Semi-Arid",
+    crops: ["chilli", "groundnut", "rice", "cotton_bt"],
     lat: 14.68,
     lon: 77.60,
     soil_type: "Red Sandy Loam",
@@ -115,11 +145,19 @@ export async function POST(request: NextRequest) {
   const symptoms = body.symptoms || "None";
   const soilMoisture = body.soil_moisture || "Optimal";
 
-  const regionInfo = REGIONS_DATA[regionKey] || REGIONS_DATA["bhopal"];
-  
-  // Use custom coordinates if provided, otherwise use region defaults
-  const lat = body.lat != null ? Number(body.lat) : regionInfo.lat;
-  const lon = body.lon != null ? Number(body.lon) : regionInfo.lon;
+  const fallbackRegion = REGIONS_DATA[regionKey] || REGIONS_DATA["bhopal"];
+  const lat = body.lat != null ? Number(body.lat) : (REGIONS_DATA[regionKey]?.lat ?? 23.2599);
+  const lon = body.lon != null ? Number(body.lon) : (REGIONS_DATA[regionKey]?.lon ?? 77.4126);
+  const regionInfo = REGIONS_DATA[regionKey] || {
+    name: body.custom_location_name || body.region_name || fallbackRegion.name || "Regional Agricultural Zone",
+    crops: [crop],
+    lat,
+    lon,
+    soil_type: body.soil_type || fallbackRegion.soil_type || "Medium Loam Soil",
+    soil_buffer: fallbackRegion.soil_buffer ?? 0.50,
+    salinity_index: fallbackRegion.salinity_index ?? 0.20,
+    dominant_stresses: fallbackRegion.dominant_stresses || ["Thermal Stress", "Moisture Deficit"]
+  };
   const locationName = body.custom_location_name || regionInfo.name;
 
   // 1. Fetch live 14-day weather from Open-Meteo

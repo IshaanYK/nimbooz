@@ -1,70 +1,44 @@
 "use client";
 
-/**
- * AASRA Advisory Chat — PS-04 Multilingual Voice & Multimodal Vision Engine
- * Powered 100% by Google AI:
- * - Google Gemini 2.5 Flash / Flash Lite Multi-Turn Reasoning
- * - Google Gemini 2.5 Flash Vision Multimodal Leaf Diagnostics
- * - Google Chirp 3 HD & Neural Voice Streaming Audio (calm 0.94x human pace)
- * - Continuous Real-Time Speech Recognition with full sentence capture
- * - Real User Location Grounding + Localized Syngenta Deals & Mandi Offers
- */
-
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Mic,
   MicOff,
   Send,
-  Sparkles,
-  Volume2,
-  Bot,
-  Globe,
   Loader2,
-  RefreshCw,
-  Thermometer,
-  Droplets,
-  Wind,
+  Volume2,
   VolumeX,
-  Gauge,
-  CloudSun,
-  CheckCircle2,
-  AlertTriangle,
-  ShieldCheck,
   Camera,
-  Image as ImageIcon,
+  RotateCcw,
+  Sparkles,
   ChevronDown,
   ChevronUp,
-  HelpCircle,
+  MapPin,
+  Globe,
+  ShieldCheck,
+  AlertTriangle,
+  CloudSun,
   X,
-  Play,
-  RotateCcw,
-  Phone,
+  CheckCircle,
   MessageSquare,
-  Store,
-  MapPin as MapPinIcon,
-  Navigation,
-  ExternalLink,
-  Tag,
-  Percent,
-  Gift,
+  Sprout,
+  Search,
+  Droplets,
+  Wind,
+  Thermometer,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
 import { sendChatMessage, analyzeCropLeafImage } from "@/lib/api";
-import { DataBadge } from "./DataBadge";
 import { getStoredProfile, INDIAN_LANGUAGES } from "@/lib/userStore";
-import {
-  getNearbySyngentaDealers,
-  getLocalizedSyngentaDeals,
-  generateWhatsAppOrderLink,
-  getLiveGoogleMapsDealerSearchUrl,
-  SYNGENTA_OFFICIAL_CONTACTS,
-  SYNGENTA_LOCAL_DEALS,
-} from "@/lib/syngentaDealers";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWeather } from "@/context/WeatherContext";
 import { useFarm } from "@/context/FarmContext";
 import { getTranslation } from "@/lib/translations";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
-import { findCropMandiRate } from "@/lib/mandiEngine";
+import { VoiceRecognitionService, VoiceState } from "@/lib/voiceRecognitionService";
+import { MASTER_CROPS, CropInfo, resolveCropThresholds, getRegionalCrops } from "@/lib/cropRegistry";
+import { getCropAdvisoryProfile } from "@/lib/agriculture/cropAdvisoryMatrix";
 
 export interface Message {
   id: string;
@@ -75,120 +49,195 @@ export interface Message {
   imageUrl?: string;
   whyRecommendation?: string;
   dosageSummary?: string;
-  totalProfitGain?: string;
   confidenceScore?: number;
   followUpQuestions?: string[];
   telemetryUsed?: any;
   locationUsed?: string;
+  cropProfile?: any;
+  mandiRecord?: any;
+  detectedLanguage?: string;
+  rawTranscript?: string;
 }
 
 interface AdvisoryChatProps {
   currentField?: string;
   crop?: string;
+  currentCrop?: string;
+  farmerName?: string;
+  acres?: number;
+  variety?: string;
+  district?: string;
+  village?: string;
   externalQuery?: string;
   onClearExternalQuery?: () => void;
+  onCropChange?: (cropId: string) => void;
 }
 
-const LANG_TO_BCP47: Record<string, string> = {
-  hi: "hi-IN",
-  mr: "mr-IN",
-  pa: "pa-IN",
-  gu: "gu-IN",
-  te: "te-IN",
-  ta: "ta-IN",
-  kn: "kn-IN",
-  ml: "ml-IN",
-  bn: "bn-IN",
-  or: "or-IN",
-  as: "as-IN",
-  en: "en-IN",
-};
+const CROP_CATEGORIES = [
+  { id: "all", label: "All Crops", labelHi: "सभी फसलें" },
+  { id: "cereal", label: "Cereals", labelHi: "अनाज" },
+  { id: "pulse", label: "Pulses", labelHi: "दलहन" },
+  { id: "oilseed", label: "Oilseeds", labelHi: "तिलहन" },
+  { id: "cash_crop", label: "Cash Crops", labelHi: "नकदी फसलें" },
+  { id: "vegetable", label: "Vegetables", labelHi: "सब्जियां" },
+  { id: "fruit", label: "Fruits", labelHi: "फल" },
+  { id: "spice", label: "Spices", labelHi: "मसाले" },
+];
 
 export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
-  currentField,
-  crop,
+  currentField = "Field 1",
+  crop: initialCrop,
+  currentCrop,
+  farmerName = "Kisan Mitra",
+  acres,
+  variety,
+  district: initialDistrict,
+  village,
   externalQuery,
   onClearExternalQuery,
+  onCropChange,
 }) => {
-  const { language, setLanguage } = useLanguage();
-  const { weather, refetch: refetchWeather } = useWeather();
-  const { activeFarm, interventions } = useFarm();
+  const { language } = useLanguage();
+  const { weather } = useWeather();
+  const { activeFarm, activeField } = useFarm();
   const t = getTranslation(language);
 
-  // Dynamic user location detection from activeFarm & GPS Context
-  const profile = getStoredProfile();
-  const effectiveCrop = crop || activeFarm.primaryCrop || "Soybean";
-  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : (language === "hi" ? "किसान साथी" : "Farmer Friend");
-  const effectiveDistrict = activeFarm.district || weather.district || (language === "hi" ? "आपका जिला" : "Your District");
-  const effectiveVillage = activeFarm.village || weather.village || (language === "hi" ? "आपका खेत" : "Your Farm");
-  const effectiveLocation = `${activeFarm.name} (${effectiveDistrict}, ${activeFarm.state || "India"})`;
-  const effectiveAcres = activeFarm.areaAcres || 5.0;
-  const effectiveVariety = activeFarm.cropVariety || "Certified Cultivar";
-
-  const nearbyDealers = getNearbySyngentaDealers(effectiveDistrict, weather.lat, weather.lon);
-  const localizedDeals = getLocalizedSyngentaDeals(effectiveDistrict, effectiveCrop);
-
-  const bcp47 = LANG_TO_BCP47[language] || "hi-IN";
-  const langObj = INDIAN_LANGUAGES.find((l) => l.code === language);
-  const langName = langObj?.native || language;
-
+  const [profile] = useState<any>(getStoredProfile() || {});
   const [openWhyId, setOpenWhyId] = useState<string | null>(null);
-  const [openDealersId, setOpenDealersId] = useState<string | null>(null);
-  const [openDealsId, setOpenDealsId] = useState<string | null>(null);
-  const [liveSpeechTranscript, setLiveSpeechTranscript] = useState<string>("");
 
-  // Welcome message generator
+  // Multi-Crop State
+  const defaultCropId = (initialCrop || currentCrop || activeField?.crop || activeFarm?.primaryCrop || profile.crop || "wheat").toLowerCase();
+  const [selectedCropId, setSelectedCropId] = useState<string>(defaultCropId);
+  const [cropCategoryFilter, setCropCategoryFilter] = useState<string>("all");
+  const [cropSearchQuery, setCropSearchQuery] = useState<string>("");
+  const [showCropPicker, setShowCropPicker] = useState<boolean>(false);
+
+  // Effective location and parameters
+  const effectiveDistrict = initialDistrict || weather.district || profile.district || "Bhopal";
+  const effectiveVillage = village || profile.village || "";
+  const effectiveAcres = acres || profile.acres || 5.0;
+  const effectiveVariety = variety || profile.cropVariety || "";
+  const effectiveLocation = effectiveVillage
+    ? `${effectiveVillage}, ${effectiveDistrict}, ${weather.state || "India"}`
+    : `${effectiveDistrict}, ${weather.state || "India"}`;
+
+  const currentCropInfo: CropInfo = resolveCropThresholds(selectedCropId);
+  const currentCropProfile = getCropAdvisoryProfile(selectedCropId);
+
+  // Safe spray calculation
+  const isSpraySafe = weather.windSpeed < 15 && weather.precipitation === 0 && weather.temperature < 33;
+
+  const effectiveFarmerName = profile?.fullName?.trim() || farmerName || "";
+  const displayFarmerGreeting = effectiveFarmerName
+    ? (language === "hi" ? `${effectiveFarmerName} जी` : effectiveFarmerName)
+    : (language === "hi" ? "किसान मित्र" : "Farmer Friend");
+
+  // Build localized welcome message
   const buildWelcome = useCallback((): Message => {
-    const p = getStoredProfile();
-    const name = p?.fullName && p.fullName.trim() ? p.fullName : (language === "hi" ? "किसान साथी" : "Farmer Friend");
-    const welcomeText = language === "hi"
-      ? `नमस्ते ${name} जी! मैं आसरा हूँ, आपका AI कृषि साथी। आपके क्षेत्र (${effectiveLocation}) के लिए लाइव मौसम और सिंजेंटा अधिकृत डीलर नेटवर्क सक्रिय है। आप मुझसे छिड़काव समय, दवा की खुराक, रोग निदान या नजदीकी सिंजेंटा ऑफर्स के बारे में पूछ सकते हैं।`
-      : `Namaste ${name}! I am AASRA, your AI Agricultural Companion. Live telemetry and Syngenta dealer network for ${effectiveLocation} are active. Ask me about heat stress, spray windows, biostimulant dosage, or local Syngenta offers.`;
-
+    const isHi = language === "hi";
+    const cropDisplay = isHi ? currentCropInfo.nameHi : currentCropInfo.name;
     return {
-      id: "welcome-1",
+      id: "welcome",
       sender: "bot",
-      text: welcomeText,
+      text: isHi
+        ? `नमस्ते ${displayFarmerGreeting}! मैं आपका AASRA (आसरा) AI बहु-फसली कृषि सलाहकार हूँ। वर्तमान में सक्रिय फसल: ${cropDisplay}। आप किसी भी भाषा में बोलकर या लिखकर फसल सुरक्षा, मौसम, स्प्रे समय, कृषि सांख्यिकी अथवा मंडी भाव के बारे में पूछ सकते हैं।`
+        : `Namaste ${displayFarmerGreeting}! I am your AASRA Precision Multi-Crop AI Advisor. Active crop: ${cropDisplay}. Speak or type in any language about disease protection, weather, safe spray window, crop statistics, or APMC mandi rates.`,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       provider: "Google Gemini 2.5 Flash",
-      whyRecommendation: `Live Open-Meteo telemetry for ${effectiveLocation} recorded night temperature ${weather.temperature}°C with ${weather.isNightHeatStress ? "active thermal stress alert" : "favorable vegetative conditions"}.`,
-      confidenceScore: 96,
-      followUpQuestions: [t.quickQ1, t.quickQ2, t.quickQ3],
+      whyRecommendation: isHi
+        ? `लाइव Open-Meteo टेलीमेट्री (${effectiveDistrict}) और सरकारी APMC मंडी आंकड़ों पर आधारित वास्तविक सलाहकार प्रणाली।`
+        : `Grounded with live Open-Meteo telemetry for ${effectiveDistrict} and verified APMC Agmarknet price records.`,
+      confidenceScore: 99,
+      followUpQuestions: [
+        isHi ? `${cropDisplay} का आज मंडी भाव क्या है?` : `What is today's ${currentCropInfo.name} mandi rate?`,
+        isHi ? `क्या आज मेरी फसल में स्प्रे करना सुरक्षित है?` : `Is it safe to spray on ${currentCropInfo.name} today?`,
+        isHi ? `कीट व फफूंद रोग की रोकथाम के उपाय बताएं` : `How to prevent major pests and diseases?`,
+      ],
       locationUsed: effectiveLocation,
     };
-  }, [t.quickQ1, t.quickQ2, t.quickQ3, effectiveLocation, weather.temperature, weather.isNightHeatStress, language]);
+  }, [currentCropInfo, effectiveDistrict, effectiveLocation, farmerName, language]);
 
   const [messages, setMessages] = useState<Message[]>([buildWelcome()]);
   const [input, setInput] = useState("");
-  const [voiceState, setVoiceState] = useState<"IDLE" | "LISTENING" | "PROCESSING" | "RESPONDING">("IDLE");
-  const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceState>("IDLE");
+  const [liveTranscript, setLiveTranscript] = useState<string>("");
+  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [speechSupported, setSpeechSupported] = useState<boolean>(true);
+  const [micPermissionError, setMicPermissionError] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
-  const recognitionRef = useRef<any>(null);
-  const accumulatedTranscriptRef = useRef<string>("");
-  const isListeningActiveRef = useRef<boolean>(false);
-  const silenceTimerRef = useRef<any>(null);
+  const voiceServiceRef = useRef<VoiceRecognitionService | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Initialize Voice Recognition Service
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      setSpeechRecognitionSupported(!!SpeechRecognition);
-    }
-  }, []);
+    const service = new VoiceRecognitionService({
+      languageKey: language,
+      endpointingSilenceMs: 3200,
+      maxRecordingDurationMs: 45000,
+      onStateChange: (newState) => {
+        setVoiceState(newState);
+      },
+      onInterimTranscript: (text) => {
+        setLiveTranscript(text);
+        setInput(text);
+      },
+      onFinalSpeechPayload: (payload) => {
+        setLiveTranscript("");
+        processUserMessage(payload.transcript, payload.audioBase64, payload.audioMimeType);
+      },
+      onFinalTranscript: (finalText) => {
+        setLiveTranscript("");
+        processUserMessage(finalText);
+      },
+      onAudioLevelChange: (level) => {
+        setAudioLevel(level);
+      },
+      onError: (errType, message) => {
+        console.warn("[Voice UI Error]:", errType, message);
+        if (errType === "permission_denied" || errType === "not_allowed") {
+          setMicPermissionError(true);
+        }
+      },
+    });
 
-  // Reset chat on language change
+    voiceServiceRef.current = service;
+    setSpeechSupported(service.isSupported());
+
+    return () => {
+      service.cancelListening();
+    };
+  }, [language]);
+
+  // Update language on voice service
+  useEffect(() => {
+    if (voiceServiceRef.current) {
+      voiceServiceRef.current.setOptions({ languageKey: language });
+    }
+  }, [language]);
+
+  // Sync crop changes
+  const handleSelectCrop = (cropId: string) => {
+    setSelectedCropId(cropId);
+    setShowCropPicker(false);
+    if (onCropChange) onCropChange(cropId);
+  };
+
+  // Reset chat when language or crop changes
   useEffect(() => {
     setMessages([buildWelcome()]);
     setVoiceState("IDLE");
     setInput("");
-    isListeningActiveRef.current = false;
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-  }, [language, buildWelcome]);
+    setLiveTranscript("");
+    if (voiceServiceRef.current) {
+      voiceServiceRef.current.cancelListening();
+    }
+  }, [language, selectedCropId, buildWelcome]);
 
-  // Handle external query from sample pills
+  // Handle external query
   useEffect(() => {
     if (externalQuery && externalQuery.trim()) {
       processUserMessage(externalQuery.trim());
@@ -198,141 +247,68 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, voiceState, liveSpeechTranscript]);
+  }, [messages, voiceState, liveTranscript]);
 
-  // Safe Spray Window Advisory Calculation
-  const isSprayWindowSafe = weather.windSpeed < 15 && weather.precipitation === 0 && weather.temperature < 33;
-  const sprayAdvisoryReason = !isSprayWindowSafe
-    ? weather.windSpeed >= 15
-      ? `Wind speed ${weather.windSpeed} km/h (High drift risk)`
-      : weather.precipitation > 0
-      ? `Rain active (${weather.precipitation} mm)`
-      : `High temperature (${weather.temperature}°C)`
-    : "Ideal conditions for foliar bio-spray (Early morning / Late evening)";
+  // Voice Controls
+  const handleStartListening = async () => {
+    setMicPermissionError(false);
+    stopGoogleSpeech();
+    setSpeakingMessageId(null);
+    if (voiceServiceRef.current) {
+      const ok = await voiceServiceRef.current.startListening();
+      if (!ok) setVoiceState("IDLE");
+    }
+  };
 
-  // Full-Sentence Continuous Speech-to-Text with Automatic Pause Detection
-  const startListening = () => {
-    if (typeof window === "undefined") return;
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Speech Recognition requires Chrome, Edge, or Android browser.");
+  const handleStopListening = () => {
+    if (voiceServiceRef.current) {
+      voiceServiceRef.current.stopListening();
+    }
+  };
+
+  const handleCancelListening = () => {
+    if (voiceServiceRef.current) {
+      voiceServiceRef.current.cancelListening();
+    }
+    setLiveTranscript("");
+    setInput("");
+    setVoiceState("IDLE");
+  };
+
+  const speakResponse = useCallback((msgId: string, textToSpeak: string) => {
+    if (speakingMessageId === msgId) {
+      stopGoogleSpeech();
+      setSpeakingMessageId(null);
+      setVoiceState("IDLE");
       return;
     }
 
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    isListeningActiveRef.current = true;
-    accumulatedTranscriptRef.current = "";
-    setLiveSpeechTranscript("");
-
-    try {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (_) { }
-      }
-
-      const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition;
-      recognition.lang = bcp47;
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setVoiceState("LISTENING");
-      };
-
-      recognition.onresult = (event: any) => {
-        let interimText = "";
-        let finalChunk = "";
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalChunk += event.results[i][0].transcript + " ";
-          } else {
-            interimText += event.results[i][0].transcript;
-          }
-        }
-
-        if (finalChunk) {
-          accumulatedTranscriptRef.current += finalChunk;
-        }
-
-        const completeSentence = (accumulatedTranscriptRef.current + interimText).trim();
-        if (completeSentence) {
-          setInput(completeSentence);
-          setLiveSpeechTranscript(completeSentence);
-        }
-
-        // Automatic Silence / End-of-Speech Detection (Submits automatically 1.8s after user stops talking)
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = setTimeout(() => {
-          if (isListeningActiveRef.current) {
-            const finalQuery = (accumulatedTranscriptRef.current + interimText).trim();
-            isListeningActiveRef.current = false;
-            if (recognitionRef.current) {
-              try { recognitionRef.current.stop(); } catch (_) { }
-            }
-            setVoiceState("IDLE");
-            if (finalQuery) {
-              processUserMessage(finalQuery);
-              accumulatedTranscriptRef.current = "";
-              setLiveSpeechTranscript("");
-            }
-          }
-        }, 1800);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn("STT Notice:", event.error);
-      };
-
-      recognition.onend = () => {
-        // If user is still in listening mode, automatically restart recognition so it never cuts off
-        if (isListeningActiveRef.current) {
-          try {
-            recognition.start();
-          } catch (_) {}
-        } else {
-          setVoiceState("IDLE");
-        }
-      };
-
-      recognition.start();
-    } catch (e) {
-      console.warn("STT exception:", e);
-      isListeningActiveRef.current = false;
-      setVoiceState("IDLE");
-    }
-  };
-
-  const stopListening = () => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    isListeningActiveRef.current = false;
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (_) { }
-    }
-    setVoiceState("IDLE");
-    const textToSend = input.trim() || accumulatedTranscriptRef.current.trim();
-    if (textToSend) {
-      processUserMessage(textToSend);
-      accumulatedTranscriptRef.current = "";
-      setLiveSpeechTranscript("");
-    }
-  };
-  const speakResponse = useCallback((textToSpeak: string) => {
+    stopGoogleSpeech();
+    setSpeakingMessageId(msgId);
     setVoiceState("RESPONDING");
     playGoogleNeuralSpeech(textToSpeak, language, {
-      onStart: () => setVoiceState("RESPONDING"),
-      onEnd: () => setVoiceState("IDLE"),
-      onError: () => setVoiceState("IDLE"),
+      onStart: () => {
+        setSpeakingMessageId(msgId);
+        setVoiceState("RESPONDING");
+      },
+      onEnd: () => {
+        setSpeakingMessageId(null);
+        setVoiceState("IDLE");
+      },
+      onError: () => {
+        setSpeakingMessageId(null);
+        setVoiceState("IDLE");
+      },
     });
-  }, [language]);
+  }, [language, speakingMessageId]);
 
   const handleStopSpeaking = () => {
     stopGoogleSpeech();
+    setSpeakingMessageId(null);
     setVoiceState("IDLE");
   };
 
-  // Image Selection Handler (Supports camera capture on mobile)
+  // Image selection for Multimodal Leaf Scanner
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -341,49 +317,27 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     }
   };
 
-  // Helper to sanitize any raw JSON tokens from display text
-  const sanitizeDisplayReply = (raw: string): string => {
-    if (!raw) return "";
-    let clean = String(raw).trim();
-    if (clean.startsWith("{") && clean.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(clean);
-        if (parsed.reply) return parsed.reply;
-      } catch { }
-    }
-    return clean
-      .replace(/^\s*\{\s*"reply"\s*:\s*"/i, "")
-      .replace(/"\s*,\s*"why_recommendation"[\s\S]*$/i, "")
-      .replace(/["{}]/g, "")
-      .trim();
-  };
-
-  // Process Text or Multimodal Image Message
-  const processUserMessage = async (queryText: string) => {
+  // Process User Message (Text, Voice, Image)
+  const processUserMessage = async (queryText?: string, audioBase64?: string, audioMimeType?: string) => {
     const textClean = (queryText || "").trim();
-    if (!textClean && !selectedImage) return;
+    if (!textClean && !selectedImage && !audioBase64) return;
 
-    // Immediately stop listening if active
-    if (isListeningActiveRef.current) {
-      isListeningActiveRef.current = false;
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (_) {}
-      }
+    if (voiceServiceRef.current) {
+      voiceServiceRef.current.cancelListening();
     }
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const userMsg: Message = {
       id: `user-${Date.now()}`,
       sender: "user",
-      text: textClean || (selectedImage ? "📷 Crop Leaf Photo Diagnostics Scan" : ""),
+      text: textClean || (audioBase64 ? "🎙️ Voice Query (Analyzing...)" : (selectedImage ? "📷 Leaf Photo Diagnostics" : "")),
       time: timeStr,
       imageUrl: imagePreviewUrl || undefined,
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setLiveSpeechTranscript("");
+    setLiveTranscript("");
     const currentImg = selectedImage;
     setSelectedImage(null);
     setImagePreviewUrl(null);
@@ -392,96 +346,68 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     let replyText = "";
     let whyReason = "";
     let confScore = 98;
-    let followUps: string[] = [t.quickQ1, t.quickQ2, t.quickQ3];
+    let followUps: string[] = [];
     let providerUsed = "Google Gemini 2.5 Flash";
     let dosageSummary: string | undefined = undefined;
-    let totalProfitGain: string | undefined = undefined;
-    let telemetryUsed: any = undefined;
+    let mandiRecord: any = undefined;
+    let rawTrans: string | undefined = undefined;
 
     try {
       if (currentImg) {
-        // Multimodal Gemini 2.5 Flash Vision Scanner
-        const visionRes = await analyzeCropLeafImage(currentImg, effectiveCrop, language);
-        replyText = sanitizeDisplayReply(visionRes?.diagnosis || "Leaf scan completed.");
-        whyReason = visionRes?.why_recommendation || "Visual markers analyzed for disease and heat stress.";
+        // Multimodal Gemini Leaf Scanner
+        const visionRes = await analyzeCropLeafImage(currentImg, selectedCropId, language, textClean, effectiveDistrict);
+        replyText = visionRes?.diagnosis || "Leaf analysis completed.";
+        whyReason = visionRes?.why_recommendation || "Visual spectral and necrotic lesion markers evaluated.";
         confScore = visionRes?.confidence_score || 95;
-        followUps = visionRes?.follow_up_questions || followUps;
+        followUps = visionRes?.follow_up_questions || [];
         providerUsed = visionRes?.provider || "Google Gemini 2.5 Flash Vision";
+        dosageSummary = visionRes?.dosage;
       } else {
-        // Chat API Call with full location, telemetry, & crop context
+        // Chat Pipeline API Call
         const res = await sendChatMessage(
           textClean,
           weather.lat,
           weather.lon,
-          effectiveCrop,
+          selectedCropId,
           language,
           effectiveLocation,
           weather.temperature,
-          farmerName,
+          effectiveFarmerName,
           effectiveAcres,
           effectiveVariety,
-          profile.soilType || "Agricultural Soil",
+          profile.soilType || "Alluvial Soil",
           effectiveDistrict,
-          effectiveVillage
+          effectiveVillage,
+          audioBase64,
+          audioMimeType,
+          messages.map((m) => ({ sender: m.sender, text: m.text }))
         );
 
         if (res && (res.reply || res.response)) {
-          replyText = sanitizeDisplayReply(res.reply || res.response);
-          whyReason = res.why_recommendation || `Live data for ${effectiveDistrict}`;
+          replyText = res.reply || res.response;
+          whyReason = res.why_recommendation || `Ground truth verified for ${effectiveDistrict}`;
           confScore = res.confidence_score || 98;
-          dosageSummary = res.dosage_summary;
-          totalProfitGain = res.total_profit_gain;
-          telemetryUsed = res.telemetry_used;
+          mandiRecord = res.mandi_record;
+          rawTrans = res.raw_transcript;
           if (res.follow_up_questions && res.follow_up_questions.length > 0) {
             followUps = res.follow_up_questions;
           }
           providerUsed = res.model_used ? `Google ${res.model_used}` : "Google Gemini 2.5 Flash";
+
+          if (rawTrans && rawTrans !== textClean) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === userMsg.id ? { ...m, text: rawTrans || m.text } : m))
+            );
+          }
         }
       }
     } catch (err) {
-      console.warn("Chat error, using fallback:", err);
+      console.error("[Chat Process Error]:", err);
+      replyText = language === "hi"
+        ? "तकनीकी समस्या के कारण संपर्क नहीं हो सका। कृपया पुनः प्रयास करें।"
+        : "Could not connect to the advisory engine. Please try again.";
     } finally {
-      // Always reset voice state to IDLE so UI is never stuck
       setVoiceState("IDLE");
-    }
-
-    // If for any reason replyText is still empty, generate instant localized fallback
-    if (!replyText || !replyText.trim()) {
-      const lowerQ = textClean.toLowerCase();
-      if (
-        lowerQ.includes("मूल्य") ||
-        lowerQ.includes("भाव") ||
-        lowerQ.includes("rate") ||
-        lowerQ.includes("price") ||
-        lowerQ.includes("bhav") ||
-        lowerQ.includes("सोयाबीन") ||
-        lowerQ.includes("soybean") ||
-        lowerQ.includes("गेहूं") ||
-        lowerQ.includes("wheat") ||
-        lowerQ.includes("कपास") ||
-        lowerQ.includes("cotton") ||
-        lowerQ.includes("सरसों") ||
-        lowerQ.includes("mustard") ||
-        lowerQ.includes("प्याज") ||
-        lowerQ.includes("onion")
-      ) {
-        const m = findCropMandiRate(textClean || effectiveCrop, effectiveDistrict, weather.state, {
-          temp: weather.temperature,
-          nightTemp: weather.nightTemperature,
-          soilMoisture: weather.soilMoistureEst,
-          windSpeed: weather.windSpeed,
-          isNightHeatStress: weather.isNightHeatStress,
-          isRaining: weather.isRaining,
-        });
-        replyText = language === "hi"
-          ? `${m.mandi} में आज ${m.commodityHi} का मॉडल भाव ₹${m.modalPrice.toLocaleString("en-IN")} प्रति क्विंटल (दायरा: ₹${m.minPrice.toLocaleString("en-IN")} - ₹${m.maxPrice.toLocaleString("en-IN")}/क्विंटल) है।`
-          : `In ${m.mandi} today, ${m.commodity} modal price is ₹${m.modalPrice.toLocaleString("en-IN")}/quintal (Range: ₹${m.minPrice.toLocaleString("en-IN")} – ₹${m.maxPrice.toLocaleString("en-IN")}/q).`;
-      } else {
-        replyText = language === "hi"
-          ? `${effectiveDistrict} में आपकी ${crop} फसल के लिए तापमान ${weather.temperature}°C और मिट्टी नमी ${weather.soilMoistureEst || 40}% है।`
-          : `For ${crop} in ${effectiveDistrict}, current temperature is ${weather.temperature}°C with ${weather.humidity}% humidity.`;
-      }
-      whyReason = `Live Open-Meteo & APMC data for ${effectiveDistrict}.`;
     }
 
     const botMsg: Message = {
@@ -491,559 +417,412 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       provider: providerUsed,
       whyRecommendation: whyReason,
-      dosageSummary,
-      totalProfitGain,
       confidenceScore: confScore,
       followUpQuestions: followUps,
-      telemetryUsed,
-      locationUsed: effectiveLocation,
+      dosageSummary,
+      mandiRecord,
+      locationUsed: effectiveDistrict,
     };
 
     setMessages((prev) => [...prev, botMsg]);
+
+    // Automatically speak response if input was via voice
+    if (audioBase64) {
+      speakResponse(botMsg.id, replyText);
+    }
   };
 
+  // Filtered crops list for multi-crop switcher
+  const allRegionalCrops = getRegionalCrops(effectiveDistrict, weather.state || "");
+  const filteredCrops = allRegionalCrops.filter((c) => {
+    const matchesCategory = cropCategoryFilter === "all" || c.category === cropCategoryFilter;
+    const matchesSearch =
+      !cropSearchQuery ||
+      c.name.toLowerCase().includes(cropSearchQuery.toLowerCase()) ||
+      c.nameHi.toLowerCase().includes(cropSearchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-lg flex flex-col h-[650px] sm:h-[760px] max-h-[88vh] sm:max-h-none overflow-hidden font-body text-slate-900 w-full relative">
-
-      {/* Hidden File Input for Multimodal Camera / Image Scanner */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept="image/*"
-        capture="environment"
-        onChange={handleImageFileChange}
-        className="hidden"
-      />
-
-      {/* Header */}
-      <div className="p-3.5 sm:p-4 border-b border-slate-200 bg-white text-slate-900 flex items-center justify-between font-accent shadow-xs shrink-0">
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-600 text-white flex items-center justify-center shadow-xs font-bold shrink-0">
-            <Mic className="h-5 w-5 animate-pulse" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <h3 className="text-xs sm:text-sm font-black font-display text-slate-900 truncate">
-                AASRA Multilingual Voice Companion
-              </h3>
-              <span className="inline-flex text-[10px] font-mono font-black bg-emerald-100 text-emerald-950 px-2 py-0.5 rounded-md border border-emerald-300">
-                📍 {effectiveDistrict}
-              </span>
+    <div className="flex flex-col h-full space-y-4 font-sans text-slate-100">
+      
+      {/* ─────────────────────────────────────────────────────────────
+          1. LINEAR-STYLE TOP HUD: MULTI-CROP PICKER & LOCATION BAR
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-[#0f1011] border border-[#23252a] rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3">
+        
+        {/* Active Crop Bar + Quick Switcher Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#23252a] pb-3">
+          
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-[#18191a] border border-[#23252a] flex items-center justify-center text-[#5e6ad2] shrink-0">
+              <Sprout className="h-5 w-5" />
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-500 truncate notranslate" translate="no">
-              Gemini 2.5 Flash + Chirp 3 HD Speech · {langName}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#8a8f98]">
+                  Target Crop
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18191a] text-[#5e6ad2] border border-[#23252a]">
+                  {currentCropProfile.category.toUpperCase()}
+                </span>
+              </div>
+              <h2 className="text-base sm:text-lg font-bold text-[#f7f8f8] flex items-center gap-2">
+                <span>{language === "hi" ? currentCropInfo.nameHi : currentCropInfo.name}</span>
+                <span className="text-xs font-normal text-[#8a8f98]">({currentCropProfile.season})</span>
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCropPicker(!showCropPicker)}
+              className="px-3 py-1.5 rounded-xl bg-[#18191a] hover:bg-[#23252a] border border-[#23252a] hover:border-[#5e6ad2] text-xs font-medium text-[#f7f8f8] flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Layers className="h-3.5 w-3.5 text-[#5e6ad2]" />
+              <span>{showCropPicker ? "Hide Crops" : "Change Crop"}</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-[#8a8f98] transition-transform ${showCropPicker ? "rotate-180" : ""}`} />
+            </button>
+
+            {/* Spray Window Status Pill */}
+            <div className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-mono font-bold flex items-center gap-1.5 ${
+              isSpraySafe
+                ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-400"
+                : "bg-amber-950/40 border-amber-800/60 text-amber-400"
+            }`}>
+              <Wind className="h-3 w-3" />
+              <span>{isSpraySafe ? "Spray Safe" : "Spray Caution"}</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Active Language Badge */}
-          <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-emerald-900 font-bold bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-xl notranslate shadow-xs" translate="no">
-            <Globe className="h-3.5 w-3.5 text-emerald-600" />
-            <span className="notranslate text-[11px] font-extrabold" translate="no">{langName}</span>
+        {/* Expandable Multi-Crop Selector Panel */}
+        {showCropPicker && (
+          <div className="bg-[#141516] border border-[#23252a] rounded-xl p-3.5 space-y-3 animate-in fade-in duration-200">
+            {/* Search and Category Filter */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#8a8f98]" />
+                <input
+                  type="text"
+                  value={cropSearchQuery}
+                  onChange={(e) => setCropSearchQuery(e.target.value)}
+                  placeholder="Search 50+ crops (e.g. Wheat, Cotton, Tomato, Mustard)..."
+                  className="w-full pl-8 pr-3 py-1.5 bg-[#0f1011] border border-[#23252a] rounded-lg text-xs text-[#f7f8f8] placeholder-[#8a8f98] focus:outline-none focus:border-[#5e6ad2]"
+                />
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                {CROP_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCropCategoryFilter(cat.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer ${
+                      cropCategoryFilter === cat.id
+                        ? "bg-[#5e6ad2] text-white"
+                        : "bg-[#0f1011] text-[#8a8f98] hover:text-[#f7f8f8] border border-[#23252a]"
+                    }`}
+                  >
+                    {language === "hi" ? cat.labelHi : cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Crop Chips Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+              {filteredCrops.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => handleSelectCrop(c.id)}
+                  className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                    selectedCropId === c.id
+                      ? "bg-[#5e6ad2]/20 border-[#5e6ad2] text-white shadow-xs"
+                      : "bg-[#0f1011] border-[#23252a] text-[#8a8f98] hover:border-[#34343a] hover:text-[#f7f8f8]"
+                  }`}
+                >
+                  <span className="text-xs font-bold truncate">
+                    {language === "hi" ? c.nameHi : c.name}
+                  </span>
+                  <span className="text-[10px] font-mono opacity-70">
+                    Opt: {c.t_opt_day}°C
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Hyper-Local Telemetry Ribbon */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+          <div className="bg-[#141516] border border-[#23252a] p-2.5 rounded-xl flex items-center justify-between">
+            <span className="text-[#8a8f98] flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-[#5e6ad2]" /> Location
+            </span>
+            <span className="font-bold text-[#f7f8f8] truncate max-w-[120px]">{effectiveDistrict}</span>
           </div>
 
-          <button
-            onClick={() => {
-              setMessages([buildWelcome()]);
-              stopGoogleSpeech();
-            }}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-            title="Reset Chat Session"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
+          <div className="bg-[#141516] border border-[#23252a] p-2.5 rounded-xl flex items-center justify-between">
+            <span className="text-[#8a8f98] flex items-center gap-1.5">
+              <Thermometer className="h-3.5 w-3.5 text-blue-400" /> Air Temp
+            </span>
+            <span className="font-bold text-[#f7f8f8]">{weather.temperature}°C</span>
+          </div>
+
+          <div className="bg-[#141516] border border-[#23252a] p-2.5 rounded-xl flex items-center justify-between">
+            <span className="text-[#8a8f98] flex items-center gap-1.5">
+              <Droplets className="h-3.5 w-3.5 text-emerald-400" /> Soil Index
+            </span>
+            <span className="font-bold text-emerald-400">{weather.soilMoistureEst}%</span>
+          </div>
+
+          <div className="bg-[#141516] border border-[#23252a] p-2.5 rounded-xl flex items-center justify-between">
+            <span className="text-[#8a8f98] flex items-center gap-1.5">
+              <Wind className="h-3.5 w-3.5 text-amber-400" /> Wind Speed
+            </span>
+            <span className="font-bold text-[#f7f8f8]">{weather.windSpeed} km/h</span>
+          </div>
         </div>
       </div>
 
-      {/* Safe Spray Window Strip */}
-      <div className={`px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-accent border-b flex items-center justify-between shrink-0 ${isSprayWindowSafe ? "bg-emerald-50/90 border-emerald-200 text-emerald-900" : "bg-amber-50/90 border-amber-200 text-amber-900"
-        }`}>
-        <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-          <CloudSun className={`h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 ${isSprayWindowSafe ? "text-emerald-600" : "text-amber-600"}`} />
-          <span className="font-bold shrink-0">
-            {isSprayWindowSafe ? "SAFE SPRAY WINDOW" : "SPRAY CAUTION"}:
-          </span>
-          <span className="font-body text-slate-700 truncate">{sprayAdvisoryReason}</span>
-        </div>
-        <div className="text-[10px] text-slate-500 font-mono hidden md:block shrink-0">
-          {weather.temperature}°C | {weather.windSpeed} km/h | {effectiveDistrict}
-        </div>
-      </div>
-
-      {/* Live Voice State Banner & Audio Waveform Visualizer */}
-      {voiceState !== "IDLE" && (
-        <div className="bg-emerald-700 text-white px-3.5 py-2 sm:py-2.5 flex items-center justify-between text-xs font-accent border-b border-emerald-800 shrink-0 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2.5 min-w-0">
-            {voiceState === "LISTENING" && (
-              <>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="h-3 w-1 bg-white animate-bounce"></span>
-                  <span className="h-4 w-1 bg-white/80 animate-bounce delay-100"></span>
-                  <span className="h-2 w-1 bg-white animate-bounce delay-200"></span>
-                </div>
-                <div className="truncate">
-                  <span className="font-bold text-white text-xs">{t.listenLabel} ({langName})...</span>
-                  {liveSpeechTranscript && (
-                    <span className="text-emerald-200 ml-2 italic text-[11px]">"{liveSpeechTranscript}"</span>
-                  )}
-                </div>
-              </>
-            )}
-            {voiceState === "PROCESSING" && (
-              <>
-                <Loader2 className="w-4 h-4 text-white animate-spin shrink-0" />
-                <span className="font-bold text-white text-xs">Google Gemini 2.5 Flash Reasoning...</span>
-              </>
-            )}
-            {voiceState === "RESPONDING" && (
-              <>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="h-3 w-1 bg-white animate-bounce"></span>
-                  <span className="h-5 w-1 bg-amber-300 animate-bounce delay-75"></span>
-                  <span className="h-4 w-1 bg-white animate-bounce delay-150"></span>
-                </div>
-                <span className="font-bold text-white text-xs">Google Voice Speaking ({langName})...</span>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {voiceState === "LISTENING" && (
-              <button
-                onClick={stopListening}
-                className="flex items-center gap-1 text-[11px] bg-emerald-900 hover:bg-emerald-950 px-3 py-1 rounded-xl font-bold cursor-pointer transition-all shadow-sm"
-              >
-                <span>Done Speaking ✓</span>
-              </button>
-            )}
-            {voiceState === "RESPONDING" && (
-              <button
-                onClick={handleStopSpeaking}
-                className="flex items-center gap-1 text-[11px] bg-rose-600 hover:bg-rose-500 px-3 py-1 rounded-xl font-bold cursor-pointer transition-all shadow-sm"
-              >
-                <VolumeX className="h-3.5 w-3.5 text-white" />
-                <span>{t.btnStopVoice}</span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Messages Feed */}
-      <div className="flex-1 p-3.5 sm:p-5 overflow-y-auto space-y-3.5 bg-[#F8FAFC]">
+      {/* ─────────────────────────────────────────────────────────────
+          2. CHAT STREAM (GROUNDED LINEAR-INSPIRED CARDS)
+         ───────────────────────────────────────────────────────────── */}
+      <div className="flex-1 bg-[#0f1011] border border-[#23252a] rounded-2xl p-4 sm:p-5 overflow-y-auto space-y-4 min-h-[380px] max-h-[520px]">
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex items-start gap-2.5 sm:gap-3 ${msg.sender === "user" ? "flex-row-reverse" : ""}`}
+            className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"} space-y-1`}
           >
             <div
-              className={`h-8 w-8 sm:h-9 sm:w-9 rounded-2xl flex items-center justify-center text-xs font-bold shrink-0 shadow-xs ${msg.sender === "user"
-                  ? "bg-emerald-600 text-white font-accent"
-                  : "bg-white text-slate-800 border border-slate-200"
-                }`}
+              className={`max-w-[92%] sm:max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed border transition-all ${
+                msg.sender === "user"
+                  ? "bg-[#5e6ad2] text-white border-[#5e6ad2]/80 rounded-br-none shadow-sm"
+                  : "bg-[#141516] text-[#f7f8f8] border-[#23252a] rounded-bl-none shadow-xs"
+              }`}
             >
-              {msg.sender === "user" ? "👤" : <Sparkles className="h-4 w-4 text-emerald-600" />}
-            </div>
-
-            <div
-              className={`max-w-[88%] sm:max-w-[82%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm space-y-2.5 ${msg.sender === "user"
-                  ? "bg-emerald-600 text-white rounded-tr-none font-medium"
-                  : "bg-white text-slate-900 border border-slate-200 rounded-tl-none font-normal"
-                }`}
-            >
-              {/* Uploaded Image Thumbnail */}
+              {/* Multimodal Image Preview */}
               {msg.imageUrl && (
-                <div className="rounded-xl overflow-hidden border border-slate-200 max-w-xs shadow-sm mb-2">
-                  <img src={msg.imageUrl} alt="Uploaded Leaf Scan" className="w-full h-36 sm:h-44 object-cover" />
+                <div className="mb-2.5 rounded-xl overflow-hidden border border-white/20 max-w-[200px]">
+                  <img src={msg.imageUrl} alt="Uploaded Leaf" className="w-full h-auto object-cover" />
                 </div>
               )}
 
-              <p className="whitespace-pre-line font-body">{msg.text}</p>
+              {/* Message Content */}
+              <p className="whitespace-pre-line">{msg.text}</p>
 
-              {/* Real Live Telemetry Strip */}
-              {msg.telemetryUsed && msg.sender === "bot" && (
-                <div className="bg-slate-900 text-white rounded-xl p-2.5 space-y-1.5 shadow-2xs text-[10px] font-mono border border-slate-700">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                      100% REAL LIVE TELEMETRY ({effectiveDistrict})
-                    </span>
-                    <span className="text-slate-400 text-[9px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
-                      {msg.provider || "Google Gemini 2.5 Flash"}
+              {/* Verified Mandi Rate Record Card */}
+              {msg.mandiRecord && (
+                <div className="mt-3 bg-[#0f1011] border border-[#23252a] p-3 rounded-xl space-y-1.5 font-mono text-xs text-[#d0d6e0]">
+                  <div className="flex items-center justify-between border-b border-[#23252a] pb-1.5">
+                    <span className="text-[#5e6ad2] font-bold">🏛️ {msg.mandiRecord.mandiHi || msg.mandiRecord.mandi}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                      msg.mandiRecord.isToday ? "bg-emerald-950 text-emerald-400 border border-emerald-800" : "bg-amber-950 text-amber-400 border border-amber-800"
+                    }`}>
+                      {msg.mandiRecord.formattedDate}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1 text-slate-300 border-t border-slate-800">
-                    <div>🌡️ Temp: <strong className="text-white">{msg.telemetryUsed.temp}°C</strong></div>
-                    <div>🌙 Night: <strong className="text-amber-400">{msg.telemetryUsed.nightTemp}°C</strong></div>
-                    <div>💧 Soil: <strong className="text-blue-400">{msg.telemetryUsed.soilMoisture}%</strong></div>
-                    <div>🛰️ GDD: <strong className="text-emerald-400">{msg.telemetryUsed.cehubGddAccumulated}°C·d</strong></div>
+                  <div className="flex justify-between">
+                    <span className="text-[#8a8f98]">Modal Price:</span>
+                    <span className="font-bold text-white text-sm">₹{msg.mandiRecord.modalPrice?.toLocaleString("en-IN")}/quintal</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-[#8a8f98]">
+                    <span>Range: ₹{msg.mandiRecord.minPrice?.toLocaleString("en-IN")} – ₹{msg.mandiRecord.maxPrice?.toLocaleString("en-IN")}</span>
+                    <span>{msg.mandiRecord.grade || "FAQ"}</span>
                   </div>
                 </div>
               )}
 
-              {/* Exact Dosage & Total Farm Profit Badges */}
-              {(msg.dosageSummary || msg.totalProfitGain) && msg.sender === "bot" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                  {msg.dosageSummary && (
-                    <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-2 flex items-center gap-2">
-                      <span className="text-base">🧪</span>
-                      <div className="min-w-0">
-                        <span className="text-[9px] font-mono font-bold text-amber-800 uppercase block leading-none">
-                          {language === "hi" ? "दवा की मात्रा" : "Exact Dosage"}
-                        </span>
-                        <span className="text-xs font-black text-amber-950 truncate block">
-                          {msg.dosageSummary}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {msg.totalProfitGain && (
-                    <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-2 flex items-center gap-2">
-                      <span className="text-base">💰</span>
-                      <div className="min-w-0">
-                        <span className="text-[9px] font-mono font-bold text-emerald-800 uppercase block leading-none">
-                          {language === "hi" ? "कुल शुद्ध लाभ" : "Net Farm Gain"}
-                        </span>
-                        <span className="text-xs font-black text-emerald-950 truncate block">
-                          {msg.totalProfitGain}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+              {/* Dosage Summary Card */}
+              {msg.dosageSummary && (
+                <div className="mt-2.5 bg-[#18191a] border border-[#23252a] p-2.5 rounded-xl text-xs font-mono text-emerald-400 flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  <span>Dosage: {msg.dosageSummary}</span>
                 </div>
               )}
 
-              {/* Explainable Rationale */}
-              {msg.whyRecommendation && msg.sender === "bot" && (
-                <div className="border border-emerald-200 bg-emerald-50/80 rounded-xl p-2.5 sm:p-3 text-[11px] font-accent space-y-1">
+              {/* Technical Reasoning Drawer & Audio Readout */}
+              {msg.sender === "bot" && (
+                <div className="mt-3 pt-2 border-t border-[#23252a] flex items-center justify-between text-xs text-[#8a8f98]">
                   <button
+                    type="button"
                     onClick={() => setOpenWhyId(openWhyId === msg.id ? null : msg.id)}
-                    className="font-bold text-emerald-900 flex items-center justify-between w-full cursor-pointer"
+                    className="flex items-center gap-1 hover:text-[#f7f8f8] cursor-pointer transition-colors"
                   >
-                    <span className="flex items-center gap-1.5">
-                      <HelpCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      {t.explainableAiTitle || "Why this recommendation?"}
-                    </span>
-                    {openWhyId === msg.id ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                    <Sparkles className="h-3 w-3 text-[#5e6ad2]" />
+                    <span>Ground Truth Provenance</span>
+                    {openWhyId === msg.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                   </button>
-                  {openWhyId === msg.id && (
-                    <p className="text-slate-700 pt-1 leading-normal italic font-body text-[11px]">
-                      💡 {msg.whyRecommendation}
-                    </p>
-                  )}
-                </div>
-              )}
 
-              {/* Live Syngenta Deals — only on welcome message */}
-              {msg.sender === "bot" && msg.id === "welcome-1" && localizedDeals.length > 0 && (
-                <div className="border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-3 text-[11px] font-accent space-y-2 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-bold text-amber-950">
-                      <Tag className="h-4 w-4 text-amber-700" />
-                      <span>{language === "hi" ? `🔥 सिंजेंटा लाइव ऑफर्स — ${effectiveDistrict}` : `🔥 Live Syngenta Deals in ${effectiveDistrict}`}</span>
-                    </div>
-                    <button
-                      onClick={() => setOpenDealsId(openDealsId === msg.id ? null : msg.id)}
-                      className="text-[10px] font-black text-amber-900 bg-white hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300 cursor-pointer transition-all shadow-2xs"
-                    >
-                      {openDealsId === msg.id ? (language === "hi" ? "छुपाएं ▲" : "Hide ▲") : (language === "hi" ? "ऑफर्स देखें ▼" : "View Deals ▼")}
-                    </button>
-                  </div>
-
-                  {openDealsId === msg.id && (
-                    <div className="space-y-2 pt-1 border-t border-amber-200">
-                      {localizedDeals.map((deal) => {
-                        const targetDealer = nearbyDealers[0];
-                        const waDealLink = targetDealer
-                          ? generateWhatsAppOrderLink(targetDealer, farmerName, effectiveCrop, effectiveAcres, deal.product, deal.title)
-                          : `https://wa.me/919826011223?text=${encodeURIComponent(`नमस्ते! मुझे ${deal.title} (${deal.couponCode}) क्लेम करना है।`)}`;
-
-                        return (
-                          <div key={deal.id} className="bg-white p-2.5 rounded-xl border border-amber-200 space-y-1.5 shadow-2xs">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">{deal.badge}</span>
-                              <span className="text-[9px] font-mono font-bold text-slate-500">{deal.couponCode}</span>
-                            </div>
-                            <h5 className="font-extrabold text-xs text-slate-900">{deal.title}</h5>
-                            <p className="text-[10px] text-emerald-800 font-bold">{deal.discountSummary}</p>
-                            <p className="text-[9px] text-slate-500">{deal.terms}</p>
-                            <div className="pt-1 flex items-center gap-2">
-                              <a
-                                href={waDealLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 bg-[#25D366] hover:bg-[#1EBE5D] text-white py-1 px-2 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 text-center transition-colors"
-                              >
-                                <MessageSquare className="h-3 w-3" />
-                                <span>{language === "hi" ? "व्हाट्सएप पर ऑफर क्लेम करें" : "Claim on WhatsApp"}</span>
-                              </a>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Nearby Syngenta Dealers — only on welcome message */}
-              {msg.sender === "bot" && msg.id === "welcome-1" && (
-                <div className="border border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-3 text-[11px] font-accent space-y-2.5 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-bold text-emerald-950">
-                      <Store className="h-4 w-4 text-emerald-700" />
-                      <span>{language === "hi" ? "📍 पास के अधिकृत सिंजेंटा विक्रेता" : "📍 Nearby Syngenta Dealers"} ({effectiveDistrict})</span>
-                    </div>
-                    <button
-                      onClick={() => setOpenDealersId(openDealersId === msg.id ? null : msg.id)}
-                      className="text-[10px] font-black text-emerald-800 bg-white hover:bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-300 cursor-pointer transition-all shadow-2xs"
-                    >
-                      {openDealersId === msg.id ? (language === "hi" ? "छुपाएं ▲" : "Hide ▲") : (language === "hi" ? "विक्रेता देखें ▼" : "View Dealers ▼")}
-                    </button>
-                  </div>
-
-                  {openDealersId === msg.id ? (
-                    <div className="space-y-2.5 pt-1 border-t border-emerald-200">
-                      {nearbyDealers.slice(0, 3).map((dlr) => {
-                        const waMsgLink = generateWhatsAppOrderLink(dlr, farmerName, effectiveCrop, effectiveAcres, "Syngenta Quantis / Stress Buster");
-                        return (
-                          <div key={dlr.id} className="bg-white p-2.5 rounded-xl border border-emerald-200 space-y-2 shadow-2xs">
-                            <div className="flex items-start justify-between gap-1.5">
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <h5 className="font-extrabold text-xs text-slate-900 leading-tight">{dlr.name}</h5>
-                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded">✓ Verified</span>
-                                </div>
-                                <p className="text-[10px] text-slate-500 pt-0.5">{dlr.proprietor} · {dlr.address}</p>
-                              </div>
-                              <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded shrink-0">
-                                {dlr.distanceKm} km
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-                              <a
-                                href={`tel:${dlr.phone}`}
-                                className="py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <Phone className="h-3 w-3" />
-                                <span>Call</span>
-                              </a>
-                              <a
-                                href={dlr.googleMapsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <Navigation className="h-3 w-3" />
-                                <span>Maps</span>
-                              </a>
-                              <a
-                                href={waMsgLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="py-1.5 px-2 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-[10px] rounded-lg text-center flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <MessageSquare className="h-3 w-3" />
-                                <span>Order</span>
-                              </a>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Google Maps Search & Toll-Free Links */}
-                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                        <a
-                          href={getLiveGoogleMapsDealerSearchUrl(effectiveDistrict, profile?.state || "India")}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 py-1.5 px-2.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 text-center"
-                        >
-                          <Navigation className="h-3 w-3 text-blue-600" />
-                          <span>{language === "hi" ? `गूगल मैप पर ${effectiveDistrict} में खोजें` : `Search ${effectiveDistrict} on Maps`}</span>
-                        </a>
-                        <a
-                          href={SYNGENTA_OFFICIAL_CONTACTS.retailerLocatorUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 bg-emerald-900 hover:bg-emerald-800 text-emerald-200 py-1.5 px-2.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 text-center"
-                        >
-                          <ExternalLink className="h-3 w-3 text-emerald-400" />
-                          <span>Syngenta Official Portal</span>
-                        </a>
-                      </div>
-
-                      <div className="text-[10px] text-emerald-950 font-bold bg-emerald-100/80 p-2 rounded-lg text-center flex items-center justify-center gap-2 flex-wrap">
-                        <span>📞 Kisan Toll-Free: <strong>1800-102-7964</strong></span>
-                        <span>·</span>
-                        <span>Helpline: <strong>1800-200-1310</strong></span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between text-[10px] text-emerald-900 pt-0.5 font-medium">
-                      <span className="truncate">{nearbyDealers[0]?.name} · {nearbyDealers[0]?.distanceKm} km</span>
-                      <a
-                        href={nearbyDealers[0]?.googleMapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-700 font-bold hover:underline flex items-center gap-0.5 shrink-0 ml-2"
-                      >
-                        <Navigation className="h-2.5 w-2.5" />
-                        <span>Google Maps</span>
-                      </a>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Message Metadata & Quick Voice Trigger */}
-              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-accent flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span>{msg.time}</span>
-                  {msg.confidenceScore && (
-                    <span className="bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                      🎯 {msg.confidenceScore}% Match
-                    </span>
-                  )}
-                  {msg.provider && (
-                    <span className="text-slate-400 font-mono text-[9px]">{msg.provider}</span>
-                  )}
-                </div>
-
-                {msg.sender === "bot" && (
                   <button
-                    onClick={() => speakResponse(msg.text)}
-                    className="flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
-                    title="Play Google Chirp 3 HD Voice"
+                    type="button"
+                    onClick={() => speakResponse(msg.id, msg.text)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                      speakingMessageId === msg.id
+                        ? "bg-[#5e6ad2] text-white border-[#5e6ad2]"
+                        : "bg-[#0f1011] text-[#8a8f98] hover:text-[#f7f8f8] border-[#23252a]"
+                    }`}
                   >
-                    <Volume2 className="h-3 w-3" />
-                    <span>Listen</span>
+                    {speakingMessageId === msg.id ? <VolumeX className="h-3.5 w-3.5 animate-pulse" /> : <Volume2 className="h-3.5 w-3.5" />}
+                    <span>{speakingMessageId === msg.id ? "Stop" : "Listen"}</span>
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Suggested Follow-Ups — only on welcome message */}
-              {msg.followUpQuestions && msg.followUpQuestions.length > 0 && msg.sender === "bot" && msg.id === "welcome-1" && (
-                <div className="pt-2 flex flex-wrap gap-1.5 font-accent">
-                  <span className="text-[9px] text-slate-400 font-bold block w-full">{t.suggestedFollowUps || "Suggested Questions:"}</span>
-                  {msg.followUpQuestions.map((fq, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => processUserMessage(fq)}
-                      className="px-2.5 py-1 text-[10px] rounded-xl bg-slate-100 hover:bg-emerald-600 text-slate-700 hover:text-white border border-slate-200 hover:border-emerald-600 transition-all font-bold cursor-pointer text-left"
-                    >
-                      💡 {fq}
-                    </button>
-                  ))}
+              {/* Technical Provenance Details */}
+              {openWhyId === msg.id && msg.whyRecommendation && (
+                <div className="mt-2 p-2.5 bg-[#0f1011] border border-[#23252a] rounded-xl text-xs text-[#8a8f98] font-mono animate-in fade-in duration-150">
+                  <div className="font-bold text-[#f7f8f8] mb-1">Telemetry Grounding:</div>
+                  <p>{msg.whyRecommendation}</p>
+                  <div className="mt-1 text-[10px] text-[#5e6ad2]">Engine: {msg.provider || "Google Gemini 2.5 Flash"} · Confidence {msg.confidenceScore || 98}%</div>
                 </div>
               )}
             </div>
+
+            {/* Contextual Follow-up Chips */}
+            {msg.sender === "bot" && msg.followUpQuestions && msg.followUpQuestions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1.5 pl-1 max-w-[90%]">
+                {msg.followUpQuestions.map((q, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => processUserMessage(q)}
+                    className="px-2.5 py-1 rounded-xl text-xs bg-[#141516] hover:bg-[#18191a] border border-[#23252a] hover:border-[#5e6ad2] text-[#8a8f98] hover:text-[#f7f8f8] cursor-pointer transition-all flex items-center gap-1 text-left"
+                  >
+                    <span>💡 {q}</span>
+                    <ArrowRight className="h-2.5 w-2.5 opacity-50" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <span className="text-[10px] font-mono text-[#62666d] px-1">{msg.time}</span>
           </div>
         ))}
 
-        {voiceState === "PROCESSING" && (
-          <div className="flex items-center gap-2 text-xs text-slate-700 bg-white border border-slate-200 p-3 rounded-2xl w-fit shadow-xs font-accent animate-pulse font-bold">
-            <Sparkles className="h-4 w-4 text-emerald-600 animate-spin" />
-            <span>Google Gemini 2.5 Flash is analyzing your field in {effectiveDistrict}...</span>
+        {/* Live Audio / Processing State */}
+        {voiceState === "LISTENING" && (
+          <div className="bg-[#141516] border border-[#5e6ad2] p-3 rounded-2xl flex items-center gap-3 animate-pulse">
+            <div className="h-8 w-8 rounded-full bg-rose-500/20 border border-rose-500 flex items-center justify-center text-rose-500">
+              <Mic className="h-4 w-4 animate-bounce" />
+            </div>
+            <div className="flex-1 text-xs">
+              <div className="font-bold text-white flex items-center gap-1.5">
+                <span>Listening in {language.toUpperCase()}...</span>
+                <span className="text-[#8a8f98]">(Speak naturally)</span>
+              </div>
+              <p className="text-[#d0d6e0] italic mt-0.5">{liveTranscript || "Listening to your voice..."}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleStopListening}
+              className="px-2.5 py-1 bg-[#5e6ad2] text-white text-xs font-bold rounded-lg cursor-pointer"
+            >
+              Done
+            </button>
           </div>
         )}
+
+        {voiceState === "PROCESSING" && (
+          <div className="bg-[#141516] border border-[#23252a] p-3 rounded-2xl flex items-center gap-2.5 text-xs text-[#8a8f98]">
+            <Loader2 className="h-4 w-4 text-[#5e6ad2] animate-spin" />
+            <span>AASRA Intelligence synthesizing live Open-Meteo & APMC data...</span>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Image Preview Thumbnail */}
-      {imagePreviewUrl && (
-        <div className="px-4 py-2 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between text-xs font-accent shrink-0">
-          <div className="flex items-center gap-2 truncate">
-            <img src={imagePreviewUrl} alt="Preview" className="h-9 w-9 object-cover rounded-xl border border-emerald-300 shrink-0" />
-            <span className="text-emerald-900 font-bold truncate">Leaf Photo attached for Gemini Vision Scan</span>
+      {/* ─────────────────────────────────────────────────────────────
+          3. BOTTOM INPUT BAR (VOICE, CAMERA, TEXT)
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-[#0f1011] border border-[#23252a] rounded-2xl p-2.5 sm:p-3 shadow-md space-y-2">
+        
+        {/* Selected Image Thumbnail */}
+        {imagePreviewUrl && (
+          <div className="flex items-center gap-2 bg-[#141516] border border-[#23252a] p-2 rounded-xl">
+            <img src={imagePreviewUrl} alt="Leaf Preview" className="h-10 w-10 object-cover rounded-lg border border-[#23252a]" />
+            <span className="text-xs text-[#f7f8f8] flex-1 truncate">{selectedImage?.name} (Ready for AI Leaf Diagnostics)</span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedImage(null);
+                setImagePreviewUrl(null);
+              }}
+              className="p-1 text-[#8a8f98] hover:text-rose-400 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={() => { setSelectedImage(null); setImagePreviewUrl(null); }}
-            className="text-rose-600 font-bold hover:underline cursor-pointer flex items-center gap-1 shrink-0 ml-2"
-          >
-            <X className="h-3.5 w-3.5" /> Remove
-          </button>
-        </div>
-      )}
+        )}
 
-      {/* Active Continuous Listening HUD */}
-      {voiceState === "LISTENING" && (
-        <div className="px-4 py-2.5 bg-emerald-900 text-white border-t border-emerald-700 flex items-center justify-between gap-2 text-xs shrink-0 animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-300"></span>
-            </span>
-            <span className="font-bold text-white">Listening... (Speak your question — auto-sends when you pause)</span>
-          </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            processUserMessage(input);
+          }}
+          className="flex items-center gap-2"
+        >
+          {/* Mobile Camera / Leaf Photo Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleImageFileChange}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={() => {
-              if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-              isListeningActiveRef.current = false;
-              if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (_) { } }
-              setVoiceState("IDLE");
-              setLiveSpeechTranscript("");
-            }}
-            className="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-950 text-slate-200 cursor-pointer flex items-center gap-1 text-[11px] font-bold"
-            title="Cancel"
+            onClick={() => fileInputRef.current?.click()}
+            title="Scan Crop Leaf Photo"
+            className="p-2.5 rounded-xl bg-[#141516] hover:bg-[#18191a] border border-[#23252a] hover:border-[#5e6ad2] text-[#8a8f98] hover:text-[#f7f8f8] cursor-pointer transition-all shrink-0"
           >
-            <X className="h-3.5 w-3.5" />
-            <span>Cancel</span>
+            <Camera className="h-4 w-4" />
           </button>
-        </div>
-      )}
 
-      {/* Input Bar */}
-      <div className="p-2.5 sm:p-4 border-t border-slate-200 bg-white flex items-center gap-2 shrink-0">
-        {/* Camera / Image Upload */}
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="p-3 rounded-2xl bg-slate-100 text-slate-700 hover:bg-emerald-600 hover:text-white border border-slate-200 transition-all cursor-pointer shadow-xs shrink-0"
-          title="Take or Upload Crop Leaf Photo for Gemini Vision Scan"
-        >
-          <Camera className="h-5 w-5" />
-        </button>
-
-        {/* STT Mic Button with Live Listening indicator */}
-        <button
-          type="button"
-          onClick={voiceState === "LISTENING" ? stopListening : startListening}
-          className={`p-3 rounded-2xl border transition-all flex items-center justify-center cursor-pointer shadow-xs shrink-0 ${voiceState === "LISTENING"
-              ? "bg-rose-600 text-white border-rose-500 animate-pulse scale-105"
-              : speechRecognitionSupported
-                ? "bg-slate-100 text-slate-800 hover:bg-emerald-600 hover:text-white border-slate-200"
-                : "bg-slate-100 text-slate-400 border-slate-200 opacity-50 cursor-not-allowed"
+          {/* Multilingual Voice Microphone */}
+          <button
+            type="button"
+            onClick={voiceState === "LISTENING" ? handleStopListening : handleStartListening}
+            title={voiceState === "LISTENING" ? "Stop Recording" : "Speak in any Indian language"}
+            className={`p-2.5 rounded-xl border transition-all cursor-pointer shrink-0 ${
+              voiceState === "LISTENING"
+                ? "bg-rose-600 text-white border-rose-500 shadow-md animate-pulse"
+                : "bg-[#141516] hover:bg-[#18191a] border-[#23252a] hover:border-[#5e6ad2] text-[#5e6ad2]"
             }`}
-          title={voiceState === "LISTENING" ? "Click to Stop & Send" : `${t.listenLabel} (${langName})`}
-          disabled={!speechRecognitionSupported && voiceState !== "LISTENING"}
-        >
-          {voiceState === "LISTENING" ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-        </button>
+          >
+            {voiceState === "LISTENING" ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </button>
 
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && processUserMessage(input)}
-          placeholder={voiceState === "LISTENING" ? "Listening to your speech in real-time..." : (selectedImage ? "Add optional question for leaf scan..." : t.chatPlaceholder || "Ask about spray timing, dosage, or deals...")}
-          className={`flex-1 text-xs sm:text-sm placeholder-slate-400 border rounded-2xl px-3.5 sm:px-4 py-3 focus:outline-none focus:ring-2 font-body font-medium min-w-0 transition-colors ${voiceState === "LISTENING" ? "bg-emerald-50/70 border-emerald-400 focus:ring-emerald-200 text-emerald-950" : "bg-slate-50 text-slate-900 border-slate-300 focus:border-emerald-600 focus:ring-emerald-100"
-            }`}
-        />
+          {/* Text Input Field */}
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={
+              language === "hi"
+                ? `${currentCropInfo.nameHi} के बारे में पूछें, मंडी भाव या मौसम...`
+                : `Ask about ${currentCropInfo.name}, mandi rates, or weather...`
+            }
+            className="flex-1 bg-[#141516] border border-[#23252a] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#f7f8f8] placeholder-[#62666d] focus:outline-none focus:border-[#5e6ad2] transition-colors"
+          />
 
-        <button
-          type="button"
-          onClick={() => processUserMessage(input)}
-          disabled={(!input.trim() && !selectedImage) || voiceState === "PROCESSING"}
-          className="p-3 sm:p-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold transition-all shadow-sm flex items-center justify-center cursor-pointer font-accent shrink-0"
-        >
-          <Send className="h-4 w-4 text-white" />
-        </button>
+          {/* Send Button */}
+          <button
+            type="submit"
+            disabled={!input.trim() && !selectedImage}
+            className="p-2.5 rounded-xl bg-[#5e6ad2] hover:bg-[#828fff] disabled:opacity-40 text-white font-bold cursor-pointer transition-all shrink-0 disabled:cursor-not-allowed shadow-xs"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </form>
       </div>
+
     </div>
   );
 };

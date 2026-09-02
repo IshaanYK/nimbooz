@@ -319,7 +319,7 @@ const EN_DICT: TranslationDict = {
   navLogin: "Login",
   navGetStarted: "Get Started",
   navPlantAi: "Plant Health AI",
-  navFields: "Fields & Map",
+  navFields: "My Fields",
   navLogout: "Logout",
   selectLanguage: "Select Language",
 
@@ -680,7 +680,7 @@ const HI_DICT: Partial<TranslationDict> = {
   listenLabel: "सुन रहा हूँ (Google STT)...",
   speakingLabel: "बोल रहा हूँ (Google TTS)...",
   processingLabel: "खेत डेटा और मौसम का विश्लेषण हो रहा है...",
-  explainableAiTitle: "व्याख्यात्मक AI: यह सिफारिश क्यों दी गई?",
+  explainableAiTitle: "व्याख्यात्मक AI: यह सलाह क्यों दी गई?",
   suggestedFollowUps: "सुझाए गए प्रश्न:",
   safeSprayWindowActive: "सुरक्षित छिड़काव समय सक्रिय",
   sprayCautionActive: "छिड़काव सावधानी सक्रिय",

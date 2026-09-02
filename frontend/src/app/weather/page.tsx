@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { StressMetrics } from "@/components/StressMetrics";
-import { InteractiveWeatherMap } from "@/components/InteractiveWeatherMap";
 import { DataBadge } from "@/components/DataBadge";
 import { useWeather } from "@/context/WeatherContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -263,16 +262,6 @@ export default function WeatherPage() {
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Weather Map */}
-        <div className="bg-white p-3 border border-slate-200 rounded-3xl shadow-sm">
-          <InteractiveWeatherMap
-            lat={activeField?.center[0]}
-            lon={activeField?.center[1]}
-            crop={activeField?.crop}
-            onFieldSelected={handleFieldSelected}
-          />
         </div>
       </div>
     </AppShell>

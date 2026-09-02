@@ -24,27 +24,57 @@
 
 @layer base {
   :root {
-    --bg-main: #F8FAFC;
-    --bg-surface: #FFFFFF;
+    --bg-main: #FFFFFF;
+    --bg-surface: #F8FAFC;
     --bg-card: #FFFFFF;
-    --bg-slate-900: #FFFFFF;
-    --bg-slate-950: #F8FAFC;
+    --bg-lavender: #F5F7FF;
 
-    --color-slate-dark: #0F172A;
-    --color-slate-body: #334155;
+    /* Text System */
+    --color-slate-dark: #111827;
+    --color-slate-body: #1E293B;
     --color-slate-muted: #64748B;
-    
-    --color-emerald-primary: #059669;
-    --color-emerald-bright: #10B981;
-    --color-sky-primary: #0284C7;
-    --color-blue-bright: #2563EB;
-    --color-amber-accent: #D97706;
+
+    /* Controlled Multi-Color System */
+    --color-navy: #111827;
+    --color-indigo: #4F46E5;
+    --color-blue: #2563EB;
+    --color-violet: #7C3AED;
+    --color-amber: #F59E0B;
+    --color-orange: #F97316;
+    --color-emerald: #10B981;
+    --color-red: #EF4444;
+
+    /* Legacy semantic mapping */
+    --color-indigo-primary: #4F46E5;
+    --color-indigo-deep: #3730A3;
+    --color-indigo-soft: #EEF2FF;
+    --color-indigo-border: #C7D2FE;
+
+    --color-violet-primary: #7C3AED;
+    --color-violet-soft: #F5F3FF;
+    --color-violet-border: #DDD6FE;
+
+    --color-blue-primary: #2563EB;
+    --color-blue-soft: #EFF6FF;
+    --color-blue-border: #BFDBFE;
+
+    --color-amber-primary: #F59E0B;
+    --color-amber-soft: #FFFBEB;
+    --color-amber-border: #FDE68A;
+
+    --color-orange-primary: #F97316;
+    --color-orange-soft: #FFF7ED;
+
+    --color-emerald-primary: #10B981;
+    --color-emerald-deep: #059669;
+    --color-emerald-soft: #ECFDF5;
+    --color-emerald-border: #A7F3D0;
 
     --border-light: #E2E8F0;
     --border-strong: #CBD5E1;
-    --border-accent: rgba(5, 150, 105, 0.3);
-    
-    --radius-card: 20px;
+    --border-accent: rgba(79, 70, 229, 0.2);
+
+    --radius-card: 16px;
     --radius-pill: 9999px;
 
     --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -64,98 +94,209 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    color: var(--color-slate-dark);
     letter-spacing: -0.025em;
     font-weight: 700;
   }
 }
 
-/* Modern Clean Stripe Typography Classes */
+/* Modern Clean Typography Classes */
 .font-display { font-family: var(--font-display); }
 .font-accent { font-family: var(--font-accent); }
 .font-body { font-family: var(--font-body); }
 
-/* Theme Containers - Stripe Light Mode Standard */
-.theme-warm-dusk, .theme-warm-sunset, .theme-warm-organic {
-  background-color: #F8FAFC !important;
-  color: #0F172A !important;
+/* ─── Global Keyframe Animations ─────────────────────────────────────────── */
+@keyframes phoneFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(0.3deg); }
 }
 
-/* Stripe Glass Panels & Cards (Light Mode) */
+@keyframes chipFloat1 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes chipFloat2 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(5px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(1.04); }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideUpFadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Accessibility: Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Global Transition Utilities */
+.transition-smooth {
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-lift {
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -6px rgba(17, 24, 39, 0.08), 0 4px 12px -2px rgba(17, 24, 39, 0.04);
+}
+
+.hover-lift-subtle {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.hover-lift-subtle:hover {
+  transform: translateY(-2px);
+}
+
+/* ─── Shadow Utilities ────────────────────────────────────────────────────── */
+.shadow-float {
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18), 0 8px 24px -6px rgba(0, 0, 0, 0.10);
+}
+
+.shadow-purple-glow {
+  box-shadow: 0 8px 32px -4px rgba(124, 58, 237, 0.35);
+}
+
+
+/* Theme Containers */
+.theme-warm-dusk, .theme-warm-sunset, .theme-warm-organic {
+  background-color: #F5F7FF !important;
+  color: #111827 !important;
+}
+
+/* ─── Premium Stripe-Style Card ────────────────────────────────────────────── */
+/* Used throughout landing page for feature cards */
+.stripe-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.05), 0 4px 12px -2px rgba(17, 24, 39, 0.04);
+  color: #111827;
+  transition: all 0.25s ease;
+}
+
+.stripe-card:hover {
+  border-color: var(--color-indigo-border);
+  box-shadow: 0 8px 24px -4px rgba(79, 70, 229, 0.10), 0 4px 12px -2px rgba(17, 24, 39, 0.05);
+  transform: translateY(-2px);
+}
+
+/* ─── Glass Surface Panels ──────────────────────────────────────────────────── */
 .glass-warm-panel {
   background: #FFFFFF !important;
-  border: 1px solid #E2E8F0 !important;
+  border: 1px solid #E5E7EB !important;
   border-radius: var(--radius-card) !important;
-  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.04) !important;
-  color: #0F172A !important;
+  box-shadow: 0 10px 30px -5px rgba(17, 24, 39, 0.06), 0 4px 12px -2px rgba(17, 24, 39, 0.04) !important;
+  color: #111827 !important;
   transition: all 0.3s ease;
 }
 
 .glass-warm-panel:hover {
-  border-color: #059669 !important;
-  box-shadow: 0 20px 40px -10px rgba(5, 150, 105, 0.12), 0 8px 20px -4px rgba(15, 23, 42, 0.06) !important;
+  border-color: var(--color-indigo-border) !important;
+  box-shadow: 0 20px 40px -10px rgba(79, 70, 229, 0.10), 0 8px 20px -4px rgba(17, 24, 39, 0.06) !important;
   transform: translateY(-2px);
 }
 
 .glass-warm-card {
-  background: #F8FAFC !important;
-  border: 1px solid #E2E8F0 !important;
+  background: #F5F7FF !important;
+  border: 1px solid #E5E7EB !important;
   border-radius: 18px !important;
-  color: #0F172A !important;
+  color: #111827 !important;
   transition: all 0.25s ease;
 }
 
 .glass-warm-card:hover {
   background: #FFFFFF !important;
-  border-color: #059669 !important;
-  box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.1) !important;
+  border-color: var(--color-indigo-border) !important;
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.08) !important;
 }
 
-/* Stripe Primary & Secondary Buttons */
+/* ─── Primary Buttons ───────────────────────────────────────────────────────── */
+/* Primary CTA: Indigo → Violet (brand/AI feel) */
 .btn-warm-gold {
-  background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%) !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
   border-radius: var(--radius-pill) !important;
-  box-shadow: 0 8px 20px -4px rgba(5, 150, 105, 0.35) !important;
+  box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.35) !important;
   transition: all 0.25s ease !important;
 }
 
 .btn-warm-gold:hover {
   transform: translateY(-1.5px) !important;
-  box-shadow: 0 12px 25px -4px rgba(5, 150, 105, 0.5) !important;
+  box-shadow: 0 12px 25px -4px rgba(79, 70, 229, 0.5) !important;
 }
 
 .btn-warm-glass {
   background: #FFFFFF !important;
-  border: 1px solid #CBD5E1 !important;
+  border: 1px solid #D1D5DB !important;
   border-radius: var(--radius-pill) !important;
-  color: #0F172A !important;
+  color: #111827 !important;
   font-weight: 600 !important;
   box-shadow: 0 2px 5px rgba(0,0,0,0.03) !important;
   transition: all 0.25s ease !important;
 }
 
 .btn-warm-glass:hover {
-  background: #F1F5F9 !important;
-  border-color: #059669 !important;
-  color: #059669 !important;
+  background: #F5F7FF !important;
+  border-color: var(--color-indigo-primary) !important;
+  color: var(--color-indigo-primary) !important;
   transform: translateY(-1px) !important;
 }
 
-/* Custom Leaflet Map High-Contrast Styling (Light Mode) */
+/* ─── Intelligence Intelligence Color Pills ─────────────────────────────────── */
+.chip-ai      { background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE; }
+.chip-weather { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+.chip-mandi   { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+.chip-crop    { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+.chip-voice   { background: #F5F3FF; color: #5B21B6; border: 1px solid #DDD6FE; }
+.chip-loc     { background: #ECFEFF; color: #155E75; border: 1px solid #A5F3FC; }
+
+/* ─── Hero Gradient Mesh Animations ─────────────────────────────────────────── */
+@keyframes meshFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(20px, -15px) scale(1.04); }
+  66%       { transform: translate(-12px, 10px) scale(0.97); }
+}
+
+.hero-mesh-orb {
+  animation: meshFloat 12s ease-in-out infinite;
+}
+
+.hero-mesh-orb-2 {
+  animation: meshFloat 18s ease-in-out infinite reverse;
+}
+
+/* ─── Leaflet Map Popups ─────────────────────────────────────────────────────── */
 .leaflet-popup-content-wrapper {
   background: #FFFFFF !important;
-  color: #0F172A !important;
-  border: 1px solid #CBD5E1 !important;
+  color: #111827 !important;
+  border: 1px solid #D1D5DB !important;
   border-radius: 16px !important;
-  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.15) !important;
+  box-shadow: 0 14px 35px rgba(17, 24, 39, 0.15) !important;
   font-family: var(--font-body) !important;
   font-size: 13px !important;
 }
 
 .leaflet-popup-content b {
-  color: #059669 !important;
+  color: #4F46E5 !important;
   font-family: var(--font-display) !important;
 }
 
@@ -165,39 +306,39 @@
 
 .leaflet-tooltip {
   background: #FFFFFF !important;
-  color: #0F172A !important;
-  border: 1px solid #059669 !important;
+  color: #111827 !important;
+  border: 1px solid #4F46E5 !important;
   border-radius: 10px !important;
   font-family: var(--font-accent) !important;
   font-weight: 700 !important;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1) !important;
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.1) !important;
   font-size: 11px !important;
   padding: 6px 12px !important;
 }
 
 .leaflet-control-zoom a {
   background: #FFFFFF !important;
-  color: #0F172A !important;
-  border: 1px solid #CBD5E1 !important;
+  color: #111827 !important;
+  border: 1px solid #D1D5DB !important;
   border-radius: 8px !important;
   font-weight: bold !important;
 }
 
 .leaflet-control-zoom a:hover {
-  background: #F1F5F9 !important;
-  color: #059669 !important;
+  background: #EEF2FF !important;
+  color: #4F46E5 !important;
 }
 
-/* Custom Scrollbar */
+/* ─── Custom Scrollbar ───────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 7px; height: 7px; }
-::-webkit-scrollbar-track { background: #F8FAFC; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #059669; }
+::-webkit-scrollbar-track { background: #F5F7FF; }
+::-webkit-scrollbar-thumb { background: #C7D2FE; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #4F46E5; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Clean Seamless Deep DOM Translation */
+/* ─── Google Translate Suppression ─────────────────────────────────────────── */
 .goog-te-banner-frame,
 .goog-te-banner-frame.skiptranslate,
 iframe.goog-te-banner-frame {
@@ -225,4 +366,41 @@ body {
 #google_translate_element,
 .skiptranslate {
   display: none !important;
+}
+
+/* ─── Dynamic Hero & Text Animations ───────────────────────────────────────── */
+@keyframes textRotateIn {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.98);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.animate-text-rotate-in {
+  animation: textRotateIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float-gentle {
+  animation: floatGentle 4s ease-in-out infinite;
+}
+
+/* ─── Premium Card Entrance ─────────────────────────────────────────────────── */
+@keyframes cardEntrance {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-card-entrance {
+  animation: cardEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

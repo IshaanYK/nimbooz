@@ -392,27 +392,27 @@ export default function PlantIntelligencePage() {
 
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 font-sans">
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 py-8 space-y-8 font-sans">
         
         {/* Top Header */}
-        <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="border-b border-slate-200/80 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-xs font-mono font-bold text-emerald-700 uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              <span className="text-xs font-mono font-bold text-blue-700 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
                 {t?.plantIntelligenceBadge || "PS-02 / PS-03 AI System"}
               </span>
-              <span className="text-xs font-mono font-bold text-blue-700 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-200 flex items-center gap-1.5">
+              <span className="text-xs font-mono font-bold text-indigo-700 uppercase bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
                 LIVE GPS TELEMETRY: OPEN-METEO ({currentRegion?.name?.split(",")[0] || "BHOPAL"} {Number(currentRegion?.lat).toFixed(2)}°N, {Number(currentRegion?.lon).toFixed(2)}°E)
               </span>
-              <span className="text-[10px] font-mono font-bold text-amber-700 uppercase bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+              <span className="text-[10px] font-mono font-bold text-orange-700 uppercase bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
                 UNIVERSAL LOCATION ENABLED
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 mt-1">
+            <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-[#111827] mt-1 tracking-tight">
               {t?.plantIntelligenceTitle || "Plant Intelligence Engine"}
             </h1>
-            <p className="text-sm text-slate-600 font-medium max-w-3xl">
+            <p className="text-sm text-[#64748B] font-medium max-w-3xl mt-1">
               14-Day Real Weather Phenology Forecast for Any Location in India, Multi-Criteria Syngenta Advisor &amp; Spray Radar
             </p>
           </div>
@@ -421,7 +421,7 @@ export default function PlantIntelligencePage() {
             <button
               onClick={() => executePipeline(selectedRegionKey, selectedCrop, growthStage, symptoms, soilMoisture, customLocation?.lat, customLocation?.lon, customLocation?.name)}
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 hover:-translate-y-0.5 active:translate-y-0"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               <span>{loading ? "Fetching Live Telemetry..." : "Re-run Live Pipeline"}</span>

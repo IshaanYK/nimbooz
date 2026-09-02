@@ -5,9 +5,26 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { loginUser, saveProfile, getStoredProfile, EMPTY_FARMER_PROFILE, INDIAN_LANGUAGES } from "@/lib/userStore";
-import { Phone, ArrowRight, ShieldCheck, CheckCircle2, Lock, KeyRound, Mail, Sparkles, User, UserPlus } from "lucide-react";
-
+import {
+  loginUser,
+  saveProfile,
+  getStoredProfile,
+  EMPTY_FARMER_PROFILE,
+  INDIAN_LANGUAGES,
+} from "@/lib/userStore";
+import {
+  Phone,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  Lock,
+  KeyRound,
+  Mail,
+  Sparkles,
+  User,
+  UserPlus,
+  Zap,
+} from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function LoginPage() {
@@ -25,7 +42,7 @@ export default function LoginPage() {
 
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mobileNumber || mobileNumber.length < 10) {
+    if (!mobileNumber || mobileNumber.replace(/\D/g, "").length < 10) {
       alert("Please enter a valid 10-digit mobile number");
       return;
     }
@@ -33,11 +50,15 @@ export default function LoginPage() {
     setTimeout(() => {
       setLoading(false);
       setOtpSent(true);
-    }, 500);
+    }, 600);
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!otpCode || otpCode.length < 4) {
+      alert("Please enter the 4-digit verification code");
+      return;
+    }
     setLoading(true);
     const existing = getStoredProfile();
     const newProfile = {
@@ -46,6 +67,8 @@ export default function LoginPage() {
       fullName: fullName.trim() || existing.fullName || `Farmer (${mobileNumber.slice(-4)})`,
       mobileNumber: mobileNumber || existing.mobileNumber,
       language: selectedLanguage,
+      isRegistered: true,
+      lastLogin: new Date().toISOString(),
     };
     loginUser();
     saveProfile(newProfile);
@@ -56,6 +79,10 @@ export default function LoginPage() {
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      alert("Please fill in your email and password");
+      return;
+    }
     setLoading(true);
     const displayName = email.split("@")[0] || "Farmer";
     const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
@@ -65,6 +92,8 @@ export default function LoginPage() {
       ...existing,
       fullName: existing.fullName || formattedName,
       language: selectedLanguage,
+      isRegistered: true,
+      lastLogin: new Date().toISOString(),
     };
     loginUser();
     saveProfile(newProfile);
@@ -74,60 +103,78 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans flex flex-col justify-between p-4 sm:p-8 relative">
+    <div className="min-h-screen bg-[#f6f9fc] text-[#0d253d] font-sans flex flex-col justify-between select-none relative overflow-hidden">
       
+      {/* ── Atmospheric Ambient Radial Meshes (Stripe Aesthetic) ──── */}
+      <div
+        className="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-30 blur-3xl pointer-events-none"
+        style={{ background: "radial-gradient(circle, #533afd 0%, transparent 70%)" }}
+      />
+      <div
+        className="absolute top-1/2 -right-24 w-96 h-96 rounded-full opacity-25 blur-3xl pointer-events-none"
+        style={{ background: "radial-gradient(circle, #0ea5e9 0%, transparent 70%)" }}
+      />
+
       {/* Top Header */}
-      <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4 relative z-10 border-b border-slate-200 pb-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="relative h-10 w-32 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
-            <Image src="/images/aasra_logo.png" alt="AASRA" fill className="object-contain p-0.5" priority />
+      <header className="max-w-5xl mx-auto w-full flex items-center justify-between p-6 relative z-10">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="h-10 w-10 rounded-2xl bg-white border border-[#e3e8ee] shadow-sm flex items-center justify-center p-1 group-hover:scale-105 transition-transform">
+            <Image src="/images/aasra_logo.png" alt="AASRA" width={32} height={32} className="object-contain" priority />
           </div>
-          <span className="text-xs font-mono font-bold tracking-wider text-[#10B981] uppercase hidden sm:inline">
-            {t.brandName} · {t.portalSignIn}
-          </span>
+          <div>
+            <span className="text-xl font-bold font-display text-[#0d253d] tracking-tight block">AASRA</span>
+            <span className="text-[10px] font-mono text-[#533afd] font-bold block uppercase tracking-wider">Farmer Portal</span>
+          </div>
         </Link>
 
-        <Link href="/signup" className="text-xs font-extrabold text-slate-600 hover:text-[#10B981] flex items-center gap-1.5">
+        <Link
+          href="/signup"
+          className="px-4 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 hover:scale-105"
+          style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
+        >
           <UserPlus className="h-3.5 w-3.5" />
           <span>New Farmer? Sign Up</span>
         </Link>
       </header>
 
       {/* Main Login Form Container */}
-      <main className="max-w-md mx-auto w-full my-8 relative z-10 space-y-6">
+      <main className="max-w-md mx-auto w-full my-6 p-4 relative z-10 space-y-6">
         
-        {/* Regular Login Form Card */}
-        <div className="bg-white border border-slate-200 shadow-md rounded-2xl p-6 sm:p-8 space-y-6">
+        {/* Login Form Card */}
+        <div className="bg-white border border-[#e3e8ee] shadow-xl rounded-3xl p-6 sm:p-8 space-y-6">
           <div className="text-center space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-black font-display text-slate-900">
-              {t.portalSignIn || "Farmer Portal Login"}
+            <span className="text-[10px] font-mono font-bold text-[#533afd] bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200 uppercase">
+              Secure Farmer Access
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-bold font-display text-[#0d253d] tracking-tight mt-1">
+              Log In to Your Farm
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 font-medium">
-              Access your field telemetry, thermal stress warnings, and AI advice
+            <p className="text-xs text-[#64748d]">
+              Access field telemetry, thermal stress early warnings, and AI crop advice
             </p>
           </div>
 
           {/* Auth Method Selector Tabs */}
-          <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+          <div className="grid grid-cols-2 gap-2 bg-[#f6f9fc] border border-[#e3e8ee] p-1 rounded-2xl">
             <button
               type="button"
               onClick={() => setAuthMethod("otp")}
-              className={`py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 authMethod === "otp"
-                  ? "bg-white text-slate-900 shadow-xs"
+                  ? "bg-white text-[#533afd] shadow-xs font-black"
                   : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              <Phone className="h-3.5 w-3.5 text-[#10B981]" />
+              <Phone className="h-3.5 w-3.5 text-[#533afd]" />
               <span>Mobile OTP</span>
             </button>
 
             <button
               type="button"
               onClick={() => setAuthMethod("password")}
-              className={`py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 authMethod === "password"
-                  ? "bg-white text-slate-900 shadow-xs"
+                  ? "bg-white text-[#533afd] shadow-xs font-black"
                   : "text-slate-500 hover:text-slate-900"
               }`}
             >
@@ -141,9 +188,9 @@ export default function LoginPage() {
             <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4">
               {!otpSent ? (
                 <>
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.fullNameLabel || "Your Full Name"}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-[#0d253d]">
+                      Your Name (Optional)
                     </label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
@@ -151,15 +198,15 @@ export default function LoginPage() {
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Enter your name"
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                        placeholder="e.g. Ramesh Patel"
+                        className="w-full bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl pl-10 pr-3.5 py-3 text-sm font-bold text-[#0d253d] focus:outline-none transition-colors"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.mobileNumberLabel}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-[#0d253d]">
+                      Mobile Number *
                     </label>
                     <div className="relative">
                       <Phone className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
@@ -168,8 +215,8 @@ export default function LoginPage() {
                         required
                         value={mobileNumber}
                         onChange={(e) => setMobileNumber(e.target.value)}
-                        placeholder="98765 43210"
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                        placeholder="98260 14890"
+                        className="w-full bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl pl-10 pr-3.5 py-3 text-sm font-mono font-bold text-[#0d253d] focus:outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -177,15 +224,16 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+                    className="w-full py-3.5 rounded-2xl text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
                   >
                     <span>{loading ? "Sending..." : "Send Verification OTP"}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </>
               ) : (
-                <div className="space-y-4">
-                  <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-center">
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-center">
                     <span className="text-xs text-emerald-800 font-bold block">
                       OTP Sent to +91 {mobileNumber}
                     </span>
@@ -194,8 +242,8 @@ export default function LoginPage() {
                     </span>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-[#0d253d]">
                       Enter 4-Digit OTP
                     </label>
                     <input
@@ -205,14 +253,15 @@ export default function LoginPage() {
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value)}
                       placeholder="1 2 3 4"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-center text-xl font-mono font-black tracking-widest text-slate-900 focus:border-[#10B981] outline-none"
+                      className="w-full bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl p-3 text-center text-xl font-mono font-black tracking-widest text-[#0d253d] focus:outline-none"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 rounded-2xl text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     <span>Verify &amp; Open Farm Dashboard</span>
@@ -225,9 +274,9 @@ export default function LoginPage() {
           {/* PASSWORD / EMAIL FORM */}
           {authMethod === "password" && (
             <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                  Email or Username
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#0d253d]">
+                  Email or Mobile
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
@@ -237,13 +286,13 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="farmer@kisan.in"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                    className="w-full bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl pl-10 pr-3.5 py-3 text-sm font-bold text-[#0d253d] focus:outline-none transition-colors"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#0d253d]">
                   Password
                 </label>
                 <div className="relative">
@@ -254,7 +303,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                    className="w-full bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl pl-10 pr-3.5 py-3 text-sm font-bold text-[#0d253d] focus:outline-none transition-colors"
                   />
                 </div>
               </div>
@@ -262,7 +311,8 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+                className="w-full py-3.5 rounded-2xl text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+                style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
               >
                 <span>{loading ? "Logging in..." : "Log In to Dashboard"}</span>
                 <ArrowRight className="h-4 w-4" />
@@ -271,10 +321,10 @@ export default function LoginPage() {
           )}
 
           {/* Registration Redirect Footer */}
-          <div className="border-t border-slate-200 pt-4 text-center">
-            <p className="text-xs text-slate-600 font-medium">
+          <div className="border-t border-slate-100 pt-4 text-center">
+            <p className="text-xs text-slate-500">
               Don't have a farm registered?{" "}
-              <Link href="/signup" className="text-[#10B981] font-black hover:underline">
+              <Link href="/signup" className="text-[#533afd] font-bold hover:underline">
                 Sign Up &amp; Map Real Farm
               </Link>
             </p>
@@ -282,8 +332,8 @@ export default function LoginPage() {
         </div>
 
         {/* Security badge */}
-        <div className="flex items-center justify-center gap-2 text-xs font-mono text-slate-500">
-          <ShieldCheck className="h-4 w-4 text-[#10B981]" />
+        <div className="flex items-center justify-center gap-2 text-xs font-mono text-slate-400">
+          <ShieldCheck className="h-4 w-4 text-emerald-600" />
           <span>Encrypted with Syngenta Krishi Digital Security</span>
         </div>
 
@@ -291,7 +341,7 @@ export default function LoginPage() {
 
       {/* Simple Footer */}
       <footer className="max-w-5xl mx-auto w-full text-center text-xs text-slate-400 py-4 relative z-10">
-        © 2026 AASRA (Syngenta Hackathon). All Rights Reserved.
+        © 2026 AASRA — Syngenta Biologicals &amp; AI Crop Science Companion
       </footer>
     </div>
   );

@@ -31,7 +31,11 @@ export async function sendChatMessage(
   crop_variety?: string,
   soil_type?: string,
   district?: string,
-  village?: string
+  village?: string,
+  audioBase64?: string,
+  audioMimeType?: string,
+  conversation_history?: Array<{ sender: string; text: string }>,
+  last_resolved_location?: any
 ) {
   try {
     const res = await fetch(`${API_BASE}/chat`, {
@@ -51,6 +55,10 @@ export async function sendChatMessage(
         soil_type,
         district,
         village,
+        audioBase64,
+        audioMimeType,
+        conversation_history,
+        last_resolved_location,
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -174,12 +182,20 @@ export async function fetchGoogleTTSAudio(text: string, language: string = "hi",
   }
 }
 
-export async function analyzeCropLeafImage(imageFile: File, crop: string = "soybean", language: string = "hi") {
+export async function analyzeCropLeafImage(
+  imageFile: File,
+  crop: string = "soybean",
+  language: string = "hi",
+  question: string = "",
+  district: string = "Bhopal"
+) {
   try {
     const formData = new FormData();
     formData.append("file", imageFile);
     formData.append("crop", crop);
     formData.append("language", language);
+    if (question) formData.append("question", question);
+    if (district) formData.append("district", district);
 
     const res = await fetch(`${API_BASE}/chat/analyze-image`, {
       method: "POST",

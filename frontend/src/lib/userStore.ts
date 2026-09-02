@@ -32,6 +32,9 @@ export interface FarmerProfile {
   helpTopics: string[];
   notificationPreference?: string;
   dataConsent: boolean;
+  id?: string;
+  isRegistered?: boolean;
+  lastLogin?: string;
 }
 
 export const INDIAN_LANGUAGES = [
@@ -125,26 +128,7 @@ export function loginUser(): void {
   }
 }
 
-export function loginAsDemo(): FarmerProfile {
-  const demoProfile: FarmerProfile = {
-    ...EMPTY_FARMER_PROFILE,
-    fullName: "Sameer Verma",
-    mobileNumber: "+91 98260 12345",
-    language: "hi",
-    state: "Uttar Pradesh",
-    district: "Agra",
-    village: "Fatehabad Road",
-    fieldName: "Sameer's Farm Plot",
-    primaryCrop: "Soybean",
-    fieldAreaAcres: 5.0,
-    fieldAreaHa: 2.0,
-  };
-  if (typeof window !== "undefined") {
-    saveProfile(demoProfile);
-    loginUser();
-  }
-  return demoProfile;
-}
+
 
 export function logoutUser(): void {
   if (typeof window === "undefined") return;

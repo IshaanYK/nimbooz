@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
-import { OneSoilFieldMap } from "@/components/OneSoilFieldMap";
 import { StressMetrics } from "@/components/StressMetrics";
 import { InterventionJournal } from "@/components/InterventionJournal";
 import { Ps07ProofAttribution } from "@/components/Ps07ProofAttribution";
@@ -81,9 +80,6 @@ export default function FieldDetailPage() {
         {/* Tab Content 1: Overview */}
         {activeTab === "overview" && (
           <div className="space-y-8 animate-fade-in">
-            {/* Map Preview */}
-            <OneSoilFieldMap crop="soybean" fieldAreaHa={4.2} />
-
             {/* Risk & Recommendation Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-amber-400/40 shadow-xl space-y-4">

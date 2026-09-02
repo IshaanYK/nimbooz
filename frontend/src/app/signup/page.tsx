@@ -5,35 +5,67 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { saveProfile, EMPTY_FARMER_PROFILE, INDIAN_LANGUAGES, FarmerProfile } from "@/lib/userStore";
-import { saveFarmerField, setActiveField, FieldRecord } from "@/lib/fieldStore";
-import { getRegionalCrops, saveCustomCrop } from "@/lib/cropRegistry";
-import { saveFieldToBackend } from "@/lib/api";
-import { reverseGeocode } from "@/context/WeatherContext";
 import {
-  User, MapPin, Sprout, Settings, ArrowRight, ArrowLeft, CheckCircle2, Navigation, Mic, Globe,
-  Search, ShieldCheck, Sparkles, AlertCircle, Check
+  saveProfile,
+  EMPTY_FARMER_PROFILE,
+  INDIAN_LANGUAGES,
+  FarmerProfile,
+} from "@/lib/userStore";
+import { saveFarmerField, setActiveField, FieldRecord } from "@/lib/fieldStore";
+import { getRegionalCrops } from "@/lib/cropRegistry";
+import { reverseGeocode } from "@/context/WeatherContext";
+import { useLanguage } from "@/context/LanguageContext";
+import {
+  User,
+  MapPin,
+  Sprout,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Navigation,
+  Globe,
+  ShieldCheck,
+  Zap,
+  Volume2,
+  Lock,
+  Layers,
+  Sliders,
+  Check,
 } from "lucide-react";
 
-import { useLanguage } from "@/context/LanguageContext";
-
 const POPULAR_AGRI_HUBS = [
-  { name: "Bhopal (Fanda Kalan)", district: "Bhopal", state: "Madhya Pradesh", lat: 23.2599, lon: 77.4126, soil: "Black Cotton Soil" },
-  { name: "Pune (Haveli / Baramati)", district: "Pune", state: "Maharashtra", lat: 18.5204, lon: 73.8567, soil: "Black Clayey Soil" },
-  { name: "Indore (Sanwer / Depalpur)", district: "Indore", state: "Madhya Pradesh", lat: 22.7196, lon: 75.8577, soil: "Deep Vertisol Clay" },
-  { name: "Ludhiana (Jagraon / Samrala)", district: "Ludhiana", state: "Punjab", lat: 30.9010, lon: 75.8573, soil: "Alluvial Loam" },
-  { name: "Nashik (Niphad / Dindori)", district: "Nashik", state: "Maharashtra", lat: 19.9975, lon: 73.7898, soil: "Red & Black Loam" },
-  { name: "Ujjain (Ghatiya / Badnagar)", district: "Ujjain", state: "Madhya Pradesh", lat: 23.1765, lon: 75.7885, soil: "Black Cotton Soil" },
-  { name: "Nagpur (Katol / Saoner)", district: "Nagpur", state: "Maharashtra", lat: 21.1458, lon: 79.0882, soil: "Black Clay Soil" },
-  { name: "Rajkot (Gondal / Jetpur)", district: "Rajkot", state: "Gujarat", lat: 22.3039, lon: 70.8022, soil: "Medium Black Soil" },
-  { name: "Karnal (Gharaunda)", district: "Karnal", state: "Haryana", lat: 29.6857, lon: 76.9905, soil: "Fertile Alluvial" },
-  { name: "Guntur (Tenali / Bapatla)", district: "Guntur", state: "Andhra Pradesh", lat: 16.3067, lon: 80.4365, soil: "Black Heavy Clay" },
+  { name: "Sehore / Bhopal", district: "Sehore", state: "Madhya Pradesh", lat: 23.2000, lon: 77.0800, soil: "Deep Black Cotton Soil", crop: "Soybean" },
+  { name: "Pune / Baramati", district: "Pune", state: "Maharashtra", lat: 18.5204, lon: 73.8567, soil: "Black Clayey Soil", crop: "Sugarcane" },
+  { name: "Nashik / Lasalgaon", district: "Nashik", state: "Maharashtra", lat: 19.9975, lon: 73.7898, soil: "Red & Black Loam", crop: "Onion" },
+  { name: "Rajkot / Gondal", district: "Rajkot", state: "Gujarat", lat: 22.3039, lon: 70.8022, soil: "Medium Black Soil", crop: "Cotton" },
+  { name: "Ludhiana / Khanna", district: "Ludhiana", state: "Punjab", lat: 30.9010, lon: 75.8573, soil: "Alluvial Loam", crop: "Wheat" },
+  { name: "Jaipur / Muhana", district: "Jaipur", state: "Rajasthan", lat: 26.8320, lon: 75.7650, soil: "Sandy Loam", crop: "Mustard" },
+];
+
+const PRESET_FARMER_PERSONAS = [
+  { name: "Ramesh Patel", district: "Sehore", state: "Madhya Pradesh", crop: "Soybean", acres: 5, avatar: "🌾" },
+  { name: "Gurpreet Singh", district: "Ludhiana", state: "Punjab", crop: "Wheat", acres: 12, avatar: "🚜" },
+  { name: "Suresh Jadhav", district: "Nashik", state: "Maharashtra", crop: "Onion", acres: 4, avatar: "🍇" },
+  { name: "Venkatesh Rao", district: "Guntur", state: "Andhra Pradesh", crop: "Cotton", acres: 8, avatar: "🌶️" },
+];
+
+const AVAILABLE_CROPS = [
+  { id: "Soybean", name: "Soybean (सोयाबीन)", icon: "🫘", color: "from-amber-500/20 to-emerald-500/20" },
+  { id: "Wheat", name: "Wheat (गेहूं)", icon: "🌾", color: "from-yellow-500/20 to-amber-500/20" },
+  { id: "Mustard", name: "Mustard (सरसों)", icon: "🌼", color: "from-yellow-400/20 to-lime-500/20" },
+  { id: "Cotton", name: "Cotton (कपास)", icon: "☁️", color: "from-sky-500/20 to-indigo-500/20" },
+  { id: "Tomato", name: "Tomato (टमाटर)", icon: "🍅", color: "from-rose-500/20 to-red-500/20" },
+  { id: "Gram", name: "Gram / Chana (चना)", icon: "🥣", color: "from-orange-500/20 to-amber-500/20" },
+  { id: "Paddy", name: "Rice / Paddy (धान)", icon: "🌾", color: "from-emerald-500/20 to-green-500/20" },
+  { id: "Maize", name: "Maize (मक्का)", icon: "🌽", color: "from-amber-400/20 to-yellow-500/20" },
 ];
 
 export default function SignupPage() {
   const router = useRouter();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const [step, setStep] = useState<number>(1);
+  const isHindi = ["hi", "mr", "gu", "pa"].includes(language);
 
   // Form State
   const [formData, setFormData] = useState<FarmerProfile>({
@@ -41,30 +73,24 @@ export default function SignupPage() {
     language: language || "hi",
     fullName: "",
     mobileNumber: "",
-    state: "",
-    district: "",
-    village: "",
+    state: "Madhya Pradesh",
+    district: "Sehore",
+    village: "Fanda Kalan",
     primaryCrop: "Soybean",
     fieldAreaAcres: 5.0,
     fieldAreaHa: 2.0,
     sowingDate: "2026-06-15",
-    cropVariety: "JS-335 (Broadleaf Soybean)",
-    irrigationType: "Drip + Monsoon Rainfed",
-    soilType: "Black Cotton Soil",
+    cropVariety: "JS-335 (Broadleaf)",
+    irrigationType: "Monsoon Rainfed + Drip",
+    soilType: "Deep Black Cotton Soil",
   });
 
-  const [isCustomCropMode, setIsCustomCropMode] = useState<boolean>(false);
-  const [customCropInput, setCustomCropInput] = useState<string>("");
-  const regionalCrops = getRegionalCrops(formData.district, formData.state);
-
-  const [gpsDetected, setGpsDetected] = useState<boolean>(false);
   const [loadingGps, setLoadingGps] = useState<boolean>(false);
-  const [fieldReady, setFieldReady] = useState<boolean>(false);
-  const [searchDistrictQuery, setSearchDistrictQuery] = useState<string>("");
-  const [isSearchingGeocode, setIsSearchingGeocode] = useState<boolean>(false);
+  const [gpsDetected, setGpsDetected] = useState<boolean>(false);
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
 
-  // Auto-detect GPS when reaching step 2
-  const detectLocation = () => {
+  // GPS Auto Detect
+  const handleDetectGPS = () => {
     setLoadingGps(true);
     if (typeof window !== "undefined" && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -76,9 +102,9 @@ export default function SignupPage() {
           setFormData((prev) => ({
             ...prev,
             gpsLocation: { lat, lon },
-            state: geo.state || prev.state || "India",
-            district: geo.district || prev.district || "My District",
-            village: geo.village || prev.village || "My Village",
+            state: geo.state || prev.state || "Madhya Pradesh",
+            district: geo.district || prev.district || "Sehore",
+            village: geo.village || prev.village || "Local Village",
             fieldName: `${geo.village || geo.district || "Main"} Farm Plot`,
           }));
           setLoadingGps(false);
@@ -95,703 +121,615 @@ export default function SignupPage() {
     }
   };
 
-  const handleSearchCustomLocation = async () => {
-    if (!searchDistrictQuery.trim()) return;
-    setIsSearchingGeocode(true);
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchDistrictQuery)}&format=json&limit=1`, {
-        headers: { "User-Agent": "AASRA-Agri-App/1.0" },
-      });
-      if (res.ok) {
-        const results = await res.json();
-        if (results && results.length > 0) {
-          const match = results[0];
-          const lat = parseFloat(match.lat);
-          const lon = parseFloat(match.lon);
-          const geo = await reverseGeocode(lat, lon);
-
-          setFormData((prev) => ({
-            ...prev,
-            gpsLocation: { lat, lon },
-            state: geo.state || prev.state,
-            district: geo.district || searchDistrictQuery,
-            village: geo.village || prev.village,
-            fieldName: `${geo.village || geo.district || searchDistrictQuery} Farm Plot`,
-          }));
-          setGpsDetected(true);
-        }
-      }
-    } catch (e) {
-      console.warn("Custom location search failed:", e);
-    } finally {
-      setIsSearchingGeocode(false);
-    }
-  };
-
-  const handleSelectPresetHub = (hub: typeof POPULAR_AGRI_HUBS[0]) => {
+  const handleApplyPersona = (persona: typeof PRESET_FARMER_PERSONAS[0]) => {
+    setSelectedPersona(persona.name);
     setFormData((prev) => ({
       ...prev,
-      gpsLocation: { lat: hub.lat, lon: hub.lon },
-      state: hub.state,
-      district: hub.district,
-      village: hub.name.split("(")[1]?.replace(")", "") || "",
-      soilType: hub.soil,
-      fieldName: `${hub.district} Farm Plot`,
+      fullName: persona.name,
+      district: persona.district,
+      state: persona.state,
+      primaryCrop: persona.crop,
+      fieldAreaAcres: persona.acres,
+      mobileNumber: "98260 14890",
     }));
-    setGpsDetected(true);
   };
 
-  const handleNext = () => {
-    if (step === 1) {
-      if (!formData.fullName.trim()) {
-        alert("Please enter your full name");
-        return;
-      }
-      if (!formData.mobileNumber.trim() || formData.mobileNumber.trim().length < 10) {
-        alert("Please enter a valid 10-digit mobile number");
-        return;
-      }
-      // Auto-trigger GPS detection as farmer moves to Location step
-      if (!gpsDetected) {
-        detectLocation();
-      }
-    }
-    if (step < 4) setStep(step + 1);
-  };
-
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1);
-  };
-
-  const handleFinish = async () => {
-    const lat = formData.gpsLocation?.lat || 23.2599;
-    const lon = formData.gpsLocation?.lon || 77.4126;
-    const acres = formData.fieldAreaAcres || 5.0;
-    const ha = Math.round((acres / 2.471) * 100) / 100;
-
-    let primaryCrop = formData.primaryCrop;
-    let cropVariety = formData.cropVariety || "High Yield Certified";
-
-    if (isCustomCropMode && customCropInput.trim()) {
-      const saved = saveCustomCrop({ name: customCropInput.trim() });
-      primaryCrop = saved.name;
-      cropVariety = saved.defaultVariety;
-    }
-
+  // Complete Registration & Generate Farmer Passport
+  const handleCompleteRegistration = () => {
     const finalProfile: FarmerProfile = {
       ...formData,
-      primaryCrop,
-      cropVariety,
-      fieldAreaHa: ha,
-      gpsLocation: { lat, lon },
+      isRegistered: true,
+      lastLogin: new Date().toISOString(),
     };
 
     saveProfile(finalProfile);
-    setLanguage(finalProfile.language);
-    setFieldReady(true);
 
-    // Create real field polygon around real farmer coordinates
-    const offset = 0.0025;
+    // Save initial field record
     const initialField: FieldRecord = {
-      id: `field_${Date.now()}`,
-      name: finalProfile.fieldName || `${finalProfile.fullName}'s Farm Plot`,
-      crop: finalProfile.primaryCrop,
-      cropVariety: finalProfile.cropVariety || "High Yield Certified",
-      areaAcres: acres,
-      areaHa: ha,
-      center: [lat, lon],
-      polygon: [
-        [lat + offset, lon - offset],
-        [lat + offset * 1.2, lon + offset],
-        [lat - offset, lon + offset * 1.1],
-        [lat - offset * 1.1, lon - offset * 0.9],
-      ],
+      id: `field-${Date.now()}`,
+      name: `${finalProfile.fullName}'s ${finalProfile.primaryCrop} Field`,
+      crop: finalProfile.primaryCrop || "Soybean",
+      cropVariety: finalProfile.cropVariety || "JS-335",
+      areaAcres: finalProfile.fieldAreaAcres || 5.0,
+      areaHa: finalProfile.fieldAreaHa || 2.0,
+      center: finalProfile.gpsLocation ? [finalProfile.gpsLocation.lat, finalProfile.gpsLocation.lon] : [23.2, 77.08],
+      polygon: [],
       sowingDate: finalProfile.sowingDate || "2026-06-15",
-      growthStage: "R2 Flowering Stage",
-      soilType: finalProfile.soilType || "Black Cotton Soil",
-      irrigationType: finalProfile.irrigationType || "Rainfed + Borewell",
+      growthStage: "Vegetative",
+      soilType: finalProfile.soilType || "Deep Black Cotton Soil",
+      irrigationType: finalProfile.irrigationType || "Rainfed",
       color: "#10B981",
-      healthScore: 94,
-      pins: [],
+      state: finalProfile.state || "Madhya Pradesh",
+      district: finalProfile.district || "Sehore",
+      village: finalProfile.village || "Main Village",
     };
 
     saveFarmerField(initialField);
     setActiveField(initialField.id);
 
-    try {
-      await saveFieldToBackend({
-        name: initialField.name,
-        crop: initialField.crop,
-        areaHa: initialField.areaHa,
-        center: initialField.center,
-      });
-    } catch (_) {}
+    if (typeof window !== "undefined") {
+      localStorage.setItem("aasra_is_logged_in", "true");
+    }
 
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 1000);
+    router.push("/dashboard");
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans flex flex-col justify-between p-4 sm:p-8 relative">
+    <div className="min-h-screen bg-[#f6f9fc] text-[#0d253d] font-sans flex flex-col justify-between select-none relative overflow-hidden">
       
-      {/* Top Header */}
-      <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4 relative z-10 border-b border-slate-200 pb-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="relative h-10 w-32 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
-            <Image src="/images/aasra_logo.png" alt="AASRA" fill className="object-contain p-0.5" priority />
+      {/* ── Atmospheric Ambient Radial Meshes (Stripe Aesthetic) ──── */}
+      <div
+        className="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-30 blur-3xl pointer-events-none"
+        style={{ background: "radial-gradient(circle, #533afd 0%, transparent 70%)" }}
+      />
+      <div
+        className="absolute top-1/2 -right-24 w-96 h-96 rounded-full opacity-25 blur-3xl pointer-events-none"
+        style={{ background: "radial-gradient(circle, #0ea5e9 0%, transparent 70%)" }}
+      />
+
+      {/* ── Header Navigation Bar ─────────────────────────────────── */}
+      <header className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 flex items-center justify-between z-10">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="h-10 w-10 rounded-2xl bg-white border border-[#e3e8ee] shadow-sm flex items-center justify-center p-1 group-hover:scale-105 transition-transform">
+            <Image src="/images/aasra_logo.png" alt="AASRA Logo" width={32} height={32} className="object-contain" />
           </div>
-          <span className="text-xs font-mono font-bold tracking-wider text-[#10B981] uppercase hidden sm:inline">
-            {t.brandName} · Real Farm Registration
-          </span>
+          <div>
+            <span className="text-xl font-bold font-display text-[#0d253d] tracking-tight block">AASRA</span>
+            <span className="text-[10px] font-mono text-[#533afd] font-bold block uppercase tracking-wider">Farmer Passport</span>
+          </div>
         </Link>
 
-        <Link href="/login" className="text-xs font-extrabold text-slate-600 hover:text-[#10B981]">
-          {t.alreadyRegistered}
-        </Link>
+        {/* Header Right Links */}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/login"
+            className="text-xs font-bold text-slate-600 hover:text-[#533afd] transition-colors"
+          >
+            Already registered? <span className="text-[#533afd] underline">Log In</span>
+          </Link>
+        </div>
       </header>
 
-      {/* Main Form Container */}
-      <main className="max-w-4xl mx-auto w-full my-8 relative z-10">
+      {/* ── Main Interactive Registration Container ──────────────── */}
+      <main className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-4 flex-1 z-10 flex flex-col justify-center">
         
-        {/* Step Indicator Navigation Tabs */}
-        <div className="grid grid-cols-4 gap-2 mb-8 bg-white p-2 rounded-xl border border-slate-200 shadow-sm text-center">
+        {/* Step Progress Indicators */}
+        <div className="grid grid-cols-4 gap-2 mb-6">
           {[
-            { id: 1, label: "01. ABOUT YOU", icon: User },
-            { id: 2, label: "02. REAL LOCATION", icon: MapPin },
-            { id: 3, label: "03. CROP & FIELD", icon: Sprout },
-            { id: 4, label: "04. CONFIRM", icon: Settings },
-          ].map((s) => (
-            <button
-              key={s.id}
-              onClick={() => step > s.id && setStep(s.id)}
-              className={`py-3 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                step === s.id
-                  ? "bg-emerald-50 text-[#10B981] font-black border border-emerald-200 shadow-sm"
-                  : step > s.id
-                  ? "text-emerald-700 bg-emerald-50/50"
-                  : "text-slate-400"
-              }`}
-            >
-              <s.icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{s.label}</span>
-            </button>
-          ))}
+            { num: 1, label: isHindi ? "01. पहचान" : "01. Identity", icon: User },
+            { num: 2, label: isHindi ? "02. स्थान" : "02. Location", icon: MapPin },
+            { num: 3, label: isHindi ? "03. फसल" : "03. Crop", icon: Sprout },
+            { num: 4, label: isHindi ? "04. पासपोर्ट" : "04. Passport", icon: ShieldCheck },
+          ].map((s) => {
+            const isCompleted = step > s.num;
+            const isCurrent = step === s.num;
+            return (
+              <div
+                key={s.num}
+                className={`p-2.5 rounded-2xl border text-center transition-all duration-300 flex items-center justify-center gap-2 ${
+                  isCurrent
+                    ? "bg-white border-[#533afd] text-[#533afd] shadow-md shadow-[#533afd]/10 scale-[1.02]"
+                    : isCompleted
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    : "bg-white/60 border-[#e3e8ee] text-slate-400"
+                }`}
+              >
+                {isCompleted ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <s.icon className={`h-4 w-4 shrink-0 ${isCurrent ? "text-[#533afd]" : "text-slate-400"}`} />
+                )}
+                <span className="text-xs font-bold hidden sm:inline">{s.label}</span>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Form Wizard Cards */}
-        <div className="bg-white border border-slate-200 shadow-md rounded-3xl p-6 sm:p-10 space-y-6">
+        {/* Dynamic Multi-Step Form Card */}
+        <div className="rounded-3xl bg-white border border-[#e3e8ee] shadow-xl p-6 sm:p-10 space-y-6 relative overflow-hidden">
+          
           <AnimatePresence mode="wait">
             
-            {/* STEP 1: ABOUT YOU */}
+            {/* ── STEP 1: FARMER IDENTITY & NATIVE LANGUAGE ───────────── */}
             {step === 1 && (
               <motion.div
                 key="step1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
                 className="space-y-6"
               >
                 <div>
-                  <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    STEP 01 / FARMER IDENTITY
+                  <span className="text-[10px] font-mono font-bold text-[#533afd] bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 uppercase">
+                    Step 01 / Farmer Identity
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    {t.tellUsAboutYourself}
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[#0d253d] font-display mt-1 tracking-tight">
+                    {isHindi ? "किसान पहचान व भाषा चयन" : "Tell us about yourself"}
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Register your name and mobile number to receive localized AI crop advice and weather alerts.
+                  <p className="text-xs sm:text-sm text-[#64748d] mt-1">
+                    {isHindi
+                      ? "अपना नाम और भाषा चुनें ताकि AASRA AI आपकी अपनी बोली में सटीक सलाह दे सके।"
+                      : "Register your name and preferred language for personalized voice and agronomic advisory."}
                   </p>
                 </div>
 
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.fullNameLabel} <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      placeholder="e.g. Ramesh Patel, Gurpreet Singh, Suresh Jadhav"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.mobileNumberLabel} <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={formData.mobileNumber}
-                      onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
-                      placeholder="e.g. +91 98260 14890"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100 outline-none"
-                    />
-                  </div>
-
-                  <div className="notranslate" translate="no">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider">
-                        {t.preferredLanguage}
-                      </label>
-                      <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 uppercase">
-                        12 Indian Languages
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {INDIAN_LANGUAGES.map((lang) => {
-                        const isSelected = formData.language === lang.code;
-                        return (
-                          <button
-                            key={lang.code}
-                            type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({ ...prev, language: lang.code }));
-                              setLanguage(lang.code);
-                            }}
-                            className={`text-left p-2.5 sm:p-3 rounded-xl border transition-all flex flex-col justify-between notranslate cursor-pointer ${
-                              isSelected
-                                ? "bg-emerald-50 border-[#10B981] text-slate-900 shadow-xs ring-2 ring-emerald-300"
-                                : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
-                            }`}
-                            translate="no"
-                          >
-                            <div className="flex items-center justify-between w-full">
-                              <span className="font-bold text-xs sm:text-sm text-slate-900 notranslate" translate="no">
-                                {lang.native}
-                              </span>
-                              {isSelected && (
-                                <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
-                              )}
-                            </div>
-                            <span className="text-[10px] text-slate-500 font-medium notranslate mt-0.5" translate="no">
-                              {lang.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                {/* Quick Persona Pre-fills (Playful feature) */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-500 block">
+                    ✨ Quick Preset Personas (1-Click Fill):
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {PRESET_FARMER_PERSONAS.map((p) => (
+                      <button
+                        key={p.name}
+                        type="button"
+                        onClick={() => handleApplyPersona(p)}
+                        className={`p-2 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                          selectedPersona === p.name
+                            ? "bg-indigo-50 border-[#533afd] text-[#533afd] font-bold"
+                            : "bg-slate-50 hover:bg-slate-100 border-[#e3e8ee] text-slate-700"
+                        }`}
+                      >
+                        <span className="text-base mr-1">{p.avatar}</span>
+                        <span className="font-bold block truncate">{p.name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono block">{p.district}, {p.crop}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4">
+                {/* Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0d253d]">
+                      {isHindi ? "पूरा नाम *" : "Full Name *"}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      placeholder="e.g. Ramesh Patel, Gurpreet Singh..."
+                      className="w-full px-4 py-3 bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl text-sm font-bold text-[#0d253d] focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0d253d]">
+                      {isHindi ? "मोबाइल नंबर *" : "Mobile Number *"}
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.mobileNumber}
+                      onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
+                      placeholder="e.g. 98260 14890"
+                      className="w-full px-4 py-3 bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl text-sm font-bold text-[#0d253d] focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Preferred Language 12-Grid */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#0d253d]">
+                      {isHindi ? "पसंदीदा बोली / भाषा चुनें:" : "Choose Preferred Language:"}
+                    </label>
+                    <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      12 Indian Languages Active
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {INDIAN_LANGUAGES.map((lang) => {
+                      const isSelected = formData.language === lang.code;
+                      return (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, language: lang.code });
+                            setLanguage(lang.code as any);
+                          }}
+                          className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                            isSelected
+                              ? "bg-[#533afd] text-white border-[#533afd] shadow-md shadow-[#533afd]/20 scale-[1.02]"
+                              : "bg-[#f6f9fc] hover:bg-slate-100 border-[#e3e8ee] text-slate-700"
+                          }`}
+                        >
+                          <div>
+                            <span className="text-xs font-black block">{lang.native}</span>
+                            <span className={`text-[10px] block ${isSelected ? "text-indigo-100" : "text-slate-400"}`}>
+                              {lang.name}
+                            </span>
+                          </div>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-white shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Continue Button */}
+                <div className="pt-4 flex justify-end">
                   <button
-                    onClick={handleNext}
-                    className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+                    type="button"
+                    onClick={() => setStep(2)}
+                    disabled={!formData.fullName.trim()}
+                    className="px-6 py-3.5 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
                   >
-                    <span>{t.continueToStep2}</span>
+                    <span>{isHindi ? "आगे बढ़ें: स्थान चयन" : "Continue to Step 2"}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               </motion.div>
             )}
 
-            {/* STEP 2: REAL LOCATION */}
+            {/* ── STEP 2: HYPERLOCAL LOCATION & GPS ───────────────────── */}
             {step === 2 && (
               <motion.div
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
                 className="space-y-6"
               >
                 <div>
-                  <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    STEP 02 / REAL FARM LOCATION &amp; GPS
+                  <span className="text-[10px] font-mono font-bold text-[#533afd] bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 uppercase">
+                    Step 02 / Hyperlocal Location
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    Where is your farm located?
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[#0d253d] font-display mt-1 tracking-tight">
+                    {isHindi ? "खेत का सटीक स्थान व जिला" : "Where is your farm located?"}
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    We connect live Open-Meteo &amp; Syngenta satellite telemetry to your exact coordinates.
+                  <p className="text-xs sm:text-sm text-[#64748d] mt-1">
+                    {isHindi
+                      ? "सटीक मौसम टेलीमेट्री और नजदीकी मंडी भाव के लिए अपने खेत का स्थान दर्ज करें।"
+                      : "Satellite weather telemetry and APMC mandi distance depend on your exact field coordinates."}
                   </p>
                 </div>
 
-                {/* 1-Tap Real GPS Auto-Detection */}
-                <div className="bg-emerald-50 border-2 border-emerald-300 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-sm text-emerald-950 block">Auto-Detect Real Farm GPS</span>
-                      {gpsDetected && (
-                        <span className="text-[10px] font-mono font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full">
-                          ✓ GPS LOCKED
-                        </span>
-                      )}
+                {/* GPS Auto Detect Banner */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-sky-50 border border-indigo-100 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-[#533afd] text-white flex items-center justify-center shadow-sm shrink-0">
+                      <Navigation className={`h-5 w-5 ${loadingGps ? "animate-spin" : ""}`} />
                     </div>
-                    <span className="text-xs text-emerald-800 font-medium block">
-                      {formData.gpsLocation
-                        ? `Exact Coordinates: ${formData.gpsLocation.lat.toFixed(4)}° N, ${formData.gpsLocation.lon.toFixed(4)}° E`
-                        : "Click below to read live device GPS coordinates"}
-                    </span>
+                    <div>
+                      <h4 className="text-xs font-bold text-[#0d253d]">
+                        {gpsDetected ? "✓ GPS Location Locked" : "Auto-Detect Satellite GPS"}
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        {gpsDetected
+                          ? `${formData.district}, ${formData.state} (±15m accuracy)`
+                          : "Pinpoint your farm using device GPS sensor"}
+                      </p>
+                    </div>
                   </div>
+
                   <button
                     type="button"
-                    onClick={detectLocation}
-                    disabled={loadingGps}
-                    className="px-5 py-3 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs shrink-0"
+                    onClick={handleDetectGPS}
+                    className="px-4 py-2 rounded-xl bg-white border border-[#e3e8ee] hover:border-[#533afd] text-[#533afd] font-bold text-xs shadow-2xs transition-all cursor-pointer shrink-0"
                   >
-                    <Navigation className="h-4 w-4" />
-                    <span>{loadingGps ? "Detecting GPS..." : gpsDetected ? "Refresh GPS" : "Detect My Live Location"}</span>
+                    {loadingGps ? "Detecting..." : gpsDetected ? "Re-detect" : "Auto-Detect"}
                   </button>
                 </div>
 
-                {/* Custom Search Bar */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider">
-                    Or Search Any Indian City / District / Mandi:
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
-                      <input
-                        type="text"
-                        value={searchDistrictQuery}
-                        onChange={(e) => setSearchDistrictQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSearchCustomLocation()}
-                        placeholder="e.g. Pune, Ludhiana, Indore, Nashik, Rajkot, Guntur, Karnal..."
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-3 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleSearchCustomLocation}
-                      disabled={isSearchingGeocode}
-                      className="px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shrink-0"
-                    >
-                      {isSearchingGeocode ? "Searching..." : "Set Location"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Popular Agricultural Hubs Quick Selection */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider">
-                    Popular Agricultural Regions (1-Tap Select):
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                {/* Popular Agriculture Hubs */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-500 block">
+                    📍 Major Agricultural Clusters (1-Click Select):
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {POPULAR_AGRI_HUBS.map((hub) => (
                       <button
                         key={hub.district}
                         type="button"
-                        onClick={() => handleSelectPresetHub(hub)}
-                        className={`p-2.5 rounded-xl border text-left transition-all text-xs cursor-pointer ${
-                          formData.district.toLowerCase() === hub.district.toLowerCase()
-                            ? "bg-emerald-50 border-[#10B981] text-emerald-900 font-extrabold shadow-xs"
-                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            district: hub.district,
+                            state: hub.state,
+                            primaryCrop: hub.crop,
+                            soilType: hub.soil,
+                          })
+                        }
+                        className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                          formData.district === hub.district
+                            ? "bg-[#533afd] text-white border-[#533afd] shadow-sm font-bold"
+                            : "bg-[#f6f9fc] hover:bg-slate-100 border-[#e3e8ee] text-slate-700"
                         }`}
                       >
-                        <div className="font-bold truncate">{hub.district}</div>
-                        <div className="text-[10px] text-slate-500 truncate">{hub.state}</div>
+                        <span className="font-bold block truncate">{hub.name}</span>
+                        <span className={`text-[10px] block ${formData.district === hub.district ? "text-indigo-100" : "text-slate-400"}`}>
+                          {hub.state} · {hub.crop}
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Current Location Inputs */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-200">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.stateLabel}
+                {/* State & District Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0d253d]">
+                      {isHindi ? "जिला (District) *" : "District *"}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.district}
+                      onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                      placeholder="e.g. Sehore, Bhopal, Nashik..."
+                      className="w-full px-4 py-3 bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl text-sm font-bold text-[#0d253d] focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0d253d]">
+                      {isHindi ? "राज्य (State) *" : "State *"}
                     </label>
                     <input
                       type="text"
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      placeholder="e.g. Madhya Pradesh"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.districtLabel} <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.district}
-                      onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                      placeholder="e.g. Bhopal"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.villageLabel} / Mandi
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.village}
-                      onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                      placeholder="e.g. Fanda Kalan"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
+                      placeholder="e.g. Madhya Pradesh, Maharashtra..."
+                      className="w-full px-4 py-3 bg-[#f6f9fc] border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl text-sm font-bold text-[#0d253d] focus:outline-none transition-colors"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-4">
+                {/* Navigation Buttons */}
+                <div className="pt-4 flex justify-between items-center">
                   <button
-                    onClick={handleBack}
-                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-4 py-2.5 rounded-xl border border-[#e3e8ee] text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>{t.backBtn}</span>
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>Back</span>
                   </button>
 
                   <button
-                    onClick={handleNext}
-                    className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+                    type="button"
+                    onClick={() => setStep(3)}
+                    disabled={!formData.district.trim()}
+                    className="px-6 py-3.5 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
                   >
-                    <span>{t.continueToStep3}</span>
+                    <span>{isHindi ? "आगे बढ़ें: फसल चयन" : "Continue to Step 3"}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               </motion.div>
             )}
 
-            {/* STEP 3: CROP & FIELD MAP */}
+            {/* ── STEP 3: CROP & FARM ACREAGE ─────────────────────────── */}
             {step === 3 && (
               <motion.div
                 key="step3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
                 className="space-y-6"
               >
                 <div>
-                  <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    STEP 03 / PRIMARY CROP &amp; FIELD AREA
+                  <span className="text-[10px] font-mono font-bold text-[#533afd] bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 uppercase">
+                    Step 03 / Crop & Acreage
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    Crop &amp; Farm Characteristics
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[#0d253d] font-display mt-1 tracking-tight">
+                    {isHindi ? "फसल और खेत का क्षेत्रफल" : "Select your primary crop"}
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Configure crop physiology parameters to calculate real heat stress resilience and Syngenta CropFit dosages.
+                  <p className="text-xs sm:text-sm text-[#64748d] mt-1">
+                    {isHindi
+                      ? "AASRA आपकी फसल के विकास चक्र और बीमारियों की पहचान के लिए विशेष मॉडल सक्रिय करेगा।"
+                      : "We calibrate disease vision and phenological biological windows specifically for your crop."}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="sm:col-span-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider">
-                        {t.primaryCropLabel}
-                      </label>
+                {/* Visual Crop Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {AVAILABLE_CROPS.map((cr) => {
+                    const isSelected = formData.primaryCrop === cr.id;
+                    return (
                       <button
+                        key={cr.id}
                         type="button"
-                        onClick={() => {
-                          setIsCustomCropMode(!isCustomCropMode);
-                          if (!isCustomCropMode) setCustomCropInput("");
-                        }}
-                        className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold underline cursor-pointer"
+                        onClick={() => setFormData({ ...formData, primaryCrop: cr.id })}
+                        className={`p-3.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
+                          isSelected
+                            ? "bg-[#533afd] text-white border-[#533afd] shadow-md shadow-[#533afd]/20 scale-[1.03]"
+                            : "bg-[#f6f9fc] hover:bg-slate-100 border-[#e3e8ee] text-slate-700"
+                        }`}
                       >
-                        {isCustomCropMode ? "← List" : "+ Custom"}
+                        <span className="text-2xl">{cr.icon}</span>
+                        <span className="text-xs font-bold block">{cr.name}</span>
+                        {isSelected && <CheckCircle2 className="h-4 w-4 text-emerald-300" />}
                       </button>
-                    </div>
+                    );
+                  })}
+                </div>
 
-                    {isCustomCropMode ? (
-                      <div>
-                        <input
-                          type="text"
-                          required
-                          value={customCropInput}
-                          onChange={(e) => setCustomCropInput(e.target.value)}
-                          placeholder="e.g. Dragon Fruit, Garlic, Saffron, Chia..."
-                          className="w-full bg-emerald-50/60 border-2 border-emerald-500 rounded-xl p-3 text-sm font-bold text-slate-900 focus:outline-none"
-                        />
-                        <span className="text-[10px] text-slate-500 block mt-1">
-                          ✨ AI detects GDD &amp; MSP
-                        </span>
-                      </div>
-                    ) : (
-                      <select
-                        value={formData.primaryCrop}
-                        onChange={(e) => {
-                          if (e.target.value === "ADD_CUSTOM") {
-                            setIsCustomCropMode(true);
-                          } else {
-                            setFormData({ ...formData, primaryCrop: e.target.value });
-                          }
-                        }}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none cursor-pointer"
-                      >
-                        {regionalCrops.map((c) => (
-                          <option key={c.id} value={c.name}>
-                            {c.name} {c.isCustom ? "★ (Custom)" : ""}
-                          </option>
-                        ))}
-                        <option value="ADD_CUSTOM">+ Add Custom Crop...</option>
-                      </select>
-                    )}
+                {/* Acreage Slider */}
+                <div className="p-5 rounded-2xl bg-[#f6f9fc] border border-[#e3e8ee] space-y-3">
+                  <div className="flex justify-between items-center text-xs font-bold text-[#0d253d]">
+                    <span>{isHindi ? "खेत का क्षेत्रफल (Farm Acreage):" : "Farm Acreage:"}</span>
+                    <span className="font-mono text-base text-[#533afd] font-black bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-200">
+                      {formData.fieldAreaAcres} {isHindi ? "एकड़" : "Acres"}
+                    </span>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.fieldAreaAcresLabel}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0.5"
-                      value={formData.fieldAreaAcres || 5.0}
-                      onChange={(e) => setFormData({ ...formData, fieldAreaAcres: parseFloat(e.target.value) || 5.0 })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
-                    />
-                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    step="1"
+                    value={formData.fieldAreaAcres || 5}
+                    onChange={(e) => setFormData({ ...formData, fieldAreaAcres: Number(e.target.value) })}
+                    className="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#533afd]"
+                  />
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      {t.sowingDateLabel}
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.sowingDate || "2026-06-15"}
-                      onChange={(e) => setFormData({ ...formData, sowingDate: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-mono font-bold text-slate-900 focus:border-[#10B981] outline-none"
-                    />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                    <span>1 Acre</span>
+                    <span>25 Acres</span>
+                    <span>50+ Acres</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Crop Variety / Seed
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.cropVariety}
-                      onChange={(e) => setFormData({ ...formData, cropVariety: e.target.value })}
-                      placeholder="e.g. JS-335, Basmati 1121, BT Cotton"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">
-                      Irrigation &amp; Soil Type
-                    </label>
-                    <select
-                      value={formData.soilType}
-                      onChange={(e) => setFormData({ ...formData, soilType: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm font-bold text-slate-900 focus:border-[#10B981] outline-none cursor-pointer"
-                    >
-                      <option value="Black Cotton Soil">Black Cotton Soil (Deep Vertisol)</option>
-                      <option value="Alluvial Loam">Alluvial Loam (Indo-Gangetic)</option>
-                      <option value="Red Sandy Loam">Red Sandy Loam (Deccan / South)</option>
-                      <option value="Laterite Soil">Laterite Soil (Coastal / Heavy Rain)</option>
-                      <option value="Clayey Loam">Clayey Loam (High Moisture Retentive)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex justify-between pt-4">
+                {/* Navigation Buttons */}
+                <div className="pt-4 flex justify-between items-center">
                   <button
-                    onClick={handleBack}
-                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="px-4 py-2.5 rounded-xl border border-[#e3e8ee] text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>{t.backBtn}</span>
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>Back</span>
                   </button>
 
                   <button
-                    onClick={handleNext}
-                    className="px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
+                    type="button"
+                    onClick={() => setStep(4)}
+                    className="px-6 py-3.5 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
                   >
-                    <span>{t.continueToStep4}</span>
+                    <span>{isHindi ? "पासपोर्ट तैयार करें" : "Generate Smart Passport"}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               </motion.div>
             )}
 
-            {/* STEP 4: CONFIRMATION & LAUNCH */}
+            {/* ── STEP 4: SMART FARMER PASSPORT GENERATION ────────────── */}
             {step === 4 && (
               <motion.div
                 key="step4"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6 text-center"
               >
                 <div>
-                  <span className="text-xs font-mono font-bold text-[#10B981] uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                    STEP 04 / FINAL CONFIRMATION
+                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full uppercase">
+                    Ready to Activate
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 mt-2">
-                    Review Your Real Farm Profile
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[#0d253d] font-display mt-1">
+                    {isHindi ? "आपका डिजिटल किसान पासपोर्ट तैयार है!" : "Your AASRA Smart Card is Ready!"}
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    Confirm your details to generate your live GIS boundary and start AI farm monitoring.
+                  <p className="text-xs sm:text-sm text-[#64748d] mt-1 max-w-md mx-auto">
+                    {isHindi
+                      ? "आपके खेत के लिए सभी 7 AI और सैटेलाइट सिस्टम सफलतापूर्वक सक्रिय कर दिए गए हैं।"
+                      : "Telemetry streams, verified APMC rates, and Gemini 2.5 crop vision are linked to your profile."}
                   </p>
                 </div>
 
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-3 font-sans text-xs">
-                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
-                    <span className="text-slate-500 font-medium">Farmer Name:</span>
-                    <span className="font-black text-slate-900 text-sm">{formData.fullName}</span>
+                {/* Holographic Smart Kisan Card */}
+                <div className="max-w-md mx-auto rounded-3xl p-6 bg-gradient-to-br from-[#0d253d] via-[#1a237e] to-[#0d253d] text-white shadow-2xl border border-indigo-400/40 relative overflow-hidden text-left space-y-4">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#533afd]/30 rounded-full blur-2xl pointer-events-none" />
+                  
+                  {/* Card Top Header */}
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center">
+                        🌾
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold block">AASRA SMART CARD</span>
+                        <span className="text-[9px] text-emerald-400 font-mono">VERIFIED FARMER</span>
+                      </div>
+                    </div>
+                    <div className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-mono font-bold">
+                      ACTIVE ●
+                    </div>
                   </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
-                    <span className="text-slate-500 font-medium">Mobile Number:</span>
-                    <span className="font-bold text-slate-900 font-mono">{formData.mobileNumber}</span>
+
+                  {/* Card Details */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-[9px] text-slate-400 font-mono block">FARMER NAME</span>
+                      <span className="font-bold text-sm text-white">{formData.fullName}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 font-mono block">PRIMARY CROP</span>
+                      <span className="font-bold text-sm text-amber-300">{formData.primaryCrop} ({formData.fieldAreaAcres} Ac)</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 font-mono block">DISTRICT / STATE</span>
+                      <span className="font-medium text-slate-200">{formData.district}, {formData.state}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 font-mono block">CONNECTED TELEMETRY</span>
+                      <span className="font-mono text-emerald-300">Open-Meteo + Agmarknet</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
-                    <span className="text-slate-500 font-medium">Real Farm Location:</span>
-                    <span className="font-bold text-slate-900">
-                      {formData.village ? `${formData.village}, ` : ""}{formData.district || "District"}, {formData.state || "State"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
-                    <span className="text-slate-500 font-medium">GPS Coordinates:</span>
-                    <span className="font-mono text-emerald-800 font-bold">
-                      {formData.gpsLocation ? `${formData.gpsLocation.lat.toFixed(4)}° N, ${formData.gpsLocation.lon.toFixed(4)}° E` : "Auto-Resolved Coordinates"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-2.5">
-                    <span className="text-slate-500 font-medium">Crop &amp; Landholding:</span>
-                    <span className="font-black text-emerald-800">
-                      {formData.primaryCrop?.toUpperCase()} · {formData.fieldAreaAcres} Acres ({formData.cropVariety})
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Soil &amp; Irrigation:</span>
-                    <span className="font-medium text-slate-700">{formData.soilType}</span>
+
+                  {/* Security Chip Simulation */}
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <span>ID: AASRA-2026-{Math.floor(1000 + Math.random() * 9000)}</span>
+                    <span className="text-emerald-400">100% Free Public Good</span>
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-4">
+                {/* Final Launch Button */}
+                <div className="pt-4 max-w-md mx-auto space-y-3">
                   <button
-                    onClick={handleBack}
-                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer"
+                    type="button"
+                    onClick={handleCompleteRegistration}
+                    className="w-full py-4 rounded-2xl text-white font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    style={{
+                      background: "linear-gradient(135deg, #533afd 0%, #4434d4 100%)",
+                      boxShadow: "0 8px 25px rgba(83, 58, 253, 0.35)",
+                    }}
                   >
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>{t.backBtn}</span>
+                    <Sparkles className="h-4 w-4" />
+                    <span>{isHindi ? "मेरा खेत डैशबोर्ड खोलें" : "Launch My Farm AI Dashboard"}</span>
+                    <ArrowRight className="h-4 w-4" />
                   </button>
 
                   <button
-                    onClick={handleFinish}
-                    className="px-8 py-4 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    type="button"
+                    onClick={() => setStep(3)}
+                    className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>{fieldReady ? "Generating Farm Boundary..." : "Complete Setup & Launch Dashboard"}</span>
+                    Edit Farm Info
                   </button>
                 </div>
               </motion.div>
             )}
 
           </AnimatePresence>
+
         </div>
 
       </main>
 
-      {/* Footer */}
-      <footer className="max-w-5xl mx-auto w-full text-center py-4 text-xs text-slate-500 font-mono">
-        © 2026 AASRA — Syngenta Biologicals Yield Overwatch Platform
+      {/* ── Footer ────────────────────────────────────────────────── */}
+      <footer className="max-w-6xl w-full mx-auto px-4 py-4 text-center text-xs text-slate-400 z-10">
+        © 2026 AASRA — Syngenta Biologicals & AI Crop Science Companion
       </footer>
+
     </div>
   );
 }

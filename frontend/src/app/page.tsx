@@ -1,476 +1,464 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { AppShell } from "@/components/AppShell";
 import { useLanguage } from "@/context/LanguageContext";
+import { isUserLoggedIn } from "@/lib/userStore";
 import {
-  Sparkles,
   ArrowRight,
   Sprout,
-  ShieldAlert,
   Mic,
   TrendingUp,
   Activity,
   Package,
   Layers,
-  Thermometer,
-  CloudRain,
-  Wind,
-  CheckCircle2,
-  Zap,
-  Sliders,
-  Award,
   ChevronRight,
-  BookOpen,
-  Compass,
-  Play,
-  Volume2
+  CloudSun,
+  Store,
+  Leaf,
+  ShieldAlert,
+  Sliders,
+  Camera,
+  BarChart3,
+  CheckCircle2,
+  Cpu,
+  Clock,
+  Sparkles,
+  Lock,
+  UserPlus,
+  ShieldCheck,
+  Zap,
+  Globe,
+  HelpCircle,
+  FileText,
 } from "lucide-react";
 
-export default function LandingPage() {
-  const { language, t } = useLanguage();
-  const [calcAcres, setCalcAcres] = useState<number>(12.5);
-  const [calcCrop, setCalcCrop] = useState<string>("soybean");
+import { DynamicHeroHeadline } from "@/components/DynamicHeroHeadline";
+import { CropGrowthSimulator } from "@/components/CropGrowthSimulator";
+import { ROIBiophysicalSimulator } from "@/components/ROIBiophysicalSimulator";
 
-  // Dynamic ROI calculation based on Concept Note Section 03.2 & Section 07
-  const pricePerQuintal = calcCrop === "soybean" ? 4850 : calcCrop === "cotton" ? 7200 : 2350;
-  const quantisCostPerAcre = 850;
-  const yieldProtectedPerAcre = calcCrop === "soybean" ? 0.60 : calcCrop === "cotton" ? 0.75 : 0.85;
-  const grossYieldGainINR = Math.round(yieldProtectedPerAcre * pricePerQuintal * calcAcres);
-  const totalInvestmentINR = Math.round(quantisCostPerAcre * calcAcres);
-  const netFarmProfitINR = grossYieldGainINR - totalInvestmentINR;
-  const robiRatio = Number((grossYieldGainINR / totalInvestmentINR).toFixed(1));
+// Safe scroll reveal hook
+function useScrollReveal(threshold = 0.1) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.disconnect();
+          }
+        },
+        { threshold }
+      );
+      if (ref.current) observer.observe(ref.current);
+      return () => observer.disconnect();
+    }
+  }, [threshold]);
+  return { ref, visible };
+}
+
+// Count-up hook
+function useCountUp(target: number, duration = 1200) {
+  const [count, setCount] = useState(target);
+  useEffect(() => {
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target, duration]);
+  return count;
+}
+
+export default function LandingPage() {
+  const { language } = useLanguage();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsLoggedIn(isUserLoggedIn());
+  }, []);
+
+  // Scroll reveal references
+  const statsReveal = useScrollReveal();
+  const cardsReveal = useScrollReveal();
+  const simReveal = useScrollReveal();
+  const roiReveal = useScrollReveal();
+  const cropsReveal = useScrollReveal();
+
+  // Animated count-up statistics
+  const mandis = useCountUp(140, 1000);
+  const crops = useCountUp(60, 900);
+  const accuracy = useCountUp(100, 800);
+
+  const isHindi = ["hi", "mr", "gu", "pa"].includes(language);
+
+  // 5 Unified Feature Cards (Stripe Design System)
+  const featureCards = [
+    {
+      icon: <CloudSun className="h-6 w-6 text-[#533afd]" />,
+      iconBg: "bg-indigo-50",
+      topAccent: "bg-[#533afd]",
+      badge: "bg-indigo-50 text-indigo-700 border-indigo-200/80",
+      badgeText: isHindi ? "मौसम टेलीमेट्री" : "Weather Telemetry",
+      title: isHindi ? "सूक्ष्म जलवायु और मौसम रडार" : "Hyperlocal Weather Radar",
+      desc: isHindi
+        ? "14-दिन का सटीक कृषि मौसम पूर्वानुमान, हवा की गति, मिट्टी की नमी और सुरक्षित स्प्रे विंडो।"
+        : "14-day agrometeorological forecast, humidity, wind velocity, and safe spray timing.",
+      cta: isHindi ? "मौसम देखें" : "Explore Weather",
+      ctaCls: "text-[#533afd] hover:text-[#4434d4] bg-indigo-50 hover:bg-indigo-100",
+      href: "/plant-intelligence",
+      tag: "PS-02",
+    },
+    {
+      icon: <Store className="h-6 w-6 text-emerald-600" />,
+      iconBg: "bg-emerald-50",
+      topAccent: "bg-emerald-500",
+      badge: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
+      badgeText: isHindi ? "सरकारी मंडी भाव" : "Mandi Network",
+      title: isHindi ? "लाइव APMC मंडी भाव नेटवर्क" : "140+ APMC Mandi Network",
+      desc: isHindi
+        ? "140+ मंडियों से न्यूनतम, अधिकतम व मोडल भाव वास्तविक समय में सीधे सरकारी पोर्टल से सत्यापित।"
+        : "Live verified rates across 140+ APMC mandis with min, max, and modal price trends.",
+      cta: isHindi ? "मंडी भाव देखें" : "View Mandi Rates",
+      ctaCls: "text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100",
+      href: "/dashboard",
+      tag: "APMC",
+    },
+    {
+      icon: <Leaf className="h-6 w-6 text-amber-600" />,
+      iconBg: "bg-amber-50",
+      topAccent: "bg-amber-500",
+      badge: "bg-amber-50 text-amber-700 border-amber-200/80",
+      badgeText: isHindi ? "बहु-फसली AI" : "Multi-Crop AI",
+      title: isHindi ? "60+ फसलों की वैज्ञानिक सलाह" : "Certified Agronomic Protocols",
+      desc: isHindi
+        ? "फसल की वृद्धि अवस्था, तापमान और नमी के अनुसार सही दवा, खुराक और पानी का अनुपात।"
+        : "Phenological stage matching for biological sprays and optimal intervention windows.",
+      cta: isHindi ? "AI से पूछें" : "Ask AI Advisor",
+      ctaCls: "text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100",
+      href: "/assistant",
+      tag: "PS-03",
+    },
+    {
+      icon: <ShieldAlert className="h-6 w-6 text-violet-600" />,
+      iconBg: "bg-violet-50",
+      topAccent: "bg-violet-500",
+      badge: "bg-violet-50 text-violet-700 border-violet-200/80",
+      badgeText: isHindi ? "रोग पहचान" : "Disease Vision",
+      title: isHindi ? "AI दृष्टि रोग व कीट पहचान" : "Multimodal Vision Diagnostics",
+      desc: isHindi
+        ? "पत्ती की फोटो अपलोड कर तुरंत बीमारी का नाम, क्षति स्तर और सही रासायनिक उपचार जानें।"
+        : "Upload leaf photos to get instant disease classification and curative dosage.",
+      cta: isHindi ? "पत्ती स्कैन करें" : "Scan Leaf",
+      ctaCls: "text-violet-700 hover:text-violet-900 bg-violet-50 hover:bg-violet-100",
+      href: "/plant-intelligence",
+      tag: "PS-01",
+    },
+    {
+      icon: <Sliders className="h-6 w-6 text-sky-600" />,
+      iconBg: "bg-sky-50",
+      topAccent: "bg-sky-500",
+      badge: "bg-sky-50 text-sky-700 border-sky-200/80",
+      badgeText: isHindi ? "ROBI सिमुलेटर" : "ROBI Simulator",
+      title: isHindi ? "ROBI लाभ व उपज कैलकुलेटर" : "What-If Profit Matrix",
+      desc: isHindi
+        ? "स्प्रे के खर्च बनाम उपज सुरक्षा का सटीक गणित देखकर अपने खेत का शुद्ध मुनाफा बढ़ाएं।"
+        : "Simulate spray dosage against yield protection to maximize net farm profits.",
+      cta: isHindi ? "गणना करें" : "Simulate Profit",
+      ctaCls: "text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100",
+      href: "/what-if",
+      tag: "PS-06",
+    },
+  ];
 
   return (
     <AppShell>
-      <div className="space-y-20 pb-20 bg-slate-50 text-slate-900 font-sans selection:bg-emerald-500 selection:text-white">
+      <div className="bg-[#ffffff] text-[#0d253d] min-h-screen">
         
-        {/* ========================================================================= */}
-        {/* HERO SECTION: Atmospheric Stripe Gradient Mesh & Value Proposition */}
-        {/* ========================================================================= */}
-        <section className="relative pt-12 sm:pt-20 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden bg-white border-b border-slate-200">
-          
-          {/* Subtle Ambient Background Lighting */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full overflow-hidden pointer-events-none -z-0">
-            <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-emerald-100/60 rounded-full blur-3xl" />
-            <div className="absolute -top-20 right-1/4 w-[500px] h-[350px] bg-sky-100/50 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 left-1/3 w-[450px] h-[300px] bg-amber-50/70 rounded-full blur-3xl" />
-          </div>
+        {/* Dynamic Hero Section (Stripe Aesthetic) with Phone Mockup */}
+        <DynamicHeroHeadline />
 
-          <div className="max-w-6xl mx-auto text-center space-y-8 relative z-10">
-            
-            {/* Top Pill Badges */}
-            <div className="flex items-center justify-center gap-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-mono font-bold shadow-xs">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                ASSARA · PRODUCTION PRECISION AGRICULTURE MVP
+        {/* ── 1. Institutional Validation & Live Metric Band ─────────────────────── */}
+        <section
+          ref={statsReveal.ref}
+          className="border-y border-[#e3e8ee] bg-[#f6f9fc] py-10 transition-all duration-700"
+          style={{
+            opacity: statsReveal.visible ? 1 : 0,
+            transform: statsReveal.visible ? "translateY(0)" : "translateY(16px)",
+          }}
+        >
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              
+              <div className="p-4 rounded-2xl bg-white border border-[#e3e8ee] shadow-xs">
+                <p className="text-3xl sm:text-4xl font-black text-[#533afd] font-mono tracking-tight">
+                  {mandis}+
+                </p>
+                <p className="text-xs font-bold text-[#0d253d] mt-1">
+                  {isHindi ? "लाइव APMC मंडियां" : "Live APMC Mandis"}
+                </p>
+                <p className="text-[11px] text-[#64748d]">
+                  {isHindi ? "10 प्रमुख कृषि राज्य" : "Covering 10 Major States"}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-[#e3e8ee] shadow-xs">
+                <p className="text-3xl sm:text-4xl font-black text-emerald-600 font-mono tracking-tight">
+                  {crops}+
+                </p>
+                <p className="text-xs font-bold text-[#0d253d] mt-1">
+                  {isHindi ? "समर्थित फसलें" : "Crops Supported"}
+                </p>
+                <p className="text-[11px] text-[#64748d]">
+                  {isHindi ? "अनाज, दलहन, तिलहन व बागवानी" : "Cereals, Pulses, Cash & Veg"}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-[#e3e8ee] shadow-xs">
+                <p className="text-3xl sm:text-4xl font-black text-amber-600 font-mono tracking-tight">
+                  12+
+                </p>
+                <p className="text-xs font-bold text-[#0d253d] mt-1">
+                  {isHindi ? "भारतीय भाषाएं" : "Indian Languages"}
+                </p>
+                <p className="text-[11px] text-[#64748d]">
+                  {isHindi ? "आवाज व टेक्स्ट दोनों में" : "Voice STT & TTS Audio"}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-[#e3e8ee] shadow-xs">
+                <p className="text-3xl sm:text-4xl font-black text-violet-600 font-mono tracking-tight">
+                  {accuracy}%
+                </p>
+                <p className="text-xs font-bold text-[#0d253d] mt-1">
+                  {isHindi ? "सरकारी डेटा संरेखण" : "Grounded Telemetry"}
+                </p>
+                <p className="text-[11px] text-[#64748d]">
+                  {isHindi ? "Open-Meteo व Agmarknet" : "Zero-Hallucination Engine"}
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ── 2. Interactive Crop Growth & Phenology Simulation Section ──────────── */}
+        <section
+          ref={simReveal.ref}
+          className="py-16 sm:py-20 border-b border-[#e3e8ee] bg-[#ffffff]"
+          style={{
+            opacity: simReveal.visible ? 1 : 0,
+            transform: simReveal.visible ? "translateY(0)" : "translateY(16px)",
+            transition: "opacity 600ms ease, transform 600ms ease",
+          }}
+        >
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto space-y-3 mb-10">
+              <span className="inline-flex items-center gap-1.5 bg-[#533afd]/10 text-[#533afd] border border-[#533afd]/20 rounded-full px-3.5 py-1 text-xs font-bold font-mono uppercase tracking-wider">
+                Agronomic Simulation Engine
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-mono font-bold">
-                🌾 USER → FARM → LOCATION → REAL DATA → ACTION
-              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-[#0d253d] font-display tracking-tight">
+                {isHindi ? "फसल वृद्धि और जैविक सुरक्षा सिमुलेशन" : "Interactive Crop Phenology & Growth Simulation"}
+              </h2>
+              <p className="text-sm sm:text-base text-[#64748d]">
+                {isHindi
+                  ? "अंकुरण से लेकर कटाई तक, हर अवस्था में पौधे की जड़, तना, पानी की मांग और तापमान संवेदनशीलता को लाइव मापें।"
+                  : "Explore dynamic physiological milestones, degree days (GDD), evapotranspiration, and certified protective actions."}
+              </p>
             </div>
 
-            {/* Main Bold Display Title */}
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-display text-slate-900 tracking-tight leading-[1.08] max-w-5xl mx-auto">
-              Location-Aware Farming Intelligence. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600">
-                Real Data. Measured Fields. Zero Guesswork.
+            {/* Interactive Crop Growth Simulator */}
+            <CropGrowthSimulator />
+          </div>
+        </section>
+
+        {/* ── 3. Unified Feature Grid (5 Tools) ────────────────────────────────── */}
+        <section
+          ref={cardsReveal.ref}
+          className="py-16 sm:py-20 border-b border-[#e3e8ee] bg-[#f6f9fc]"
+          style={{
+            opacity: cardsReveal.visible ? 1 : 0,
+            transform: cardsReveal.visible ? "translateY(0)" : "translateY(16px)",
+            transition: "opacity 600ms ease, transform 600ms ease",
+          }}
+        >
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
+              <span className="inline-flex items-center gap-1.5 bg-[#533afd]/10 text-[#533afd] border border-[#533afd]/20 rounded-full px-3.5 py-1 text-xs font-bold font-mono uppercase tracking-wider">
+                Platform Architecture
               </span>
-            </h1>
+              <h2 className="text-3xl sm:text-4xl font-bold text-[#0d253d] font-display tracking-tight">
+                {isHindi ? "एक ही जगह संपूर्ण कृषि नियंत्रण" : "A Unified Operating System for Farming"}
+              </h2>
+              <p className="text-sm sm:text-base text-[#64748d]">
+                {isHindi
+                  ? "सेंसर्स, उपग्रह, मंडी डेटा और आधुनिक AI मिलकर किसान को हर कदम पर सही निर्णय लेने की शक्ति देते हैं।"
+                  : "Satellite telemetry, mandi intelligence, and multi-crop biological models integrated into one interface."}
+              </p>
+            </div>
 
-            {/* Sub-headline */}
-            <p className="text-base sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed font-normal">
-              ASSARA connects your actual GPS coordinates, drawn farm boundaries, real Open-Meteo telemetry, and APMC market prices to answer: <strong>What should I do today?</strong>
-            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featureCards.map((c, i) => (
+                <div
+                  key={c.tag}
+                  className="group relative bg-white border border-[#e3e8ee] rounded-3xl p-6 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className={`h-12 w-12 rounded-2xl ${c.iconBg} flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}>
+                        {c.icon}
+                      </div>
+                      <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${c.badge}`}>
+                        {c.badgeText}
+                      </span>
+                    </div>
 
-            {/* Primary Action Buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <div className="space-y-1.5">
+                      <h3 className="text-lg font-bold text-[#0d253d] font-display">
+                        {c.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-[#64748d] leading-relaxed">
+                        {c.desc}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 mt-4 border-t border-slate-100">
+                    <Link
+                      href={isLoggedIn ? c.href : "/signup"}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${c.ctaCls}`}
+                    >
+                      <span>{c.cta}</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </section>
+
+        {/* ── 4. Interactive ROBI & ROI Calculator ─────────────────────────────── */}
+        <section
+          ref={roiReveal.ref}
+          className="py-16 sm:py-20 bg-[#ffffff] border-b border-[#e3e8ee]"
+          style={{
+            opacity: roiReveal.visible ? 1 : 0,
+            transform: roiReveal.visible ? "translateY(0)" : "translateY(16px)",
+            transition: "opacity 600ms ease, transform 600ms ease",
+          }}
+        >
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <ROIBiophysicalSimulator />
+          </div>
+        </section>
+
+        {/* ── 5. Connected Navigation Directory Section ─────────────────────────── */}
+        <section className="py-16 sm:py-20 bg-[#f6f9fc] border-b border-[#e3e8ee]">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-xl mx-auto space-y-2 mb-10">
+              <h3 className="text-2xl sm:text-3xl font-bold text-[#0d253d] font-display">
+                {isHindi ? "AASRA प्लेटफ़ॉर्म की सभी शाखाएँ" : "Explore All Platform Modules"}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#64748d]">
+                {isHindi ? "सभी पृष्ठ एक दूसरे से जुड़े हैं, किसी भी टूल को तुरंत शुरू करें:" : "Seamlessly navigate through any module of the AASRA agricultural operating system:"}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { href: "/how-it-works", label: isHindi ? "हाउ इट वर्क्स" : "How It Works", desc: isHindi ? "प्लेटफॉर्म कार्यप्रणाली" : "Step-by-step tour", icon: Sparkles, color: "text-[#533afd] bg-indigo-50" },
+                { href: "/product", label: isHindi ? "उत्पाद विशेषताएँ" : "Product & Features", desc: isHindi ? "संपूर्ण तकनीकी फीचर्स" : "Full capability spec", icon: Layers, color: "text-blue-600 bg-blue-50" },
+                { href: "/impact-story", label: isHindi ? "सफलता की कहानियाँ" : "Impact Stories", desc: isHindi ? "किसानों के अनुभव" : "Attributed farmer ROI", icon: TrendingUp, color: "text-emerald-600 bg-emerald-50" },
+                { href: "/architecture", label: isHindi ? "आर्किटेक्चर" : "Architecture", desc: isHindi ? "PS-01 से PS-07 विवरण" : "Technical system notes", icon: FileText, color: "text-purple-600 bg-purple-50" },
+              ].map((m) => {
+                const Icon = m.icon;
+                return (
+                  <Link
+                    key={m.href}
+                    href={m.href}
+                    className="p-5 rounded-2xl bg-white border border-[#e3e8ee] hover:border-[#533afd]/40 shadow-xs hover:shadow-md transition-all duration-200 group flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className={`h-10 w-10 rounded-xl ${m.color} flex items-center justify-center`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-sm font-bold text-[#0d253d] group-hover:text-[#533afd] transition-colors">
+                        {m.label}
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        {m.desc}
+                      </p>
+                    </div>
+                    <div className="pt-3 mt-2 flex items-center gap-1 text-[11px] font-bold text-[#533afd]">
+                      <span>{isHindi ? "देखें" : "Explore"}</span>
+                      <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── 6. Bottom High-Converting Sign Up CTA Banner ──────────────────────── */}
+        <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-indigo-50/50">
+          <div className="max-w-[1000px] mx-auto px-4 sm:px-6 text-center space-y-6">
+            
+            <div className="h-16 w-16 mx-auto rounded-3xl bg-[#533afd] text-white flex items-center justify-center shadow-xl shadow-[#533afd]/25">
+              <Sprout className="h-8 w-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-3xl sm:text-5xl font-bold text-[#0d253d] font-display tracking-tight">
+                {isHindi ? "आज ही अपनी खेती को स्मार्ट बनाएं" : "Ready to Modernize Your Farm Operations?"}
+              </h2>
+              <p className="text-sm sm:text-base text-[#64748d] max-w-xl mx-auto">
+                {isHindi
+                  ? "AASRA से जुड़ें और लाइव मौसम, 140+ मंडियों के भाव व AI सुरक्षा सलाह से अपनी फसल का उत्पादन और आमदनी बढ़ाएं।"
+                  : "Join thousands of farmers leveraging grounded telemetry, verified APMC prices, and precision AI advisory."}
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Link
-                href="/onboarding"
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/20 hover:scale-105 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                href={isLoggedIn ? "/dashboard" : "/signup"}
+                className="px-8 py-4 rounded-xl text-white font-bold text-sm shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: "linear-gradient(135deg, #533afd 0%, #4434d4 100%)",
+                  boxShadow: "0 8px 25px rgba(83, 58, 253, 0.35)",
+                }}
               >
-                <Sprout className="h-5 w-5" />
-                <span>Start with your farm</span>
+                <UserPlus className="h-4 w-4" />
+                <span>{isLoggedIn ? (isHindi ? "मेरा डैशबोर्ड खोलें" : "Open Dashboard") : (isHindi ? "नया किसान खाता बनाएं (Free)" : "Create Free Farmer Account")}</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
 
               <Link
-                href="/login"
-                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2"
+                href="/how-it-works"
+                className="px-6 py-4 rounded-xl text-[#0d253d] bg-white border border-[#e3e8ee] hover:border-[#533afd]/40 hover:text-[#533afd] font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2"
               >
-                <span>Sign in</span>
-              </Link>
-
-              <Link
-                href="/dashboard"
-                className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2"
-              >
-                <span>Go to Dashboard</span>
+                <Sparkles className="h-4 w-4 text-[#533afd]" />
+                <span>{isHindi ? "हाउ इट वर्क्स देखें" : "Explore How It Works"}</span>
               </Link>
             </div>
 
-            {/* Telemetry live teaser stats */}
-            <div className="pt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl mx-auto text-left font-mono">
-              <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-4 space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">NOCTURNAL HEAT ALERT</span>
-                <span className="text-xl font-black text-rose-600">25.8°C Night</span>
-                <span className="text-[10px] text-slate-500 block">+4.8°C Dark Respiration Shock</span>
-              </div>
-              <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-4 space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">PREDICTIVE LEAD TIME</span>
-                <span className="text-xl font-black text-sky-600">14-Day Horizon</span>
-                <span className="text-[10px] text-slate-500 block">GradientBoosting + SHAP</span>
-              </div>
-              <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-4 space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">MARGINAL PROTECTION</span>
-                <span className="text-xl font-black text-emerald-600">+0.60 q/ac</span>
-                <span className="text-[10px] text-slate-500 block">Syngenta Quantis Preservation</span>
-              </div>
-              <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-4 space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">CAUSAL ATTRIBUTION</span>
-                <span className="text-xl font-black text-indigo-600">3.4x ROBI</span>
-                <span className="text-[10px] text-slate-500 block">Double ML / EconML Proof</span>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 2: The 4 Core Integrated Systems (Concept Note Architecture) */}
-        {/* ========================================================================= */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          
-          <div className="text-center max-w-3xl mx-auto space-y-3">
-            <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 uppercase">
-              TEAM-2 HYBRID ARCHITECTURE
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold font-display text-slate-900">
-              Four Interlocking Problem Statements
-            </h2>
-            <p className="text-sm text-slate-600">
-              Bridging empirical biophysical science with 100% Google Gemini Multimodal AI to serve smallholder farmers.
+            <p className="text-xs text-slate-400 pt-2">
+              {isHindi ? "✓ बिना किसी क्रेडिट कार्ड के · 100% मुफ्त किसान सेवा" : "✓ No payment required · 100% Free Public Good for Farmers"}
             </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* PS-02 Card */}
-            <div className="stripe-card p-6 sm:p-8 space-y-5 border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full text-xs font-mono font-black bg-blue-50 text-blue-800 border border-blue-200">
-                  PS-02 · CLIMATE STRESS WARNING
-                </span>
-                <Activity className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-extrabold text-slate-900 font-display">
-                14-Day Micro-Climate Early Warning &amp; SHAP Engine
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Ingests Open-Meteo and Syngenta CE Hub telemetry across 7 agrometeorological variables. Uses GradientBoostingRegressor with TreeExplainer SHAP to isolate heat, drought, waterlogging, and frost risks before cellular damage occurs.
-              </p>
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 font-mono text-xs space-y-1">
-                <span className="text-slate-500 block text-[10px] font-bold">KEY FORMULA</span>
-                <span className="font-bold text-slate-800">CSI = w₁·H + w₂·D + w₃·W + w₄·F + γ(H·D)</span>
-              </div>
-              <Link
-                href="/plant-intelligence"
-                className="inline-flex items-center gap-2 text-xs font-bold text-blue-700 hover:text-blue-900"
-              >
-                <span>Launch 14-Day Stress Radar</span>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            {/* PS-03 Card */}
-            <div className="stripe-card p-6 sm:p-8 space-y-5 border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full text-xs font-mono font-black bg-purple-50 text-purple-800 border border-purple-200">
-                  PS-03 · CROPFIT BIOLOGICAL ADVISOR
-                </span>
-                <Package className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-extrabold text-slate-900 font-display">
-                Marginal Economic Decision Support &amp; Product Matcher
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Matches GDD phenological stage, soil water index, and thermal spikes to exact Syngenta biological interventions (Quantis @ 250ml/acre, Isabion). Delivers clear <strong>Apply vs Delay vs Skip</strong> ₹/acre comparisons.
-              </p>
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 font-mono text-xs space-y-1">
-                <span className="text-slate-500 block text-[10px] font-bold">BIOLOGICAL ACTION WINDOW</span>
-                <span className="font-bold text-purple-900">04:30 PM – 07:00 PM (Calm Inversion Window)</span>
-              </div>
-              <Link
-                href="/product"
-                className="inline-flex items-center gap-2 text-xs font-bold text-purple-700 hover:text-purple-900"
-              >
-                <span>View CropFit Decision Matrix</span>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            {/* PS-04 Card */}
-            <div className="stripe-card p-6 sm:p-8 space-y-5 border-l-4 border-l-amber-500 hover:shadow-lg transition-shadow">
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full text-xs font-mono font-black bg-amber-50 text-amber-800 border border-amber-200">
-                  PS-04 · MULTILINGUAL AI COMPANION
-                </span>
-                <Mic className="h-6 w-6 text-amber-600" />
-              </div>
-              <h3 className="text-xl font-extrabold text-slate-900 font-display">
-                Vernacular Voice &amp; Vision Intelligence
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Powered by Google Gemini 2.5 Flash and Google Neural Speech. Indian farmers speak naturally in Hindi, Marathi, Telugu, Gujarati, and 8 other languages to get tailored dosage math and upload leaf photos for instant disease diagnostics.
-              </p>
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 font-mono text-xs space-y-1">
-                <span className="text-slate-500 block text-[10px] font-bold">MULTIMODAL STACK</span>
-                <span className="font-bold text-amber-900">Gemini 2.5 Flash + Neural TTS + Leaf Vision</span>
-              </div>
-              <Link
-                href="/assistant"
-                className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 hover:text-amber-900"
-              >
-                <span>Try Vernacular Voice Advisory</span>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            {/* PS-07 Card */}
-            <div className="stripe-card p-6 sm:p-8 space-y-5 border-l-4 border-l-emerald-500 hover:shadow-lg transition-shadow">
-              <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-full text-xs font-mono font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  PS-07 · MEASURING &amp; PROVING IMPACT
-                </span>
-                <TrendingUp className="h-6 w-6 text-emerald-600" />
-              </div>
-              <h3 className="text-xl font-extrabold text-slate-900 font-display">
-                Causal Yield Attribution (Double ML / EconML)
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Eliminates farmer skepticism by disentangling background weather and soil noise from true biostimulant treatment effects. Generates verifiable Proof Cards with calibrated Return on Biological Investment (ROBI %).
-              </p>
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 font-mono text-xs space-y-1">
-                <span className="text-slate-500 block text-[10px] font-bold">CONFIDENCE METRIC (3.3)</span>
-                <span className="font-bold text-emerald-800">Score: 92% (High Causal Certainty)</span>
-              </div>
-              <Link
-                href="/impact"
-                className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 hover:text-emerald-900"
-              >
-                <span>Inspect Verified ROBI Engine</span>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 3: Interactive Farm Profit & ROBI Protection Calculator */}
-        {/* ========================================================================= */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl bg-slate-900 text-white p-8 sm:p-12 border border-slate-800 shadow-2xl relative overflow-hidden space-y-8">
-            
-            <div className="relative z-10 max-w-3xl space-y-2">
-              <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950 px-3 py-1 rounded-full border border-emerald-700/50 uppercase">
-                INTERACTIVE MARGINAL ROI SIMULATOR
-              </span>
-              <h2 className="text-2xl sm:text-4xl font-extrabold font-display text-white">
-                Calculate Your Farm&apos;s Protected Yield &amp; Profit
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Based on empirical field trial data across 1,000+ validated trial plots during 35°C+ summer heat events.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-              
-              {/* Sliders on Left (6 Cols) */}
-              <div className="lg:col-span-6 space-y-6 bg-slate-950/80 p-6 rounded-2xl border border-white/10">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-xs font-mono font-bold">
-                    <span className="text-slate-300">REGISTERED FARM AREA:</span>
-                    <span className="text-emerald-400 text-sm">{calcAcres} Acres</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    step="0.5"
-                    value={calcAcres}
-                    onChange={(e) => setCalcAcres(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                    <span>1 Acre</span>
-                    <span>25 Acres</span>
-                    <span>50 Acres</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-mono font-bold text-slate-300 block">PRIMARY FIELD CROP:</label>
-                  <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-                    {[
-                      { id: "soybean", name: "Soybean (सोयाबीन)", rate: "₹4,850/q" },
-                      { id: "cotton", name: "Cotton (कपास)", rate: "₹7,200/q" },
-                      { id: "wheat", name: "Wheat (गेहूं)", rate: "₹2,350/q" },
-                    ].map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setCalcCrop(c.id)}
-                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                          calcCrop === c.id
-                            ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md"
-                            : "bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500"
-                        }`}
-                      >
-                        <span className="block font-bold">{c.name.split(" ")[0]}</span>
-                        <span className="text-[9px] text-slate-400 block">{c.rate}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-3.5 bg-slate-900/90 rounded-xl border border-slate-800 text-[11px] text-slate-300 space-y-1 font-mono">
-                  <div className="flex justify-between">
-                    <span>Biostimulant Cost (Quantis):</span>
-                    <span className="font-bold text-white">₹{totalInvestmentINR.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Yield Protected:</span>
-                    <span className="font-bold text-emerald-400">+{Math.round(yieldProtectedPerAcre * calcAcres * 10) / 10} Quintals</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dynamic Metric Display on Right (6 Cols) */}
-              <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                <div className="bg-emerald-950/60 border border-emerald-500/40 p-6 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-mono font-bold text-emerald-400 block uppercase">NET FARM PROFIT GAIN</span>
-                  <span className="text-3xl sm:text-4xl font-black font-mono text-emerald-300 block">
-                    +₹{netFarmProfitINR.toLocaleString("en-IN")}
-                  </span>
-                  <p className="text-[11px] text-slate-300">
-                    Net cash in pocket after deducting ₹850/acre product investment.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950 border border-white/10 p-6 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-mono font-bold text-amber-400 block uppercase">CALCULATED ROBI RATIO</span>
-                  <span className="text-3xl sm:text-4xl font-black font-mono text-white block">
-                    {robiRatio} : 1
-                  </span>
-                  <p className="text-[11px] text-slate-400">
-                    For every ₹1 invested in Syngenta Quantis, you recover ₹{robiRatio} in preserved crop value.
-                  </p>
-                </div>
-
-                <div className="sm:col-span-2 bg-gradient-to-r from-blue-950/80 to-slate-950 p-5 rounded-2xl border border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="space-y-1 text-left">
-                    <span className="text-xs font-bold text-white block">Ready to protect your fields?</span>
-                    <span className="text-[11px] text-slate-400 block">Launch the full simulator or view the live weather radar.</span>
-                  </div>
-                  <Link
-                    href="/what-if"
-                    className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shrink-0"
-                  >
-                    Open What-If Simulator
-                  </Link>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 4: Ramesh Patel's End-to-End Storyline */}
-        {/* ========================================================================= */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          
-          <div className="text-center max-w-2xl mx-auto space-y-2">
-            <span className="text-xs font-mono font-bold text-slate-600 bg-slate-200 px-3 py-1 rounded-full uppercase">
-              CONCEPT NOTE USER JOURNEY
-            </span>
-            <h2 className="text-3xl font-extrabold font-display text-slate-900">
-              Ramesh Patel&apos;s Season with AASRA
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600">
-              How a smallholder farmer in Fanda Kalan, Bhopal saved 7.5 quintals of soybean worth ₹36,375.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            
-            <div className="stripe-card p-5 space-y-3">
-              <span className="h-7 w-7 rounded-lg bg-slate-900 text-white font-mono font-bold text-xs flex items-center justify-center">01</span>
-              <h4 className="font-bold text-sm text-slate-900">Day 1: Night Heat Trigger</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Open-Meteo detects 25.8°C nocturnal temperature during R1 flowering. AASRA flashes a critical biological warning.
-              </p>
-            </div>
-
-            <div className="stripe-card p-5 space-y-3">
-              <span className="h-7 w-7 rounded-lg bg-amber-500 text-slate-950 font-mono font-bold text-xs flex items-center justify-center">02</span>
-              <h4 className="font-bold text-sm text-slate-900">Voice Advisory in Hindi</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Ramesh speaks in Hindi. AASRA calculates 3.125 Litres Quantis in 2,187 L water for his 12.5 acres at 05:00 PM.
-              </p>
-            </div>
-
-            <div className="stripe-card p-5 space-y-3">
-              <span className="h-7 w-7 rounded-lg bg-blue-600 text-white font-mono font-bold text-xs flex items-center justify-center">03</span>
-              <h4 className="font-bold text-sm text-slate-900">Timely Application</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Applied within the 36-hour biological activation window. Osmoprotectants shield chloroplasts and reduce pod drop.
-              </p>
-            </div>
-
-            <div className="stripe-card p-5 space-y-3">
-              <span className="h-7 w-7 rounded-lg bg-emerald-600 text-white font-mono font-bold text-xs flex items-center justify-center">04</span>
-              <h4 className="font-bold text-sm text-slate-900">Double ML Proof Card</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                At harvest, AASRA issues a verified Proof Card confirming +₹25,750 net gain after isolating weather variables.
-              </p>
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* ========================================================================= */}
-        {/* FOOTER CTA BANNER */}
-        {/* ========================================================================= */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl bg-gradient-to-r from-emerald-800 via-teal-900 to-slate-950 p-8 sm:p-14 text-white text-center space-y-6 shadow-2xl">
-            <h2 className="text-3xl sm:text-5xl font-black font-display tracking-tight max-w-3xl mx-auto">
-              Empowering Every Indian Farmer with Real Science.
-            </h2>
-            <p className="text-xs sm:text-base text-slate-200 max-w-2xl mx-auto">
-              Explore the full interactive system, run biophysical simulations, or inspect the concept note equations.
-            </p>
-            <div className="pt-2 flex flex-wrap justify-center gap-4">
-              <Link
-                href="/dashboard"
-                className="px-8 py-4 rounded-2xl bg-white text-slate-950 hover:bg-slate-100 font-extrabold text-xs shadow-xl transition-all hover:scale-105"
-              >
-                Launch Live Platform
-              </Link>
-              <Link
-                href="/architecture"
-                className="px-8 py-4 rounded-2xl bg-emerald-700/80 hover:bg-emerald-700 text-white border border-emerald-400/40 font-extrabold text-xs transition-all"
-              >
-                Read Concept Note (PDF Spec)
-              </Link>
-            </div>
           </div>
         </section>
 

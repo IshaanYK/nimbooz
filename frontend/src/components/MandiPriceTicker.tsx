@@ -1,22 +1,28 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { TrendingUp, TrendingDown, Store, MapPin, Sparkles, RefreshCw, Navigation } from "lucide-react";
+import { TrendingUp, TrendingDown, Store, MapPin, RefreshCw, Calendar } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { getStoredProfile } from "@/lib/userStore";
 import { getActiveField } from "@/lib/fieldStore";
-
 import { useWeather } from "@/context/WeatherContext";
 
 interface MandiCommodity {
   commodity: string;
   commodityHi: string;
+  variety?: string;
+  grade?: string;
   mandi: string;
+  mandiHi?: string;
   minPrice: number;
   maxPrice: number;
   modalPrice: number; // ₹/quintal
   trend: "up" | "down" | "stable";
   changePct: number;
+  marketDate?: string;
+  formattedDate?: string;
+  isToday?: boolean;
+  distanceKm?: number;
 }
 
 interface MandiPriceTickerProps {
@@ -32,7 +38,9 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
   const { weather } = useWeather();
   const [rates, setRates] = useState<MandiCommodity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [sourceTag, setSourceTag] = useState<string>("APMC Daily");
+  const [sourceTag, setSourceTag] = useState<string>("APMC Verified Feed");
+  const [marketDateTag, setMarketDateTag] = useState<string>("");
+  const [isTodayData, setIsTodayData] = useState<boolean>(true);
   const [resolvedDistrict, setResolvedDistrict] = useState<string>(propDistrict || "");
   const [resolvedState, setResolvedState] = useState<string>(propState || "");
 
@@ -71,8 +79,8 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
     }
   }, [propDistrict, weather.district, weather.state]);
 
-  const activeDistrict = resolvedDistrict || weather.district || "Your Local Mandi";
-  const activeState = resolvedState || weather.state || "India";
+  const activeDistrict = resolvedDistrict || weather.district || "Indore";
+  const activeState = resolvedState || weather.state || "Madhya Pradesh";
 
   const fetchRates = useCallback(async () => {
     if (!activeDistrict) return;
@@ -90,6 +98,8 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
         if (data.rates && Array.isArray(data.rates)) {
           setRates(data.rates);
           if (data.source) setSourceTag(data.source);
+          if (data.rates[0]?.formattedDate) setMarketDateTag(data.rates[0].formattedDate);
+          if (typeof data.isToday === "boolean") setIsTodayData(data.isToday);
         }
       }
     } catch (e) {
@@ -112,10 +122,11 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-[10px] font-mono font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-ping" />
-              {language === "hi" ? "दैनिक मंडी भाव (लाइव)" : "Live APMC Mandi Rates"}
+              {language === "hi" ? "दैनिक मंडी भाव (सत्यापित)" : "Live APMC Mandi Rates"}
             </span>
-            <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-              {sourceTag} · {language === "hi" ? "आज अद्यतन" : "Live Market Feed"}
+            <span className="text-[10px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Calendar className="h-3 w-3 text-slate-400" />
+              {marketDateTag ? `${marketDateTag} (${isTodayData ? (language === "hi" ? "आज" : "Live Today") : (language === "hi" ? "नवीनतम" : "Latest")})` : "APMC Network"}
             </span>
             <span className="text-[10px] font-mono text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
               <MapPin className="h-2.5 w-2.5" />
@@ -123,12 +134,12 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
             </span>
           </div>
           <h3 className="text-lg font-black text-slate-900 font-display flex items-center gap-2">
-            <span>🏛️ {language === "hi" ? `प्रमुख मंडी भाव और फसल दर (${activeDistrict})` : `Major market prices and crop rates (${activeDistrict})`}</span>
+            <span>🏛️ {language === "hi" ? `प्रमुख मंडी भाव और मॉडल दरें (${activeDistrict})` : `Major APMC Mandi Modal Prices (${activeDistrict})`}</span>
           </h3>
           <p className="text-xs text-slate-500">
             {language === "hi"
-              ? `आपके क्षेत्र (${activeDistrict}) में वास्तविक उत्पादित फसलों के सरकारी APMC मॉडल भाव`
-              : `Official APMC modal prices per quintal for crops actively cultivated in ${activeDistrict}`}
+              ? `आपके क्षेत्र (${activeDistrict}) के निकटतम कृषि उपज मंडी से आधिकारिक सरकारी मॉडल भाव (₹/क्विंटल)`
+              : `Official Agmarknet APMC modal prices per quintal for key crops in ${activeDistrict}`}
           </p>
         </div>
 
@@ -159,13 +170,18 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
                   <h4 className="font-extrabold text-sm text-slate-900 leading-snug">
                     {language === "hi" ? item.commodityHi : item.commodity}
                   </h4>
-                  <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Store className="h-3 w-3 text-slate-400" />
+                  <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 line-clamp-1">
+                    <Store className="h-3 w-3 text-slate-400 shrink-0" />
                     {item.mandi}
                   </span>
+                  {item.variety && (
+                    <span className="text-[9px] font-mono text-slate-400 block mt-0.5">
+                      किस्म / Variety: {item.variety}
+                    </span>
+                  )}
                 </div>
 
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <span className="text-base sm:text-lg font-black text-slate-900 font-mono block">
                     ₹{item.modalPrice.toLocaleString("en-IN")}
                     <span className="text-[10px] text-slate-500 font-normal">/q</span>
@@ -191,8 +207,8 @@ export const MandiPriceTicker: React.FC<MandiPriceTickerProps> = ({
 
               {/* Price Band Min - Max */}
               <div className="pt-2 border-t border-slate-200/60 flex justify-between text-[10px] font-mono text-slate-500">
-                <span>Minimum : ₹{item.minPrice.toLocaleString("en-IN")}</span>
-                <span>Maximum : ₹{item.maxPrice.toLocaleString("en-IN")}</span>
+                <span>न्यूनतम (Min): ₹{item.minPrice.toLocaleString("en-IN")}</span>
+                <span>अधिकतम (Max): ₹{item.maxPrice.toLocaleString("en-IN")}</span>
               </div>
             </div>
           ))}

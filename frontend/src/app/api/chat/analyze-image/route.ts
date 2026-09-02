@@ -12,7 +12,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ml: "Malayalam (മലയാളം)",
   bn: "Bengali (বাংলা)",
   or: "Odia (ଓଡ଼ିଆ)",
-  as: "Assamese (অসমীया)",
+  as: "Assamese (অসমীয়া)",
   en: "English",
 };
 
@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     const crop = (formData.get("crop") as string) || "soybean";
     const language = (formData.get("language") as string) || "hi";
+    const question = (formData.get("question") as string) || (formData.get("message") as string) || "";
+    const district = (formData.get("district") as string) || "Bhopal";
+    const state = (formData.get("state") as string) || "Madhya Pradesh";
 
     const targetLangName = LANGUAGE_NAMES[language] || "Hindi (हिन्दी)";
 
@@ -45,15 +48,18 @@ export async function POST(req: NextRequest) {
     let visionDiagnosis: any = null;
 
     if (keys.length > 0 && base64Image) {
+      const userContext = question ? `Farmer's Spoken Question: "${question}"` : "Farmer requested general leaf health and disease analysis.";
       const visionPrompt = `You are AASRA (आसरा) Multimodal Vision AI for Syngenta Biologicals, specialized in Indian plant pathology and foliar stress diagnosis.
-Examine this crop leaf photo for ${crop}.
+Examine this crop leaf photo for ${crop} in ${district}, ${state}.
+${userContext}
 
 CRITICAL INSTRUCTIONS:
 1. Examine the image carefully for real visible foliar symptoms: marginal leaf scorch, interveinal chlorosis, fungal lesions (Cercospora/Anthracnose), pest chew marks, or healthy tissue.
-2. Formulate a precise diagnosis and treatment prescription using Syngenta biological products (e.g. Syngenta Quantis / Stress Buster @ 250ml/acre for thermal scorch, or Amistar Top for fungal lesions).
-3. Output STRICTLY VALID JSON in ${targetLangName}:
+2. Directly address the farmer's question ("${question || 'What is the issue with this plant?'}") in context with the visual evidence.
+3. Formulate a precise diagnosis and treatment prescription using Syngenta biological products (e.g. Syngenta Quantis / Stress Buster @ 250ml/acre for thermal scorch, or Amistar Top for fungal lesions, or Ampligo for insect damage).
+4. Output STRICTLY VALID JSON in ${targetLangName}:
 {
-  "diagnosis": "Detailed 2-3 sentence visual diagnosis of symptoms in ${targetLangName}",
+  "diagnosis": "Detailed 2-3 sentence visual diagnosis answering the farmer's question in ${targetLangName}",
   "confidence_score": 97,
   "recommended_product": "Syngenta Quantis / Stress Buster Biostimulant",
   "dosage": "250 ml / acre in 150-200L clean water",

@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { executeGoogleGeminiPrompt, fetchLiveAgronomicTelemetry } from "@/lib/geminiEngine";
-import { findCropMandiRate } from "@/lib/mandiEngine";
+import {
+  executeGoogleGeminiPrompt,
+  executeGoogleGeminiAudioPrompt,
+  fetchLiveAgronomicTelemetry,
+} from "@/lib/geminiEngine";
+import {
+  getLatestMandiPrice,
+  extractCommodityFromNaturalQuery,
+  formatMandiPriceForAI,
+  NormalizedMandiRecord,
+  resolveCanonicalLocation,
+  isDataCoverageQuery,
+  getDataCoverageSummary,
+} from "@/lib/mandiPriceService";
+import { getCropAdvisoryProfile, CropAgronomicProfile } from "@/lib/agriculture/cropAdvisoryMatrix";
+import { resolveCropThresholds } from "@/lib/cropRegistry";
 
 const LANGUAGE_NAMES: Record<string, string> = {
   hi: "Hindi (हिन्दी)",
@@ -17,66 +31,70 @@ const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
 };
 
-function buildFallbackReply(
-  message: string, district: string, crop: string,
-  temp: number, nightTemp: number, soilMoisture: number,
-  windSpeed: number, acresNum: number, dosePerAcreMl: number, language: string
-): string {
-  const q = message.toLowerCase();
-  const isHi = language === "hi";
+/**
+ * Generate smart, varied follow-up suggestions dynamically for any query
+ */
+function generateDynamicFollowUps(
+  cropName: string,
+  district: string,
+  lang: string,
+  intent: "mandi" | "weather" | "disease" | "knowledge" | "general"
+): string[] {
+  const isHi = lang === "hi";
 
-  // Real APMC Mandi Price Lookup
-  if (q.match(/mandi|price|bhav|rate|भाव|मूल्य|दाम|सोयाबीन|गेहूं|गेहूँ|कपास|सरसों|प्याज|आलू|चना|मक्का|धान|wheat|onion|cotton|mustard|soybean|soyabean/)) {
-    const m = findCropMandiRate(message || crop, district);
+  if (intent === "mandi") {
     return isHi
-      ? `${m.mandi} में आज ${m.commodityHi} का मॉडल भाव ₹${m.modalPrice.toLocaleString("en-IN")} प्रति क्विंटल (दायरा: ₹${m.minPrice.toLocaleString("en-IN")} - ₹${m.maxPrice.toLocaleString("en-IN")}/क्विंटल) है।`
-      : `In ${m.mandi} today, ${m.commodity} modal price is ₹${m.modalPrice.toLocaleString("en-IN")}/quintal (Range: ₹${m.minPrice.toLocaleString("en-IN")} – ₹${m.maxPrice.toLocaleString("en-IN")}/q).`;
+      ? [
+          `${district} में ${cropName} के पिछले सप्ताह के भाव की तुलना करें`,
+          `${cropName} बेचने का सबसे अच्छा समय क्या है?`,
+          `आसपास की अन्य मंडियों में ${cropName} का भाव देखें`,
+        ]
+      : [
+          `Compare last week's ${cropName} price trend in ${district}`,
+          `When is the most profitable time to sell ${cropName}?`,
+          `Check nearby APMC mandi prices for ${cropName}`,
+        ];
   }
 
-  if (q.match(/weather|rain|temperature|wind|मौसम|बारिश|तापमान|humidity/)) {
+  if (intent === "weather") {
     return isHi
-      ? `${district} में अभी: तापमान ${temp}°C, रात ${nightTemp}°C, हवा ${windSpeed} km/h, मिट्टी नमी ${soilMoisture}%।`
-      : `${district} live: ${temp}°C, night ${nightTemp}°C, wind ${windSpeed} km/h, soil moisture ${soilMoisture}%.`;
+      ? [
+          `${district} में अगले 3 दिनों का बारिश का पूर्वानुमान बताएं`,
+          `वर्तमान मौसम में फसल में स्प्रे का सही समय क्या है?`,
+          `तापमान तनाव से फसल को बचाने के उपाय`,
+        ]
+      : [
+          `What is the 3-day rainfall forecast in ${district}?`,
+          `When is the ideal spray window under current weather?`,
+          `How to protect crops against current temperature stress?`,
+        ];
   }
 
-  if (q.match(/spray|dose|dosage|छिड़काव|खुराक|दवा|कितना/)) {
-    const totalDose = Math.round(dosePerAcreMl * acresNum);
-    const waterL = Math.round(175 * acresNum);
+  if (intent === "disease") {
     return isHi
-      ? `${acresNum} एकड़ के लिए: ${dosePerAcreMl} ml/एकड़ × ${acresNum} = ${totalDose} ml दवा, ${waterL} L पानी। सुबह 6–9 या शाम 5–7 बजे छिड़काव करें।`
-      : `For ${acresNum} acres: ${dosePerAcreMl} ml/acre × ${acresNum} = ${totalDose} ml in ${waterL} L water. Spray 6–9 AM or 5–7 PM.`;
-  }
-
-  if (q.match(/risk|disease|danger|problem|खतरा|रोग|बीमारी|biggest/)) {
-    if (nightTemp > 25) {
-      return isHi
-        ? `${district} में सबसे बड़ा खतरा: रात का तापमान ${nightTemp}°C — यह ${crop} में heat stress से फूल झड़ने का कारण बन सकता है।`
-        : `Biggest risk in ${district}: night temperature ${nightTemp}°C causing heat stress and potential flower drop in ${crop}.`;
-    }
-    if (soilMoisture < 30) {
-      return isHi
-        ? `मिट्टी नमी ${soilMoisture}% बहुत कम है — ${district} में आपकी ${crop} को drought stress का खतरा है। सिंचाई करें।`
-        : `Soil moisture ${soilMoisture}% is critically low — drought stress risk for ${crop} in ${district}. Irrigate now.`;
-    }
-    if (windSpeed > 15) {
-      return isHi
-        ? `हवा ${windSpeed} km/h — छिड़काव में drift का खतरा। हवा 10 km/h से कम होने पर ही छिड़काव करें।`
-        : `Wind ${windSpeed} km/h — high spray drift risk in ${district}. Wait until wind drops below 10 km/h.`;
-    }
-    return isHi
-      ? `${district} में अभी ${crop} की स्थिति सामान्य (${temp}°C, नमी ${soilMoisture}%)। मुख्य खतरा: कीट और पत्ती रोग — साप्ताहिक निगरानी करें।`
-      : `Conditions in ${district} are normal for ${crop} (${temp}°C, moisture ${soilMoisture}%). Main risk: pest and leaf disease — monitor weekly.`;
-  }
-
-  if (q.match(/irrigat|water|सिंचाई|पानी देना/)) {
-    return isHi
-      ? `मिट्टी नमी ${soilMoisture}%${soilMoisture < 35 ? " — सिंचाई की जरूरत है।" : " — अभी पर्याप्त है, 3–4 दिन बाद जांचें।"}`
-      : `Soil moisture ${soilMoisture}%${soilMoisture < 35 ? " — irrigation needed now." : " — sufficient, check again in 3–4 days."}`;
+      ? [
+          `${cropName} में दवा छिड़काव की सही मात्रा (Dosage) और पानी का अनुपात बताएं`,
+          `स्प्रे के समय किन बातों का ध्यान रखना चाहिए?`,
+          `${cropName} में फूल व फल झड़ने से रोकने के उपाय बताएं`,
+        ]
+      : [
+          `Recommended chemical dosage and water ratio for ${cropName}`,
+          `Best weather window for spraying ${cropName} today`,
+          `How to prevent flower & fruit drop in ${cropName}`,
+        ];
   }
 
   return isHi
-    ? `${district} में अभी: ${temp}°C, मिट्टी नमी ${soilMoisture}%। कृपया प्रश्न और स्पष्ट करें।`
-    : `${district} live: ${temp}°C, soil moisture ${soilMoisture}%. Please rephrase your question.`;
+    ? [
+        `${district} में ${cropName} की खेती के प्रमुख वैज्ञानिक नियम क्या हैं?`,
+        `${cropName} का आज का ताजा मंडी भाव क्या है?`,
+        `वर्तमान मौसम में फसल के लिए जरूरी सुझाव`,
+      ]
+    : [
+        `Key scientific agronomy practices for ${cropName} in ${district}`,
+        `What is today's ${cropName} mandi price?`,
+        `Current seasonal crop recommendations for this region`,
+      ];
 }
 
 export async function POST(req: NextRequest) {
@@ -85,134 +103,333 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       message = "",
-      crop = "soybean",
+      crop = "wheat",
+      variety = "",
       language = "hi",
       night_temp = null,
       temperature = null,
       soil_moisture = null,
       lat = 23.2599,
       lon = 77.4126,
-      farmer_name = "Farmer",
+      farmer_name = "",
       field_acres = 5.0,
-      crop_variety = "Standard Variety",
-      district = "Local District",
+      crop_variety = "",
+      district = "",
       village = "",
       state = "",
+      conversation_history = [],
+      last_resolved_location = null,
+      audioBase64 = null,
+      audioMimeType = "audio/webm",
     } = body;
 
-    reqLang = language;
-    const targetLangName = LANGUAGE_NAMES[language] || "Hindi (हिन्दी)";
+    reqLang = language || "hi";
+    const targetLangName = LANGUAGE_NAMES[reqLang] || "Hindi (हिन्दी)";
     const acresNum = Number(field_acres) || 5.0;
 
-    // 1. Fetch Real Live Telemetry & Real APMC Mandi Data FIRST
-    const telemetry = await fetchLiveAgronomicTelemetry(Number(lat) || 23.2599, Number(lon) || 77.4126, crop);
-
-    const activeTemp = temperature != null ? Number(temperature) : telemetry.temp;
-    const activeNightTemp = night_temp != null ? Number(night_temp) : telemetry.nightTemp;
-    const activeSoil = soil_moisture != null ? Number(soil_moisture) : telemetry.soilMoisture;
-
-    const mandiInfo = findCropMandiRate(message || crop, district, state, {
-      temp: activeTemp,
-      nightTemp: activeNightTemp,
-      soilMoisture: activeSoil,
-      windSpeed: telemetry.windSpeed,
-      isNightHeatStress: activeNightTemp > 25.0,
-      isRaining: false,
+    // ─────────────────────────────────────────────────────────────
+    // STAGE 1: Natural Language & 5-Tier Canonical Location Parsing
+    // ─────────────────────────────────────────────────────────────
+    const canonicalLoc = resolveCanonicalLocation({
+      userQuery: message,
+      conversationHistory: Array.isArray(conversation_history) ? conversation_history : [],
+      lastResolvedLocation: last_resolved_location,
+      selectedDistrict: district,
+      selectedState: state,
+      gpsLat: lat ? Number(lat) : undefined,
+      gpsLon: lon ? Number(lon) : undefined,
+      gpsDistrict: district || undefined,
+      gpsState: state || undefined,
+      gpsVillage: village || undefined,
     });
-    const dosePerAcreMl = 250;
-    const totalDoseLiters = Math.round((dosePerAcreMl * acresNum) / 100) / 10;
-    const waterLiters = Math.round(175 * acresNum);
 
-    // 2. Build Gemini prompt with live telemetry & real mandi rates injected
-    const prompt = `You are AASRA, an ultra-precise AI Agronomist for Indian farmers.
+    // Coverage Discovery Check
+    if (canonicalLoc.isDataCoverageQuery || isDataCoverageQuery(message)) {
+      const coverageText = getDataCoverageSummary(reqLang);
+      return NextResponse.json({
+        reply: coverageText,
+        response: coverageText,
+        detected_language: "Hindi",
+        raw_transcript: message,
+        why_recommendation: "AASRA Pan-India APMC Mandi Coverage Intelligence.",
+        confidence_score: 100,
+        model_used: "AASRA Registry Engine",
+        language: reqLang,
+        source: "AASRA APMC Government Network",
+        canonical_location: canonicalLoc,
+        location_used: "Pan-India (10 States)",
+        follow_up_questions: reqLang === "hi"
+          ? ["अजमेर में सरसों का भाव क्या है?", "सीहोर में सोयाबीन का भाव क्या है?", "लातूर में तुअर/अरहर का भाव क्या है?"]
+          : ["Check mustard rate in Ajmer", "Check soybean price in Sehore", "Check pigeon pea rate in Latur"],
+      });
+    }
 
-REAL-TIME DATA INVENTORY:
-- Location: ${village ? village + ", " : ""}${district} (${lat}, ${lon})
-- Live Weather: Temp ${activeTemp}°C, Night ${activeNightTemp}°C${activeNightTemp > 25 ? " (Heat stress active)" : ""}, Soil Moisture ${activeSoil}%, Wind ${telemetry.windSpeed} km/h
-- Real APMC Mandi Rates for ${district}:
-  * Commodity: ${mandiInfo.commodityHi} (${mandiInfo.commodity})
-  * APMC Mandi: ${mandiInfo.mandi}
-  * Modal Price: ₹${mandiInfo.modalPrice}/quintal (Range: ₹${mandiInfo.minPrice} - ₹${mandiInfo.maxPrice}/q)
-  * Daily Trend: ${mandiInfo.trend.toUpperCase()} (${mandiInfo.changePct > 0 ? "+" : ""}${mandiInfo.changePct}%)
+    const activeDistrict = canonicalLoc.district || "Bhopal";
+    const activeState = canonicalLoc.state || "Madhya Pradesh";
+    const activeLat = canonicalLoc.lat || 23.2599;
+    const activeLon = canonicalLoc.lon || 77.4126;
+    const activeUserLocation = canonicalLoc.resolvedLocation || `${activeDistrict}, ${activeState}`;
 
-FARMER:
-- Name: ${farmer_name}, Crop: ${crop} (${crop_variety}), ${acresNum} acres
-- Dosage spec: ${dosePerAcreMl} ml/acre (${totalDoseLiters} L in ${waterLiters} L water)
+    // ─────────────────────────────────────────────────────────────
+    // STAGE 2: Intent Classification & Crop Resolution
+    // ─────────────────────────────────────────────────────────────
+    const msgLower = message.toLowerCase();
+    
+    // Explicit price intent check (Only if user actually asks for price/rate/bhav)
+    const isExplicitMandiQuery = /(mandi|price|bhav|rate|reat|kimat|mulya|kitne ka|bika|दाम|भाव|दर|रेट|मूल्य|प्रति क्विंटल)/i.test(msgLower);
+    const isWeatherQuery = /(weather|temp|rain|barish|hawa|wind|mausam|मौसम|तापमान|बारिश|वर्षा|हवा)/i.test(msgLower);
+    const isDiseaseQuery = /(keeda|pest|insect|dawa|bimari|spray|dose|khurak|rog|कीड़ा|दवा|कीटनाशक|बीमारी|रोग|झुलसा|छिड़काव|खुराक|इल्ली)/i.test(msgLower);
 
-QUESTION: "${message}"
+    let queryIntent: "mandi" | "weather" | "disease" | "knowledge" | "general" = "general";
+    if (isExplicitMandiQuery) queryIntent = "mandi";
+    else if (isWeatherQuery) queryIntent = "weather";
+    else if (isDiseaseQuery) queryIntent = "disease";
+    else queryIntent = "knowledge";
 
-RULES — STRICTLY ENFORCED:
-1. Answer ONLY what the farmer asked. Use the real numbers from the data inventory above.
-2. If asked about Mandi rate / Price / Bhav: State ONLY the current modal price (₹${mandiInfo.modalPrice}/quintal) and range (₹${mandiInfo.minPrice}-₹${mandiInfo.maxPrice}/q) at ${mandiInfo.mandi}. 1 concise sentence.
-3. If asked about Weather: State ONLY current conditions for ${district}.
-4. If asked about Spray / Dose: State ONLY ${dosePerAcreMl} ml/acre in ${waterLiters} L water.
-5. If the request is incomplete or requires additional detail (e.g. disease without symptom description or photo), ask a targeted clarifying question without guessing.
-6. Max 2 sentences total. No filler, no unsolicited advice, no greetings.
-7. Language: ${targetLangName}.
+    // Extract target crop or commodity from query, fallback to active crop
+    const targetCommodity = extractCommodityFromNaturalQuery(message, crop);
+    const effectiveCropId = targetCommodity.id || crop || "wheat";
+    const cropProfile = getCropAdvisoryProfile(effectiveCropId);
+    const cropThresholds = resolveCropThresholds(effectiveCropId);
 
-Return strictly JSON:
-{"reply":"exact answer in ${targetLangName}","confidence_score":98}`;
+    // ─────────────────────────────────────────────────────────────
+    // STAGE 3: Hyper-Local Telemetry & APMC Mandi Ingestion
+    // ─────────────────────────────────────────────────────────────
+    const telemetry = await fetchLiveAgronomicTelemetry(activeLat, activeLon, effectiveCropId);
+    const activeTemp = telemetry.temp;
+    const activeNightTemp = telemetry.nightTemp;
+    const activeSoil = telemetry.soilMoisture;
+    const activeWind = telemetry.windSpeed;
+    const activeHumidity = telemetry.humidity;
+
+    const isSprayWindowSafe = activeWind < 15 && activeTemp < 33;
+    const isNightHeatStress = activeNightTemp > cropProfile.optimalNightTemp;
+
+    // Fetch Mandi price ONLY if user is actually asking about prices / mandi rates
+    let mandiRecord: NormalizedMandiRecord | null = null;
+    if (isExplicitMandiQuery) {
+      try {
+        mandiRecord = await getLatestMandiPrice({
+          query: message,
+          commodity: effectiveCropId,
+          variety: variety || crop_variety || undefined,
+          location: {
+            lat: activeLat,
+            lon: activeLon,
+            district: activeDistrict,
+            state: activeState,
+            userLocation: activeUserLocation,
+          },
+          telemetry: {
+            temp: activeTemp,
+            nightTemp: activeNightTemp,
+            soilMoisture: activeSoil,
+            windSpeed: activeWind,
+            isNightHeatStress,
+            isRaining: false,
+          },
+        });
+      } catch (mandiErr) {
+        console.warn("[Chat] Mandi lookup error:", mandiErr);
+      }
+    }
+
+    // Format Mandi Ground Truth
+    let verifiedMandiSummary = "";
+    if (isExplicitMandiQuery) {
+      verifiedMandiSummary = mandiRecord
+        ? `VERIFIED ATOMIC APMC MANDI RECORD (GROUND TRUTH):
+- Target Market: ${mandiRecord.mandiHi} (${mandiRecord.mandi}) [${mandiRecord.district}, ${mandiRecord.state}]
+- Commodity: ${mandiRecord.commodityHi} (${mandiRecord.commodity})
+- Variety & Grade: ${mandiRecord.variety} (${mandiRecord.grade})
+- Modal Price: ₹${mandiRecord.modalPrice.toLocaleString("en-IN")} प्रति क्विंटल (₹${mandiRecord.modalPrice.toLocaleString("en-IN")}/quintal)
+- Price Range: ₹${mandiRecord.minPrice.toLocaleString("en-IN")} – ₹${mandiRecord.maxPrice.toLocaleString("en-IN")} प्रति क्विंटल
+- Market Date: ${mandiRecord.formattedDate} (${mandiRecord.isToday ? "Today's live trading session" : "Latest available government record"})`
+        : `MANDI DATA: No active APMC wholesale auction record found for ${cropProfile.nameEn} in ${activeDistrict}. (If user asks about retail price like Coconut/Apple, provide normal market retail benchmark ₹25-40/pc without robotic error messages).`;
+    }
+
+    // Protection Matrix
+    const pestDiseasesList = cropProfile.diseasesAndPests
+      .map(
+        (dp, idx) =>
+          `  ${idx + 1}. ${dp.name} (${dp.nameHi}):
+     - Symptoms: ${dp.symptomsEn}
+     - Solution: ${dp.solutionEn}
+     - Recommended: ${dp.recommendedProduct} @ ${dp.dosePerAcre} in ${dp.waterLitersPerAcre} L water/acre (${dp.timing})`
+      )
+      .join("\n");
+
+    // Farmer Name Personalization
+    const cleanFarmerName = farmer_name && farmer_name.trim() && !farmer_name.includes("Farmer") && !farmer_name.includes("Kisan")
+      ? farmer_name.trim()
+      : "";
+
+    // Conversation History
+    let convoContext = "";
+    if (Array.isArray(conversation_history) && conversation_history.length > 0) {
+      const recentTurns = conversation_history.slice(-4);
+      convoContext =
+        `RECENT CONVERSATION HISTORY:\n` +
+        recentTurns.map((t: any) => `${t.sender === "user" ? "Farmer" : "AASRA"}: "${t.text}"`).join("\n");
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // STAGE 4: Grounded Multi-Crop Gemini 2.5 Flash Synthesis
+    // ─────────────────────────────────────────────────────────────
+    const promptInstructions = `You are AASRA (आसरा), an ultra-smart, empathetic, and scientifically precise AI agricultural companion for Indian farmers.
+The farmer is asking a question. ${audioBase64 ? "Listen to the farmer's raw acoustic audio recording carefully." : `Farmer query: "${message}"`}
+
+FARMER PROFILE & PERSONALIZATION:
+- Farmer Name: ${cleanFarmerName ? `${cleanFarmerName}` : "Farmer Friend"}
+- Farmer Farm Area: ${acresNum} acres
+- Farmer Primary Crop: ${cropProfile.nameEn} (${cropProfile.nameHi}) [Category: ${cropProfile.category.toUpperCase()}]
+- Queried/Active Location: ${activeUserLocation} (Lat: ${activeLat.toFixed(2)}, Lon: ${activeLon.toFixed(2)})
+
+LIVE SENSOR & AGRO-CLIMATIC CONTEXT:
+- Live Weather in ${activeDistrict}: Temp ${activeTemp}°C, Night Temp ${activeNightTemp}°C${isNightHeatStress ? " (Night Thermal Stress)" : ""}, Soil Moisture ${activeSoil}%, Wind Speed ${activeWind} km/h, Humidity ${activeHumidity}%
+- Spray Feasibility: ${isSprayWindowSafe ? "Favorable spray window active" : `Caution: Wind speed ${activeWind} km/h or High temp`}
+${verifiedMandiSummary ? `- ${verifiedMandiSummary}` : ""}
+- Agronomic Knowledge for ${cropProfile.nameEn}:
+  * Thermal Optimal: ${cropProfile.optimalDayTemp}°C (Critical Max: ${cropProfile.heatStressLimitDay}°C), Optimal Night: ${cropProfile.optimalNightTemp}°C
+  * Biostimulant: ${cropProfile.stressBusterRecommendation.product} @ ${cropProfile.stressBusterRecommendation.dosePerAcre}
+- Certified Protection Protocols for ${cropProfile.nameEn}:
+${pestDiseasesList}
+
+${convoContext}
+
+CRITICAL RULES & INTELLIGENCE GUIDELINES:
+1. OUTPUT LANGUAGE: Answer STRICTLY in ${targetLangName}.
+2. PERSONALIZATION: Greet the farmer politely ${cleanFarmerName ? `(e.g., "जी ${cleanFarmerName} जी," or "नमस्ते ${cleanFarmerName} जी!")` : `(e.g., "नमस्ते किसान मित्र!")`}.
+3. DYNAMIC & INTELLIGENT QUESTION ANSWERING:
+   - If the farmer asks a general agricultural, statistical, or knowledge question (e.g. "भोपाल में कॉटन का कितने प्रतिशत है", "भोपाल में सेब उगता है क्या", "नारियल की खेती कैसे करें"):
+     * Answer the actual question thoroughly, intelligently, and accurately based on Indian agricultural facts.
+     * Example: For cotton in Bhopal -> Explain that Bhopal/Central MP predominantly grows Soybean & Wheat; Cotton in MP is concentrated in Western MP/Nimar (Khargone, Khandwa, Dhar ~15-20%), while Bhopal has <2% cotton.
+     * Example: For apples in Bhopal -> Explain that traditional apples require cold temperate climate (HP/Kashmir), though low-chill varieties like HRMN-99 are in trial; commercial apple production in Bhopal is negligible.
+     * Example: For coconut price -> If asked about local retail coconut in inland regions, give general retail rate (~₹25-40/piece) and mention major commercial mandis are in coastal states.
+   - DO NOT give robotic repetitive replies like "आज कोई भाव दर्ज नहीं हुआ, क्या आप किसी और फल के बारे में जानना चाहते हैं?".
+4. MANDI PRICE QUESTIONS (Only when farmer explicitly asks for rates/bhav):
+   - State official APMC yard name, modal price strictly in "प्रति क्विंटल" (or "/quintal"), and price range.
+5. NO UNSOLICITED CHEMICAL PUSHING: Only mention specific chemicals/dosages when asked about pest/disease/spray or treatment.
+6. TONE: Warm, expert, clear, and actionable (2 to 5 structured lines or bullets).
+
+Output strictly valid JSON:
+{
+  "raw_transcript": "verbatim transcription of speech",
+  "detected_language": "English | Hindi | Hinglish | Marathi | Punjabi | etc.",
+  "reply": "concise, humanized, scientifically accurate answer strictly in ${targetLangName}",
+  "confidence_score": 98,
+  "follow_up_questions": [
+    "Contextually relevant follow-up question 1 in ${targetLangName}",
+    "Contextually relevant follow-up question 2 in ${targetLangName}",
+    "Contextually relevant follow-up question 3 in ${targetLangName}"
+  ]
+}`;
 
     let replyText: string | null = null;
-    let confidenceScore = 95;
+    let detectedLanguage: string | undefined = undefined;
+    let rawTranscript: string | undefined = undefined;
+    let confidenceScore = 96;
+    let followUpQuestions: string[] = [];
 
     try {
-      const geminiResult = await executeGoogleGeminiPrompt(
-        prompt,
-        "Output strictly valid JSON only. No markdown, no explanation, just the JSON object."
-      );
+      let geminiResult: any = null;
+
+      if (audioBase64) {
+        geminiResult = await executeGoogleGeminiAudioPrompt(
+          promptInstructions,
+          audioBase64,
+          audioMimeType || "audio/webm",
+          `Output strictly valid JSON only: {"raw_transcript":"...","detected_language":"...","reply":"...","confidence_score":98,"follow_up_questions":["..."]}`
+        );
+      } else {
+        geminiResult = await executeGoogleGeminiPrompt(
+          promptInstructions,
+          `Output strictly valid JSON only: {"raw_transcript":"...","detected_language":"...","reply":"...","confidence_score":98,"follow_up_questions":["..."]}`
+        );
+      }
 
       const r = geminiResult?.data?.reply;
-      if (r && typeof r === "string" && r.trim().length > 5) {
+      if (r && typeof r === "string" && r.trim().length > 3) {
         replyText = r.trim();
+        detectedLanguage = geminiResult.data.detected_language;
+        rawTranscript = geminiResult.data.raw_transcript || message;
         confidenceScore = geminiResult.data.confidence_score || 97;
+        if (Array.isArray(geminiResult.data.follow_up_questions)) {
+          followUpQuestions = geminiResult.data.follow_up_questions.filter(
+            (q: any) =>
+              typeof q === "string" &&
+              q.trim().length > 3 &&
+              !/सिक्के|लेखक|फिल्म|गाना|coin|author|movie/i.test(q)
+          );
+        }
       }
     } catch (geminiErr) {
-      console.warn("[Chat] Gemini call failed:", geminiErr);
+      console.warn("[Chat] Gemini API error:", geminiErr);
     }
 
-    // 4. Rule-based fallback using live telemetry
-    if (!replyText) {
-      replyText = buildFallbackReply(
-        message, district, crop,
-        activeTemp, activeNightTemp, activeSoil,
-        telemetry.windSpeed, acresNum, dosePerAcreMl, language
+    // Dynamic Contextual Follow-up Questions
+    if (!followUpQuestions || followUpQuestions.length === 0) {
+      followUpQuestions = generateDynamicFollowUps(
+        reqLang === "hi" ? cropProfile.nameHi : cropProfile.nameEn,
+        activeDistrict,
+        reqLang,
+        queryIntent
       );
-      confidenceScore = 88;
     }
-
-    // 5. Only return dosage card for spray questions
-    const isSprayQ = /spray|dose|dosage|छिड़काव|खुराक|दवा/i.test(message);
 
     return NextResponse.json({
-      reply: replyText,
-      why_recommendation: "",
-      dosage_summary: isSprayQ ? `${dosePerAcreMl} ml/acre (${totalDoseLiters} L for ${acresNum} acres)` : "",
-      total_profit_gain: "",
+      reply: replyText || (reqLang === "hi" ? `जी, ${activeDistrict} में आपकी ${cropProfile.nameHi} फसल के लिए लाइव तापमान ${activeTemp}°C है।` : `Live telemetry for ${activeDistrict}: ${activeTemp}°C.`),
+      response: replyText,
+      detected_language: detectedLanguage,
+      raw_transcript: rawTranscript || message,
+      why_recommendation: `Verified Open-Meteo & APMC data for ${activeDistrict} (${cropProfile.nameEn}).`,
       confidence_score: confidenceScore,
-      follow_up_questions: [],
+      follow_up_questions: followUpQuestions.length > 0 ? followUpQuestions : undefined,
       model_used: "Gemini 2.5 Flash",
+      language: reqLang,
+      source: "AASRA | Google Gemini 2.5 Flash + Open-Meteo + APMC Agmarknet",
+      mandi_record: mandiRecord,
+      canonical_location: canonicalLoc,
+      location_used: activeDistrict,
+      farmer_profile: {
+        name: cleanFarmerName || "Farmer Friend",
+        acres: acresNum,
+        crop: cropProfile.nameEn,
+      },
+      crop_profile: {
+        id: cropProfile.cropId,
+        name: cropProfile.nameEn,
+        nameHi: cropProfile.nameHi,
+        category: cropProfile.category,
+        season: cropProfile.season,
+      },
       telemetry_used: {
+        location: activeDistrict,
         temp: activeTemp,
-        nightTemp: activeNightTemp,
-        soilMoisture: activeSoil,
-        windSpeed: telemetry.windSpeed,
-        location: district,
+        night_temp: activeNightTemp,
+        soil_moisture: activeSoil,
+        wind_speed: activeWind,
+        humidity: activeHumidity,
+        is_spray_safe: isSprayWindowSafe,
+        is_night_heat_stress: isNightHeatStress,
       },
     });
   } catch (err: any) {
-    console.warn("Chat route exception:", err);
-    return NextResponse.json({
-      reply: reqLang === "hi"
-        ? "तकनीकी समस्या। कृपया फिर पूछें।"
-        : "Technical issue. Please ask again.",
-      why_recommendation: "",
-      dosage_summary: "",
-      total_profit_gain: "",
-      confidence_score: 80,
-      follow_up_questions: [],
-    });
+    console.error("[Chat Advisory Route Fatal Exception]:", err);
+    return NextResponse.json(
+      {
+        reply:
+          reqLang === "hi"
+            ? "तकनीकी समस्या के कारण सेवा अस्थायी रूप से बाधित है। कृपया कुछ देर बाद प्रयास करें।"
+            : "Service is temporarily busy. Please try again in a moment.",
+        response:
+          reqLang === "hi"
+            ? "तकनीकी समस्या के कारण सेवा अस्थायी रूप से बाधित है। कृपया कुछ देर बाद प्रयास करें।"
+            : "Service is temporarily busy. Please try again in a moment.",
+        confidence_score: 80,
+        source: "AASRA_FALLBACK_HANDLER",
+      },
+      { status: 200 }
+    );
   }
 }
-
-

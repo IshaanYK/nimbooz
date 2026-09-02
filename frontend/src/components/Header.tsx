@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/plant-intelligence", label: "Plant AI", icon: Sprout },
-    { href: "/fields", label: "Fields & Map", icon: Layers },
+    { href: "/fields", label: "Fields", icon: Layers },
     { href: "/assistant", label: "Ask AI", icon: Mic },
     { href: "/what-if", label: "What-If", icon: Sliders },
   ];
