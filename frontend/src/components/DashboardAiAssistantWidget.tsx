@@ -25,6 +25,7 @@ import { useWeather } from "@/context/WeatherContext";
 import { useFarm } from "@/context/FarmContext";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
 import { VoiceRecognitionService, VoiceState } from "@/lib/voiceRecognitionService";
+import { FormattedAgriResponse } from "./FormattedAgriResponse";
 
 interface DashboardAiAssistantWidgetProps {
   crop: string;
@@ -154,6 +155,8 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
   const handleStartVoice = async () => {
     stopGoogleSpeech();
     setIsSpeaking(false);
+    setInputQuery("");
+    setLiveVoiceTranscript("");
 
     if (!voiceServiceRef.current) {
       voiceServiceRef.current = new VoiceRecognitionService({
@@ -161,6 +164,7 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
         onStateChange: setVoiceState,
         onInterimTranscript: (interim: string) => {
           setLiveVoiceTranscript(interim);
+          setInputQuery(interim);
         },
         onFinalTranscript: (final: string) => {
           setLiveVoiceTranscript(final);
@@ -265,13 +269,25 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
               if (e.key === "Enter") handleAsk(inputQuery);
             }}
             placeholder={
-              language === "hi"
+              voiceState === "LISTENING"
+                ? language === "hi"
+                  ? "🎙️ बोलना शुरू करें... शब्द यहाँ लाइव टाइप होंगे"
+                  : "🎙️ Speak now... words appear here live"
+                : language === "hi"
                 ? `${effectiveDistrict} में आज ${effectiveTemp}°C तापमान में ${effectiveCrop} पर सलाह पूछें या बोलें...`
                 : `Ask AASRA about ${effectiveTemp}°C weather, spray windows, or mandi rates in ${effectiveDistrict}...`
             }
-            className="w-full pl-4 pr-24 py-3.5 bg-white border border-[#e3e8ee] focus:border-[#533afd] rounded-2xl text-xs sm:text-sm text-[#0d253d] placeholder-slate-400 focus:outline-none shadow-xs transition-all"
+            className={`w-full pl-4 pr-24 py-3.5 rounded-2xl text-xs sm:text-sm text-[#0d253d] font-medium transition-all ${
+              voiceState === "LISTENING"
+                ? "bg-rose-50/40 border-2 border-rose-400 ring-4 ring-rose-500/15 focus:outline-none placeholder-rose-400 shadow-inner"
+                : "bg-white border border-[#e3e8ee] focus:border-[#533afd] placeholder-slate-400 focus:outline-none shadow-xs"
+            }`}
             disabled={isLoading}
           />
+          {/* Blinking Live Speech Cursor */}
+          {voiceState === "LISTENING" && inputQuery.length > 0 && (
+            <span className="absolute right-28 inline-block w-1.5 h-4 bg-rose-600 rounded-full animate-pulse pointer-events-none" />
+          )}
 
           <div className="absolute right-2 flex items-center gap-1.5">
             {/* Voice Mic Trigger */}
@@ -280,10 +296,10 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
               onClick={voiceState === "LISTENING" ? handleStopVoice : handleStartVoice}
               className={`p-2 rounded-xl cursor-pointer transition-all ${
                 voiceState === "LISTENING"
-                  ? "bg-rose-500 text-white animate-pulse shadow-md"
+                  ? "bg-rose-500 text-white animate-pulse shadow-md hover:scale-105"
                   : "bg-[#f6f9fc] hover:bg-indigo-50 text-slate-600 hover:text-[#533afd] border border-[#e3e8ee]"
               }`}
-              title="Speak Question"
+              title={voiceState === "LISTENING" ? "Stop & Submit" : "Speak Question"}
             >
               <Mic className="h-4 w-4" />
             </button>
@@ -293,7 +309,7 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
               type="button"
               onClick={() => handleAsk(inputQuery)}
               disabled={isLoading || !inputQuery.trim()}
-              className="p-2 rounded-xl bg-gradient-to-r from-[#533afd] to-[#4434d4] hover:opacity-95 disabled:opacity-40 text-white cursor-pointer transition-all shadow-xs"
+              className="p-2 rounded-xl bg-gradient-to-r from-[#533afd] to-[#4434d4] hover:opacity-95 disabled:opacity-40 text-white cursor-pointer transition-all shadow-xs disabled:cursor-not-allowed"
               title="Submit Query"
             >
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -303,17 +319,22 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
 
         {/* Listening Status Bar */}
         {voiceState === "LISTENING" && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 font-mono flex items-center justify-between animate-pulse">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 font-mono flex items-center justify-between animate-in fade-in duration-150">
             <span className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-rose-600 animate-ping inline-block" />
-              <span>{liveVoiceTranscript || "Listening in your language... Speak now"}</span>
+              <span className="font-bold text-rose-950">
+                {language === "hi" ? "🔴 लाइव रिकॉर्डिंग चालू है..." : "🔴 Live Voice Recording..."}
+              </span>
+              <span className="text-[11px] text-rose-700 opacity-90 truncate max-w-[280px]">
+                {inputQuery || (language === "hi" ? "बोलना शुरू करें..." : "Speak now...")}
+              </span>
             </span>
             <button
               type="button"
               onClick={handleStopVoice}
-              className="text-[10px] font-bold text-rose-700 underline cursor-pointer"
+              className="text-xs font-bold text-rose-700 hover:text-rose-900 bg-white px-2 py-0.5 rounded-lg border border-rose-200 cursor-pointer shadow-2xs"
             >
-              Done Speaking
+              Done (पूरा हुआ)
             </button>
           </div>
         )}
@@ -334,7 +355,7 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
         </div>
       </div>
 
-      {/* Render Latest Grounded Response */}
+      {/* Render Latest Grounded Response with FormattedAgriResponse */}
       {latestResponse && (
         <div className="bg-white border border-indigo-200/80 rounded-2xl p-5 space-y-3.5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
@@ -345,41 +366,24 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
               </span>
             </div>
             
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
-                {latestResponse.telemetryUsed.location} · {latestResponse.telemetryUsed.temp}°C
-              </span>
-
-              <button
-                type="button"
-                onClick={() => handleToggleSpeech(latestResponse.reply)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-1 ${
-                  isSpeaking
-                    ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                    : "bg-[#f6f9fc] hover:bg-indigo-50 text-slate-700 hover:text-[#533afd] border-[#e3e8ee]"
-                }`}
-              >
-                {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5 text-[#533afd]" />}
-                <span>{isSpeaking ? "Stop" : "Listen"}</span>
-              </button>
-            </div>
+            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
+              {latestResponse.telemetryUsed.location} · {latestResponse.telemetryUsed.temp}°C
+            </span>
           </div>
 
-          <p className="whitespace-pre-line text-xs sm:text-sm text-[#0d253d] leading-relaxed">
-            {latestResponse.reply}
-          </p>
-
-          {/* Mandi Record Card if returned */}
-          {latestResponse.mandiRecord && (
-            <div className="bg-[#f6f9fc] border border-[#e3e8ee] p-3 rounded-xl flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-500 font-sans">
-                🏛️ {latestResponse.mandiRecord.mandiHi || latestResponse.mandiRecord.mandi}:
-              </span>
-              <span className="font-extrabold text-[#0d253d]">
-                ₹{latestResponse.mandiRecord.modalPrice?.toLocaleString("en-IN")}/quintal
-              </span>
-            </div>
-          )}
+          <FormattedAgriResponse
+            id="dashboard-ai-latest"
+            text={latestResponse.reply}
+            language={language}
+            isSpeaking={isSpeaking}
+            onToggleSpeech={() => handleToggleSpeech(latestResponse.reply)}
+            telemetryUsed={latestResponse.telemetryUsed}
+            mandiRecord={latestResponse.mandiRecord}
+            confidenceScore={latestResponse.confidenceScore}
+            whyRecommendation={latestResponse.whyRecommendation}
+            cropName={crop}
+            acres={acres}
+          />
 
           {/* Follow-up Question Chips */}
           {latestResponse.followUps && latestResponse.followUps.length > 0 && (

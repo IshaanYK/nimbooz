@@ -318,7 +318,13 @@ CRITICAL RULES & PRECISE REAL-DATA CITATION GUIDELINES:
    - If relevant, calculate expected revenue: For ${acresNum} acres (~${(acresNum * 9).toFixed(0)} quintals expected yield), total crop value is ~₹${((mandiRecord?.modalPrice || 4850) * acresNum * 9).toLocaleString("en-IN")}.
 6. ZERO GENERALITIES & HIGH PRECISION:
    - Never say vague things like "कुछ दवा डाल दें". Always provide exact product name, exact dilution per acre, and exact time of day.
-   - Tone: Respectful, warm, concise, and structured with clear bullet points.
+   - Tone: Respectful, warm, concise, and structured.
+7. BEAUTIFUL STRUCTURING & DESIGN STANDARDS:
+   - Structure 'reply' using clear, readable bullet points and bold highlights (**bold** for products, temperatures, dosages, and prices):
+     * 📍 **खेत व मौसम स्थिति (Field & Telemetry)**: State ${activeUserLocation}, current temp **${activeTemp}°C**, soil **${activeSoil}%**, and wind **${activeWind} km/h**.
+     * 🛡️ **दवा व सही मात्रा (Prescription & Dose)**: Bold certified products (e.g. **Quantis®** or **Isabion®**), state dose per acre (**400 ml/acre**), and calculate total for their ${acresNum} acres (${((400 * acresNum) / 1000).toFixed(1)} L in ${(200 * acresNum)} L water).
+     * 🏛️ **मंडी भाव व सुरक्षा (Mandi & Spray Timing)**: Mention modal price (**₹${mandiRecord ? mandiRecord.modalPrice.toLocaleString("en-IN") : "4,850"}/क्विंटल**) and spray window safety.
+   - Keep bullet points crisp and avoid giant unbroken blocks of text.
 
 Output strictly valid JSON:
 {

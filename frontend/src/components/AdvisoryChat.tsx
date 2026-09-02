@@ -39,6 +39,7 @@ import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngin
 import { VoiceRecognitionService, VoiceState } from "@/lib/voiceRecognitionService";
 import { MASTER_CROPS, CropInfo, resolveCropThresholds, getRegionalCrops } from "@/lib/cropRegistry";
 import { getCropAdvisoryProfile } from "@/lib/agriculture/cropAdvisoryMatrix";
+import { FormattedAgriResponse } from "./FormattedAgriResponse";
 
 export interface Message {
   id: string;
@@ -261,6 +262,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     setMicPermissionError(false);
     stopGoogleSpeech();
     setSpeakingMessageId(null);
+    setInput("");
+    setLiveTranscript("");
     if (voiceServiceRef.current) {
       const ok = await voiceServiceRef.current.startListening();
       if (!ok) setVoiceState("IDLE");
@@ -653,86 +656,24 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 </div>
               )}
 
-              {/* Message Content */}
-              <p className="whitespace-pre-line text-xs sm:text-sm leading-relaxed">{msg.text}</p>
-
-              {/* Verified Mandi Rate Record Card */}
-              {msg.mandiRecord && (
-                <div className="mt-3 bg-gradient-to-br from-[#f6f9fc] to-white border border-[#e3e8ee] p-3.5 rounded-2xl space-y-2 font-mono text-xs text-[#0d253d] shadow-2xs">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                    <span className="text-[#533afd] font-bold flex items-center gap-1">
-                      <span>🏛️</span>
-                      <span>{msg.mandiRecord.mandiHi || msg.mandiRecord.mandi}</span>
-                    </span>
-                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold shadow-2xs ${
-                      msg.mandiRecord.isToday ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"
-                    }`}>
-                      {msg.mandiRecord.formattedDate}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-sans">Modal Price:</span>
-                    <span className="font-extrabold text-[#0d253d] text-sm sm:text-base">₹{msg.mandiRecord.modalPrice?.toLocaleString("en-IN")}/quintal</span>
-                  </div>
-                  <div className="flex justify-between text-[11px] text-slate-500 font-sans">
-                    <span>Range: ₹{msg.mandiRecord.minPrice?.toLocaleString("en-IN")} – ₹{msg.mandiRecord.maxPrice?.toLocaleString("en-IN")}</span>
-                    <span className="font-bold text-slate-700">{msg.mandiRecord.grade || "FAQ"}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Dosage Summary Card */}
-              {msg.dosageSummary && (
-                <div className="mt-2.5 bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs font-mono text-emerald-800 flex items-center gap-2 font-bold shadow-2xs">
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
-                  <span>Dosage: {msg.dosageSummary}</span>
-                </div>
-              )}
-
-              {/* Technical Reasoning Drawer & Audio Readout */}
-              {msg.sender === "bot" && (
-                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <button
-                    type="button"
-                    onClick={() => setOpenWhyId(openWhyId === msg.id ? null : msg.id)}
-                    className="flex items-center gap-1.5 text-slate-600 hover:text-[#533afd] font-semibold cursor-pointer transition-colors"
-                  >
-                    <Sparkles className="h-3 w-3 text-[#533afd]" />
-                    <span>Ground Truth Provenance</span>
-                    {openWhyId === msg.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => speakResponse(msg.id, msg.text)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-bold transition-all cursor-pointer shadow-2xs ${
-                      speakingMessageId === msg.id
-                        ? "bg-[#533afd] text-white border-[#533afd] shadow-sm animate-pulse-ring"
-                        : "bg-[#f6f9fc] text-slate-700 hover:text-[#533afd] hover:bg-indigo-50 border-[#e3e8ee]"
-                    }`}
-                  >
-                    {speakingMessageId === msg.id ? (
-                      <div className="flex items-center gap-0.5 h-3.5 px-0.5">
-                        <div className="w-0.5 bg-white rounded-full animate-soundwave-1" />
-                        <div className="w-0.5 bg-white rounded-full animate-soundwave-2" />
-                        <div className="w-0.5 bg-white rounded-full animate-soundwave-3" />
-                        <div className="w-0.5 bg-white rounded-full animate-soundwave-4" />
-                      </div>
-                    ) : (
-                      <Volume2 className="h-3.5 w-3.5 text-[#533afd]" />
-                    )}
-                    <span>{speakingMessageId === msg.id ? "Playing Audio" : "Listen"}</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Technical Provenance Details */}
-              {openWhyId === msg.id && msg.whyRecommendation && (
-                <div className="mt-2.5 p-3 bg-[#f6f9fc] border border-[#e3e8ee] rounded-xl text-xs text-slate-600 font-mono animate-in fade-in duration-150 space-y-1">
-                  <div className="font-bold text-[#0d253d] mb-1">Telemetry Grounding:</div>
-                  <p className="leading-relaxed">{msg.whyRecommendation}</p>
-                  <div className="mt-1 text-[10px] font-bold text-[#533afd]">Engine: {msg.provider || "Google Gemini 2.5 Flash"} · Confidence {msg.confidenceScore || 98}%</div>
-                </div>
+              {/* Message Content: FormattedAgriResponse for Bot, plain text for User */}
+              {msg.sender === "bot" ? (
+                <FormattedAgriResponse
+                  id={msg.id}
+                  text={msg.text}
+                  language={language}
+                  isSpeaking={speakingMessageId === msg.id}
+                  onToggleSpeech={() => speakResponse(msg.id, msg.text)}
+                  telemetryUsed={msg.telemetryUsed}
+                  mandiRecord={msg.mandiRecord}
+                  confidenceScore={msg.confidenceScore}
+                  provider={msg.provider}
+                  whyRecommendation={msg.whyRecommendation}
+                  cropName={currentCropInfo.name}
+                  acres={effectiveAcres}
+                />
+              ) : (
+                <p className="whitespace-pre-line text-xs sm:text-sm leading-relaxed font-medium">{msg.text}</p>
               )}
             </div>
 
@@ -768,10 +709,10 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 <span className="font-extrabold text-sm text-rose-900 font-display">
                   Listening in {language.toUpperCase()}...
                 </span>
-                <span className="text-xs text-rose-600 font-medium">Speak in your dialect</span>
+                <span className="text-xs text-rose-600 font-medium">Live typing in message box below</span>
               </div>
-              <p className="text-slate-700 italic text-xs mt-1 truncate">
-                {liveTranscript || "Listening for crop queries, spray timings, or mandi rates..."}
+              <p className="text-slate-800 font-semibold text-xs mt-1 truncate">
+                {liveTranscript || "बोलना शुरू करें / Speak for crop queries, spray timings, or mandi rates..."}
               </p>
             </div>
             
@@ -816,6 +757,30 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
          ───────────────────────────────────────────────────────────── */}
       <div className="bg-white border border-[#e3e8ee] rounded-3xl p-3 shadow-md space-y-2">
         
+        {/* Live Voice Streaming Status Ribbon */}
+        {voiceState === "LISTENING" && (
+          <div className="flex items-center justify-between px-3.5 py-1.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 font-medium animate-in fade-in slide-in-from-bottom-1 duration-150 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600" />
+              </span>
+              <span className="font-bold font-display text-rose-950">
+                {language === "hi" ? "🔴 लाइव आवाज़ टाइप हो रही है..." : "🔴 Live Voice Transcribing..."}
+              </span>
+              <span className="text-[11px] text-rose-700 font-mono hidden sm:inline">
+                {language === "hi" ? "(बोलते रहें, शब्द नीचे बॉक्स में दर्ज हो रहे हैं)" : "(Words are streaming into message box)"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 h-3.5 px-2 py-0.5 bg-white/80 rounded-lg border border-rose-200">
+              <div className="w-1 bg-rose-600 rounded-full animate-soundwave-1" />
+              <div className="w-1 bg-rose-600 rounded-full animate-soundwave-2" />
+              <div className="w-1 bg-rose-600 rounded-full animate-soundwave-3" />
+              <div className="w-1 bg-rose-600 rounded-full animate-soundwave-4" />
+            </div>
+          </div>
+        )}
+
         {/* Selected Image Thumbnail with Futuristic Laser Scan Effect */}
         {imagePreviewUrl && (
           <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-50/70 via-[#f6f9fc] to-indigo-50/70 border border-emerald-300/80 p-3 rounded-2xl shadow-sm animate-card-entrance">
@@ -856,6 +821,9 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (voiceState === "LISTENING") {
+              handleStopListening();
+            }
             processUserMessage(input);
           }}
           className="flex items-center gap-2"
@@ -878,32 +846,46 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             <Camera className="h-4 w-4" />
           </button>
 
-          {/* Multilingual Voice Microphone */}
+          {/* Multilingual Voice Microphone with Active Live Streaming state */}
           <button
             type="button"
             onClick={voiceState === "LISTENING" ? handleStopListening : handleStartListening}
-            title={voiceState === "LISTENING" ? "Stop Recording" : "Speak in any Indian language"}
+            title={voiceState === "LISTENING" ? "Stop Recording & Submit" : "Speak in any Indian language"}
             className={`p-3 rounded-2xl border transition-all cursor-pointer shrink-0 shadow-2xs ${
               voiceState === "LISTENING"
-                ? "bg-rose-600 text-white border-rose-500 shadow-md animate-pulse"
+                ? "bg-rose-600 text-white border-rose-500 shadow-md animate-pulse hover:scale-105"
                 : "bg-[#f6f9fc] hover:bg-indigo-50 border-[#e3e8ee] hover:border-indigo-300 text-[#533afd]"
             }`}
           >
             {voiceState === "LISTENING" ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           </button>
 
-          {/* Text Input Field */}
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              language === "hi"
-                ? `${currentCropInfo.nameHi} के बारे में पूछें, मंडी भाव या मौसम...`
-                : `Ask about ${currentCropInfo.name}, mandi rates, or weather...`
-            }
-            className="flex-1 bg-[#f6f9fc] border border-[#e3e8ee] rounded-2xl px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-[#0d253d] placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#533afd] focus:ring-2 focus:ring-[#533afd]/15 transition-all font-medium"
-          />
+          {/* Real-Time Live Streaming Text Input Field */}
+          <div className="flex-1 relative flex items-center">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={
+                voiceState === "LISTENING"
+                  ? language === "hi"
+                    ? "🎙️ बोलना शुरू करें... शब्द यहाँ टाइप होंगे"
+                    : "🎙️ Speak now... words appear here live"
+                  : language === "hi"
+                  ? `${currentCropInfo.nameHi} के बारे में पूछें, मंडी भाव या मौसम...`
+                  : `Ask about ${currentCropInfo.name}, mandi rates, or weather...`
+              }
+              className={`w-full rounded-2xl px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-[#0d253d] font-medium transition-all ${
+                voiceState === "LISTENING"
+                  ? "bg-rose-50/50 border-2 border-rose-400 ring-4 ring-rose-500/15 focus:outline-none placeholder-rose-400 shadow-inner"
+                  : "bg-[#f6f9fc] border border-[#e3e8ee] placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#533afd] focus:ring-2 focus:ring-[#533afd]/15"
+              }`}
+            />
+            {/* Blinking Live Speech Cursor */}
+            {voiceState === "LISTENING" && input.length > 0 && (
+              <span className="absolute right-3 inline-block w-1.5 h-4 bg-rose-600 rounded-full animate-pulse pointer-events-none" />
+            )}
+          </div>
 
           {/* Send Button */}
           <button
