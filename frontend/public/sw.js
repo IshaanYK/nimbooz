@@ -1,5 +1,5 @@
 // AASRA Progressive Web App Service Worker
-const CACHE_NAME = "aasra-cache-v1";
+const CACHE_NAME = "aasra-cache-v2";
 const PRECACHE_URLS = [
   "/",
   "/manifest.json",
