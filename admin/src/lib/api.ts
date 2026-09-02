@@ -96,3 +96,47 @@ export async function resetDatabase() {
   });
   return res.json();
 }
+
+// ── Live Website Controls & Farmer Broadcasts ──
+export async function getWebsiteSettings() {
+  try {
+    const res = await apiFetch("/api/settings");
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.settings || null;
+  } catch (e) {
+    console.error("Failed to fetch website settings:", e);
+    return null;
+  }
+}
+
+export async function updateWebsiteSettings(settings: any) {
+  const res = await apiFetch("/api/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
+  return res.json();
+}
+
+export async function sendFarmerBroadcast(message: string) {
+  const res = await apiFetch("/api/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      broadcastAlert: {
+        message,
+        createdAt: new Date().toISOString(),
+        active: true,
+      },
+    }),
+  });
+  return res.json();
+}
+
+export async function clearFarmerBroadcast() {
+  const res = await apiFetch("/api/settings", {
+    method: "DELETE",
+  });
+  return res.json();
+}

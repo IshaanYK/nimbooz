@@ -63,6 +63,25 @@ export interface RobiAuditDbRecord {
   issueDate: string;
 }
 
+export interface SystemSettings {
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  broadcastAlert: {
+    message: string;
+    createdAt: string;
+    active: boolean;
+  } | null;
+  featureFlags: {
+    voiceAssistant: boolean;
+    mandiPrices: boolean;
+    weatherTelemetry: boolean;
+    journalFeature: boolean;
+    fieldMapping: boolean;
+    robiAudit: boolean;
+    plantIntelligence: boolean;
+  };
+}
+
 export interface DatabaseSchema {
   version: string;
   lastUpdated: string;
@@ -70,11 +89,28 @@ export interface DatabaseSchema {
   fields: FieldDbRecord[];
   journal: JournalDbRecord[];
   robi_audits: RobiAuditDbRecord[];
+  settings?: SystemSettings;
 }
+
+const DEFAULT_SETTINGS: SystemSettings = {
+  maintenanceMode: false,
+  maintenanceMessage: "AASRA is currently performing scheduled agricultural system updates. Farm telemetry remains active.",
+  broadcastAlert: null,
+  featureFlags: {
+    voiceAssistant: true,
+    mandiPrices: true,
+    weatherTelemetry: true,
+    journalFeature: true,
+    fieldMapping: true,
+    robiAudit: true,
+    plantIntelligence: true,
+  },
+};
 
 const DEFAULT_DB_DATA: DatabaseSchema = {
   version: "1.0.0-mvp",
   lastUpdated: new Date().toISOString(),
+  settings: DEFAULT_SETTINGS,
   farmers: [
     {
       id: "farmer-001",
@@ -467,6 +503,30 @@ export class AasraDatabase {
       },
       storageLocation: getDbFilePath(),
     };
+  }
+
+  // ── Website Controls & Settings ──
+  public getSettings(): SystemSettings {
+    if (!memoryCache.settings) {
+      memoryCache.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+    }
+    return memoryCache.settings;
+  }
+
+  public updateSettings(update: Partial<SystemSettings>): SystemSettings {
+    const current = this.getSettings();
+    memoryCache.settings = {
+      ...current,
+      ...update,
+      featureFlags: {
+        ...current.featureFlags,
+        ...(update.featureFlags || {}),
+      },
+      broadcastAlert:
+        update.broadcastAlert !== undefined ? update.broadcastAlert : current.broadcastAlert,
+    };
+    this.persist();
+    return memoryCache.settings;
   }
 
   public resetToDefault(): void {

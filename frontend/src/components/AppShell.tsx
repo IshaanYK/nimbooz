@@ -38,6 +38,7 @@ import {
   Plus,
   CheckCircle2,
   Database,
+  AlertTriangle,
 } from "lucide-react";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/how-it-works", "/product", "/impact-story", "/architecture"];
@@ -68,6 +69,33 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const langDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
   const farmDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Live website settings & admin broadcast alerts
+  const [systemSettings, setSystemSettings] = useState<{
+    maintenanceMode: boolean;
+    maintenanceMessage: string;
+    broadcastAlert: { message: string; createdAt: string; active: boolean } | null;
+  } | null>(null);
+  const [dismissedAlert, setDismissedAlert] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/settings", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.settings) {
+            setSystemSettings(data.settings);
+          }
+        }
+      } catch (e) {
+        // Silently continue
+      }
+    };
+    fetchSettings();
+    const interval = setInterval(fetchSettings, 20000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const isAuthed = isUserLoggedIn();
@@ -119,6 +147,36 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAFA] text-[#111827] selection:bg-[#7C3AED] selection:text-white font-sans pb-20 md:pb-0">
       
+      {/* ── Live Admin Broadcast Alert Banner ────────────────── */}
+      {systemSettings?.broadcastAlert?.active && !dismissedAlert && (
+        <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white px-4 py-2.5 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 shadow-md z-50 border-b border-white/20 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-2.5 max-w-6xl mx-auto flex-1">
+            <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider shrink-0 shadow-xs">
+              {language === "hi" ? "किसान सलाह" : "Farmer Advisory"}
+            </span>
+            <span className="leading-snug font-medium text-white">{systemSettings.broadcastAlert.message}</span>
+          </div>
+          <button
+            onClick={() => setDismissedAlert(true)}
+            className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white/80 hover:text-white shrink-0 cursor-pointer"
+            title="Dismiss advisory"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Live Maintenance Mode Banner ─────────────────────── */}
+      {systemSettings?.maintenanceMode && (
+        <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white px-4 py-2 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-inner z-50 animate-in slide-in-from-top duration-300">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-200 animate-pulse" />
+          <span className="text-center">
+            <strong>{language === "hi" ? "सिस्टम सूचना:" : "Maintenance Notice:"}</strong>{" "}
+            {systemSettings.maintenanceMessage || (language === "hi" ? "नियमित कृषि डेटाबेस अद्यतन प्रगति पर है।" : "Scheduled platform optimization in progress.")}
+          </span>
+        </div>
+      )}
+
       {/* ── Precision Glassmorphic Top Navbar ────────────────── */}
       <header className="sticky top-0 z-50 bg-white/98 backdrop-blur-md border-b border-slate-200/60 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">

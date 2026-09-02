@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { isAdminAuthed, adminLogout } from "@/lib/adminAuth";
+import { MAIN_SITE_URL } from "@/lib/api";
 import {
   LayoutDashboard,
   Users,
@@ -90,7 +91,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
           <div className="sidebar-section-label" style={{ marginTop: 8 }}>External</div>
           <a
-            href={process.env.NEXT_PUBLIC_MAIN_API_URL || "http://localhost:3000"}
+            href={MAIN_SITE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="nav-item"

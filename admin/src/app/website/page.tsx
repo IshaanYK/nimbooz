@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AdminShell } from "@/components/AdminShell";
+import {
+  getWebsiteSettings,
+  updateWebsiteSettings,
+  sendFarmerBroadcast,
+  clearFarmerBroadcast,
+  MAIN_SITE_URL,
+} from "@/lib/api";
 import {
   Settings,
   Globe,
@@ -14,6 +21,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   ExternalLink,
+  RefreshCw,
+  XCircle,
+  Clock,
 } from "lucide-react";
 
 type FeatureFlags = {
@@ -24,10 +34,9 @@ type FeatureFlags = {
   fieldMapping: boolean;
   robiAudit: boolean;
   plantIntelligence: boolean;
-  maintenanceMode: boolean;
 };
 
-const FEATURE_DEFS: { key: keyof FeatureFlags; label: string; desc: string; icon: React.ElementType; danger?: boolean }[] = [
+const FEATURE_DEFS: { key: keyof FeatureFlags; label: string; desc: string; icon: React.ElementType }[] = [
   { key: "voiceAssistant", label: "Voice AI Assistant", desc: "Chirp 3 HD speech recognition and TTS advisory responses", icon: Bell },
   { key: "mandiPrices", label: "APMC Mandi Prices", desc: "Live market price data from Agmarknet API", icon: Globe },
   { key: "weatherTelemetry", label: "Weather Telemetry", desc: "Open-Meteo real-time sensor grounding for all advisories", icon: Globe },
@@ -35,10 +44,13 @@ const FEATURE_DEFS: { key: keyof FeatureFlags; label: string; desc: string; icon
   { key: "fieldMapping", label: "Field Mapping", desc: "GPS-based field boundary and area calculator", icon: Globe },
   { key: "robiAudit", label: "ROBI ROI Auditor", desc: "Return on Bio-Investment calculation engine", icon: Settings },
   { key: "plantIntelligence", label: "Plant Intelligence Pipeline", desc: "PS-02 & PS-03 ML stress forecast and biological advisor", icon: Settings },
-  { key: "maintenanceMode", label: "Maintenance Mode", desc: "Show maintenance banner on main website to all users", icon: ShieldOff, danger: true },
 ];
 
 export default function WebsiteControlsPage() {
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState(
+    "AASRA is currently performing scheduled agricultural system updates. Farm telemetry remains active."
+  );
   const [flags, setFlags] = useState<FeatureFlags>({
     voiceAssistant: true,
     mandiPrices: true,
@@ -47,172 +59,260 @@ export default function WebsiteControlsPage() {
     fieldMapping: true,
     robiAudit: true,
     plantIntelligence: true,
-    maintenanceMode: false,
   });
 
+  const [activeAlert, setActiveAlert] = useState<{ message: string; createdAt: string; active: boolean } | null>(null);
   const [broadcast, setBroadcast] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
-  const [broadcastSent, setBroadcastSent] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
+
+  const loadSettings = async () => {
+    setLoading(true);
+    try {
+      const data = await getWebsiteSettings();
+      if (data) {
+        setMaintenanceMode(Boolean(data.maintenanceMode));
+        if (data.maintenanceMessage) setMaintenanceMessage(data.maintenanceMessage);
+        if (data.featureFlags) {
+          setFlags((prev) => ({ ...prev, ...data.featureFlags }));
+        }
+        setActiveAlert(data.broadcastAlert && data.broadcastAlert.active ? data.broadcastAlert : null);
+      }
+    } catch (err) {
+      console.error("Failed to load settings", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   const handleToggle = (key: keyof FeatureFlags) => {
     setFlags((prev) => ({ ...prev, [key]: !prev[key] }));
-    setSaved(false);
   };
 
-  const handleSave = () => {
-    // In production this would POST to an API endpoint
-    // For MVP, changes are stored in component state
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      await updateWebsiteSettings({
+        maintenanceMode,
+        maintenanceMessage,
+        featureFlags: flags,
+      });
+      setStatusMsg("Settings synchronized with live production website.");
+      setTimeout(() => setStatusMsg(""), 4000);
+    } catch (err: any) {
+      setStatusMsg(`Failed to save: ${err?.message || "Unknown error"}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleBroadcast = async () => {
     if (!broadcast.trim()) return;
     setBroadcasting(true);
-    await new Promise((r) => setTimeout(r, 800)); // Simulate API call
-    setBroadcastSent(true);
-    setBroadcast("");
-    setBroadcasting(false);
-    setTimeout(() => setBroadcastSent(false), 4000);
+    try {
+      const res = await sendFarmerBroadcast(broadcast.trim());
+      if (res?.settings?.broadcastAlert) {
+        setActiveAlert(res.settings.broadcastAlert);
+      } else {
+        setActiveAlert({
+          message: broadcast.trim(),
+          createdAt: new Date().toISOString(),
+          active: true,
+        });
+      }
+      setBroadcast("");
+      setStatusMsg("Advisory broadcast sent! Farmers will see the top banner on the live website.");
+      setTimeout(() => setStatusMsg(""), 5000);
+    } catch (err: any) {
+      setStatusMsg(`Broadcast failed: ${err?.message || "Check connection"}`);
+    } finally {
+      setBroadcasting(false);
+    }
   };
 
-  const mainUrl = process.env.NEXT_PUBLIC_MAIN_API_URL || "http://localhost:3000";
+  const handleClearAlert = async () => {
+    try {
+      await clearFarmerBroadcast();
+      setActiveAlert(null);
+      setStatusMsg("Broadcast alert cleared from live website.");
+      setTimeout(() => setStatusMsg(""), 4000);
+    } catch (err: any) {
+      setStatusMsg(`Failed to clear alert: ${err?.message}`);
+    }
+  };
 
   return (
     <AdminShell>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <span className="badge badge-primary">
               <Settings size={10} /> Website Controls
             </span>
+            <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+              Connected to {MAIN_SITE_URL.replace("https://", "")}
+            </span>
           </div>
           <h1 className="page-title">Website Management</h1>
           <p className="text-muted" style={{ fontSize: 13, marginTop: 4 }}>
-            Toggle feature flags, enable maintenance mode, and broadcast alerts to farmers.
+            Control live farmer website feature flags, toggle maintenance mode, and send real-time alerts.
           </p>
         </div>
-        <a
-          href={mainUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-secondary"
-        >
-          <ExternalLink size={14} />
-          Open Main Site
-        </a>
-      </div>
-
-      {/* Maintenance mode banner */}
-      {flags.maintenanceMode && (
-        <div
-          className="badge badge-danger"
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "12px 16px", borderRadius: 10, marginBottom: 20, fontSize: 13,
-          }}
-        >
-          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-          <strong>Maintenance Mode is ON</strong> — The main website is showing a maintenance banner to all farmers.
-        </div>
-      )}
-
-      {/* Feature Flags */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <h2 className="section-title" style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <ToggleRight size={15} color="var(--primary)" />
-            Feature Flags
-          </h2>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={handleSave}
-            style={{ gap: 5 }}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-secondary" onClick={loadSettings} disabled={loading}>
+            <RefreshCw size={14} style={loading ? { animation: "spin 0.7s linear infinite" } : {}} />
+            Reload
+          </button>
+          <a
+            href={MAIN_SITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary"
           >
-            {saved ? (
-              <><CheckCircle2 size={13} /> Saved!</>
+            <ExternalLink size={14} />
+            Open Main Site
+          </a>
+          <button
+            className="btn btn-primary"
+            onClick={handleSaveSettings}
+            disabled={saving || loading}
+          >
+            {saving ? (
+              <><span className="spinner" style={{ width: 12, height: 12 }} /> Saving...</>
             ) : (
-              <><Save size={13} /> Save Changes</>
+              <><Save size={14} /> Save Live Changes</>
             )}
           </button>
         </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {FEATURE_DEFS.map((f) => {
-            const Icon = f.icon;
-            const isOn = flags[f.key];
-            return (
-              <div
-                key={f.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 14px",
-                  borderRadius: 8,
-                  background: f.danger && isOn ? "rgba(220,38,38,0.08)" : "var(--surface-2)",
-                  border: f.danger && isOn ? "1px solid rgba(220,38,38,0.2)" : "1px solid transparent",
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Icon
-                    size={15}
-                    color={f.danger ? "#f87171" : isOn ? "var(--primary)" : "var(--ink-tertiary)"}
-                  />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>{f.label}</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 1 }}>{f.desc}</div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleToggle(f.key)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 2,
-                    display: "flex",
-                    color: isOn ? (f.danger ? "#f87171" : "var(--primary)") : "var(--ink-tertiary)",
-                    transition: "color 0.15s",
-                    flexShrink: 0,
-                  }}
-                  title={isOn ? "Click to disable" : "Click to enable"}
-                >
-                  {isOn ? <ToggleRight size={26} /> : <ToggleLeft size={26} />}
-                </button>
-              </div>
-            );
-          })}
-        </div>
       </div>
 
-      {/* Broadcast Message */}
-      <div className="card">
-        <h2 className="section-title" style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
-          <Megaphone size={15} color="var(--primary)" />
-          Broadcast Alert to Farmers
-        </h2>
+      {/* Status toast */}
+      {statusMsg && (
+        <div
+          className="badge badge-success"
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderRadius: 8, marginBottom: 20, fontSize: 13 }}
+        >
+          <CheckCircle2 size={15} />
+          {statusMsg}
+        </div>
+      )}
 
-        {broadcastSent && (
-          <div
-            className="badge badge-success"
-            style={{ display: "flex", gap: 6, padding: "10px 14px", borderRadius: 8, marginBottom: 14, fontSize: 12 }}
+      {/* Maintenance Mode Controller */}
+      <div
+        className="card"
+        style={{
+          marginBottom: 20,
+          border: maintenanceMode ? "1px solid rgba(245,158,11,0.4)" : "1px solid var(--hairline)",
+          background: maintenanceMode ? "rgba(245,158,11,0.05)" : "var(--surface-1)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8,
+              background: maintenanceMode ? "rgba(245,158,11,0.15)" : "var(--surface-2)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <ShieldOff size={16} color={maintenanceMode ? "#f59e0b" : "var(--ink-tertiary)"} />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>Emergency Maintenance Mode</div>
+              <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>
+                {maintenanceMode ? "Banner is ACTIVE on live website" : "Banner is currently disabled"}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setMaintenanceMode(!maintenanceMode)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 2,
+              display: "flex",
+              color: maintenanceMode ? "#f59e0b" : "var(--ink-tertiary)",
+              transition: "color 0.15s",
+            }}
+            title={maintenanceMode ? "Click to disable maintenance mode" : "Click to enable maintenance mode"}
           >
-            <CheckCircle2 size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-            Alert broadcast queued successfully. Farmers will see this on next login.
+            {maintenanceMode ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+          </button>
+        </div>
+
+        {maintenanceMode && (
+          <div>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--ink-subtle)", marginBottom: 6 }}>
+              Maintenance Notice Banner Text (Shown on live website)
+            </label>
+            <input
+              className="input"
+              value={maintenanceMessage}
+              onChange={(e) => setMaintenanceMessage(e.target.value)}
+              placeholder="e.g. Scheduled platform maintenance in progress. Live telemetry remains active."
+              style={{ marginBottom: 10 }}
+            />
+            <p style={{ fontSize: 11, color: "var(--ink-tertiary)" }}>
+              Tip: Click &quot;Save Live Changes&quot; in the top right to push this update to the main website.
+            </p>
           </div>
         )}
+      </div>
 
-        <p style={{ fontSize: 12, color: "var(--ink-subtle)", marginBottom: 12 }}>
-          Send a system-wide advisory message that appears as a banner on the main AASRA website for all logged-in farmers.
-        </p>
+      {/* Broadcast Message to Farmers */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h2 className="section-title" style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+          <Megaphone size={15} color="var(--primary)" />
+          Broadcast Advisory Banner to Farmers
+        </h2>
+
+        {activeAlert ? (
+          <div
+            style={{
+              padding: "14px 16px",
+              borderRadius: 8,
+              background: "rgba(94,106,210,0.1)",
+              border: "1px solid rgba(94,106,210,0.3)",
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <span className="badge badge-primary" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <span className="status-dot online" /> ACTIVE ON LIVE WEBSITE
+              </span>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={handleClearAlert}
+                style={{ fontSize: 11 }}
+              >
+                <XCircle size={13} /> Deactivate Alert
+              </button>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 500, marginBottom: 6 }}>
+              &ldquo;{activeAlert.message}&rdquo;
+            </div>
+            {activeAlert.createdAt && (
+              <div style={{ fontSize: 11, color: "var(--ink-tertiary)", display: "flex", alignItems: "center", gap: 4 }}>
+                <Clock size={11} /> Sent at: {new Date(activeAlert.createdAt).toLocaleString("en-IN")}
+              </div>
+            )}
+          </div>
+        ) : (
+          <p style={{ fontSize: 12, color: "var(--ink-subtle)", marginBottom: 12 }}>
+            No active broadcast. Post an advisory below to show a high-visibility banner to all farmers visiting the main site.
+          </p>
+        )}
+
         <textarea
           className="input"
-          placeholder="e.g. Advisory: Heavy rainfall expected in Vidarbha region. Delay foliar spraying for 48 hours. Stay safe."
+          placeholder="e.g. Advisory: Heavy rainfall expected in Malwa plateau. Delay foliar pesticide spraying by 36 hours. Contact your local KVK for assistance."
           value={broadcast}
           onChange={(e) => setBroadcast(e.target.value)}
           rows={3}
@@ -230,26 +330,98 @@ export default function WebsiteControlsPage() {
             {broadcasting ? (
               <><span className="spinner" style={{ width: 12, height: 12 }} /> Sending...</>
             ) : (
-              <><Megaphone size={13} /> Broadcast Alert</>
+              <><Megaphone size={13} /> Broadcast Alert Now</>
             )}
           </button>
         </div>
       </div>
 
-      {/* System Links */}
-      <div className="card" style={{ marginTop: 16 }}>
+      {/* Feature Flags */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div>
+            <h2 className="section-title" style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <ToggleRight size={15} color="var(--primary)" />
+              Main Website Feature Flags
+            </h2>
+            <p style={{ fontSize: 12, color: "var(--ink-subtle)", marginTop: 2 }}>
+              Enable or disable specific modules on the farmer website in real time.
+            </p>
+          </div>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleSaveSettings}
+            disabled={saving}
+          >
+            {saving ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <Save size={13} />}
+            Save Flags
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {FEATURE_DEFS.map((f) => {
+            const Icon = f.icon;
+            const isOn = flags[f.key];
+            return (
+              <div
+                key={f.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 14px",
+                  borderRadius: 8,
+                  background: "var(--surface-2)",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Icon
+                    size={15}
+                    color={isOn ? "var(--primary)" : "var(--ink-tertiary)"}
+                  />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>{f.label}</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 1 }}>{f.desc}</div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleToggle(f.key)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 2,
+                    display: "flex",
+                    color: isOn ? "var(--primary)" : "var(--ink-tertiary)",
+                    transition: "color 0.15s",
+                    flexShrink: 0,
+                  }}
+                  title={isOn ? "Click to turn off" : "Click to turn on"}
+                >
+                  {isOn ? <ToggleRight size={26} /> : <ToggleLeft size={26} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Production System Links */}
+      <div className="card">
         <h2 className="section-title" style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
           <Globe size={15} color="var(--primary)" />
-          Quick Links
+          Live Website Verification Links
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8 }}>
           {[
-            { label: "Main Website", url: mainUrl },
-            { label: "Dashboard", url: `${mainUrl}/dashboard` },
-            { label: "AI Assistant", url: `${mainUrl}/assistant` },
-            { label: "Weather", url: `${mainUrl}/weather` },
-            { label: "API Health", url: `${mainUrl}/api/health` },
-            { label: "Vercel Project", url: "https://vercel.com" },
+            { label: "Main Farmer Home", url: MAIN_SITE_URL },
+            { label: "Farmer Dashboard", url: `${MAIN_SITE_URL}/dashboard` },
+            { label: "Voice AI Advisory", url: `${MAIN_SITE_URL}/assistant` },
+            { label: "What-If Simulator", url: `${MAIN_SITE_URL}/what-if` },
+            { label: "ROBI Causal Impact", url: `${MAIN_SITE_URL}/impact` },
+            { label: "Live System Settings API", url: `${MAIN_SITE_URL}/api/settings` },
           ].map((link) => (
             <a
               key={link.label}
