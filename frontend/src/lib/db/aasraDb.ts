@@ -510,12 +510,12 @@ export class AasraDatabase {
     if (!memoryCache.settings) {
       memoryCache.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
     }
-    return memoryCache.settings;
+    return memoryCache.settings || DEFAULT_SETTINGS;
   }
 
   public updateSettings(update: Partial<SystemSettings>): SystemSettings {
     const current = this.getSettings();
-    memoryCache.settings = {
+    const updated: SystemSettings = {
       ...current,
       ...update,
       featureFlags: {
@@ -525,8 +525,9 @@ export class AasraDatabase {
       broadcastAlert:
         update.broadcastAlert !== undefined ? update.broadcastAlert : current.broadcastAlert,
     };
+    memoryCache.settings = updated;
     this.persist();
-    return memoryCache.settings;
+    return updated;
   }
 
   public resetToDefault(): void {
