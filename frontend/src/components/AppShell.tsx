@@ -495,7 +495,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 { href: "/what-if", icon: <Sliders className="h-4 w-4 text-sky-600" />, label: language === "hi" ? "सिमुलेटर" : "What-If Simulator" },
                 { href: "/impact", icon: <TrendingUp className="h-4 w-4 text-emerald-600" />, label: language === "hi" ? "ROBI प्रभाव" : "ROBI Impact" },
                 { href: "/journal", icon: <BookOpen className="h-4 w-4 text-amber-600" />, label: language === "hi" ? "फार्म डायरी" : "Farm Journal" },
-                { href: "/database", icon: <Database className="h-4 w-4 text-[#533afd]" />, label: language === "hi" ? "डेटाबेस इंजन" : "Database Hub" },
                 { href: "/architecture", icon: <FileText className="h-4 w-4 text-indigo-600" />, label: language === "hi" ? "आर्किटेक्चर" : "Architecture" },
               ].map((item) => (
                 <Link
@@ -513,7 +512,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 { href: "/how-it-works", icon: <Sparkles className="h-4 w-4 text-[#533afd]" />, label: language === "hi" ? "हाउ इट वर्क्स" : "How It Works" },
                 { href: "/product", icon: <Layers className="h-4 w-4 text-blue-600" />, label: language === "hi" ? "उत्पाद विशेषताएँ" : "Product & Features" },
                 { href: "/impact-story", icon: <TrendingUp className="h-4 w-4 text-emerald-600" />, label: language === "hi" ? "सफलता की कहानियाँ" : "Impact Stories" },
-                { href: "/database", icon: <Database className="h-4 w-4 text-[#533afd]" />, label: language === "hi" ? "डेटाबेस इंजन" : "Database Hub" },
                 { href: "/architecture", icon: <FileText className="h-4 w-4 text-indigo-600" />, label: language === "hi" ? "आर्किटेक्चर" : "Architecture" },
               ].map((item) => (
                 <Link
