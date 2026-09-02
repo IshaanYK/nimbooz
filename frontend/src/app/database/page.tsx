@@ -89,14 +89,14 @@ export default function DatabasePage() {
       <div className="max-w-[1240px] w-full mx-auto px-4 sm:px-6 py-8 space-y-8 text-slate-900 font-sans">
         
         {/* Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-b border-[#e3e8ee] pb-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-[#533afd] text-xs font-mono font-bold tracking-wide">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#e3e8ee] pb-5">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-[#533afd] text-[11px] sm:text-xs font-mono font-bold tracking-wide">
               <Sparkles className="h-3.5 w-3.5 text-[#533afd]" />
               <span>PS-07 · PERSISTENT MVP DATA LAYER</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold font-display text-[#0d253d] tracking-tight flex items-center gap-3">
-              <Database className="h-8 w-8 text-[#533afd]" />
+            <h1 className="text-2xl sm:text-4xl font-extrabold font-display text-[#0d253d] tracking-tight flex items-center gap-2.5">
+              <Database className="h-7 w-7 sm:h-8 sm:w-8 text-[#533afd]" />
               <span>AASRA MVP Database Engine</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
@@ -104,11 +104,11 @@ export default function DatabasePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={fetchDbState}
-              className="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-mono font-bold border border-[#e3e8ee] flex items-center gap-2 cursor-pointer transition-all shadow-2xs"
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-mono font-bold border border-[#e3e8ee] flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs active-press"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-[#533afd]" : ""}`} />
               <span>Refresh</span>
@@ -117,7 +117,7 @@ export default function DatabasePage() {
             <button
               type="button"
               onClick={handleExportJson}
-              className="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-mono font-bold border border-[#e3e8ee] flex items-center gap-2 cursor-pointer transition-all shadow-2xs"
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-mono font-bold border border-[#e3e8ee] flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs active-press"
             >
               <Download className="h-3.5 w-3.5 text-slate-500" />
               <span>Export JSON</span>
@@ -126,10 +126,10 @@ export default function DatabasePage() {
             <button
               type="button"
               onClick={handleSeedDatabase}
-              className="px-4 py-2.5 rounded-2xl bg-[#533afd] hover:bg-[#4434d4] text-white text-xs font-mono font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+              className="px-3.5 py-2 rounded-xl bg-[#533afd] hover:bg-[#4434d4] text-white text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active-press"
             >
               <HardDrive className="h-3.5 w-3.5" />
-              <span>Seed Benchmark Data</span>
+              <span>Seed Demo Data</span>
             </button>
           </div>
         </div>

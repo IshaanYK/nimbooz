@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFarm } from "@/context/FarmContext";
-import { isUserLoggedIn, getStoredProfile, logoutUser, INDIAN_LANGUAGES } from "@/lib/userStore";
+import { isUserLoggedIn, getStoredProfile, saveProfile, logoutUser, INDIAN_LANGUAGES } from "@/lib/userStore";
 import { Footer } from "@/components/Footer";
 import {
   Globe,
@@ -507,12 +507,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 { href: "/what-if", icon: <Sliders className="h-4 w-4 text-sky-600" />, label: language === "hi" ? "सिमुलेटर" : "What-If Simulator" },
                 { href: "/impact", icon: <TrendingUp className="h-4 w-4 text-emerald-600" />, label: language === "hi" ? "ROBI प्रभाव" : "ROBI Impact" },
                 { href: "/journal", icon: <BookOpen className="h-4 w-4 text-amber-600" />, label: language === "hi" ? "फार्म डायरी" : "Farm Journal" },
+                { href: "/database", icon: <Database className="h-4 w-4 text-[#533afd]" />, label: language === "hi" ? "डेटाबेस इंजन" : "Database Hub" },
+                { href: "/architecture", icon: <FileText className="h-4 w-4 text-indigo-600" />, label: language === "hi" ? "आर्किटेक्चर" : "Architecture" },
               ].map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-purple-50 hover:text-purple-700 transition-colors active-press"
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -523,13 +525,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 { href: "/how-it-works", icon: <Sparkles className="h-4 w-4 text-[#533afd]" />, label: language === "hi" ? "हाउ इट वर्क्स" : "How It Works" },
                 { href: "/product", icon: <Layers className="h-4 w-4 text-blue-600" />, label: language === "hi" ? "उत्पाद विशेषताएँ" : "Product & Features" },
                 { href: "/impact-story", icon: <TrendingUp className="h-4 w-4 text-emerald-600" />, label: language === "hi" ? "सफलता की कहानियाँ" : "Impact Stories" },
+                { href: "/database", icon: <Database className="h-4 w-4 text-[#533afd]" />, label: language === "hi" ? "डेटाबेस इंजन" : "Database Hub" },
                 { href: "/architecture", icon: <FileText className="h-4 w-4 text-indigo-600" />, label: language === "hi" ? "आर्किटेक्चर" : "Architecture" },
               ].map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-indigo-50 hover:text-[#533afd] transition-colors"
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-indigo-50 hover:text-[#533afd] transition-colors active-press"
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -542,14 +545,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 text-slate-800 font-bold text-center text-xs"
+                    className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 text-slate-800 font-bold text-center text-xs active-press"
                   >
                     <span>{language === "hi" ? "लॉगिन" : "Log In"}</span>
                   </Link>
                   <Link
                     href="/signup"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 py-2.5 px-3 rounded-xl text-white font-bold text-center text-xs shadow-xs"
+                    className="flex-1 py-2.5 px-3 rounded-xl text-white font-bold text-center text-xs shadow-xs active-press"
                     style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
                   >
                     <span>{language === "hi" ? "मुफ्त शुरू करें" : "Sign Up"}</span>
@@ -583,17 +586,50 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </div>
             
             <div className="flex flex-col gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  saveProfile({
+                    fullName: "Ishaan Sen",
+                    mobileNumber: "9876543210",
+                    language: language || "hi",
+                    state: "Madhya Pradesh",
+                    district: "Bhopal",
+                    village: "Phanda Kalan",
+                    fieldAreaAcres: 5.0,
+                    primaryCrop: "Soybean",
+                    cropVariety: "JS-9560 High Yield",
+                    sowingDate: "2026-06-25",
+                    soilType: "Deep Black Clay Soil",
+                    irrigationType: "Rainfed + Borewell Drip",
+                    hasKisanCreditCard: true,
+                    pmKisanBeneficiary: true,
+                    preferredCommunication: "Voice & WhatsApp",
+                    voiceResponsesEnabled: true,
+                    helpTopics: ["Heat Stress", "Quantis Sprays"],
+                    dataConsent: true,
+                  });
+                  setLoggedIn(true);
+                  setProfile(getStoredProfile());
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300 font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active-press hover:scale-[1.01]"
+              >
+                <Sparkles className="h-4 w-4 text-emerald-600" />
+                <span>{language === "hi" ? "🌱 1-टैप डेमो खोलें (ईशान सेन · 5 एकड़ भोपाल)" : "🌱 1-Tap Demo Farm (Ishaan Sen · 5 Acres)"}</span>
+              </button>
+
               <Link
                 href="/signup"
-                className="w-full py-3 px-4 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.98]"
+                className="w-full py-2.5 px-4 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.98] active-press"
                 style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}
               >
                 <UserPlus className="h-4 w-4" />
                 <span>{language === "hi" ? "नया किसान खाता बनाएं (निःशुल्क)" : "Create Free Farmer Account"}</span>
               </Link>
+
               <Link
                 href="/login"
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all border border-slate-200 flex items-center justify-center gap-2"
+                className="w-full py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all border border-slate-200 flex items-center justify-center gap-2 active-press"
               >
                 <Lock className="h-4 w-4 text-[#533afd]" />
                 <span>{language === "hi" ? "किसान खाता लॉगिन करें" : "Log In to Your Account"}</span>
@@ -609,101 +645,145 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <main className="flex-1 w-full">{children}</main>
       )}
 
-      {/* ── Mobile Fixed Bottom Nav Bar (1-Tap Fast Switcher) ─────────────── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/98 backdrop-blur-md border-t border-slate-200 py-2 px-3 flex items-center justify-around shadow-lg">
+      {/* ── Mobile Fixed Bottom Nav Bar (1-Tap Fast Web App Switcher) ─────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/98 backdrop-blur-md border-t border-slate-200/80 px-2 pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-around shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
         {loggedIn ? (
           <>
             <Link
               href="/dashboard"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname === "/dashboard" ? "text-[#533afd]" : "text-slate-500"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative transition-all ${
+                pathname === "/dashboard" ? "text-[#533afd]" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <LayoutDashboard className="h-4 w-4" />
               <span>{language === "hi" ? "होम" : "Home"}</span>
+              {pathname === "/dashboard" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
 
             <Link
               href="/plant-intelligence"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname === "/plant-intelligence" ? "text-[#533afd]" : "text-slate-500"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative transition-all ${
+                pathname === "/plant-intelligence" ? "text-[#533afd]" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Sprout className="h-4 w-4" />
               <span>{language === "hi" ? "पौधा" : "Plant AI"}</span>
+              {pathname === "/plant-intelligence" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
 
             <Link
               href="/assistant"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname === "/assistant" ? "text-[#533afd]" : "text-slate-500"
-              }`}
+              className="flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative"
             >
-              <div className="h-9 w-9 -mt-4 rounded-full text-white flex items-center justify-center shadow-lg" style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}>
+              <div className="h-10 w-10 -mt-5 rounded-full text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 animate-pulse-ring" style={{ background: "linear-gradient(135deg, #533afd, #4434d4)" }}>
                 <Mic className="h-4 w-4" />
               </div>
-              <span>{language === "hi" ? "AI" : "Ask AI"}</span>
+              <span className="text-[#533afd] font-black">{language === "hi" ? "AI साथी" : "Ask AI"}</span>
             </Link>
 
             <Link
               href="/fields"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname === "/fields" ? "text-[#533afd]" : "text-slate-500"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative transition-all ${
+                pathname === "/fields" ? "text-[#533afd]" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Layers className="h-4 w-4" />
               <span>{language === "hi" ? "खेत" : "Fields"}</span>
+              {pathname === "/fields" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
 
             <Link
               href="/what-if"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname === "/what-if" ? "text-[#533afd]" : "text-slate-500"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative transition-all ${
+                pathname === "/what-if" ? "text-[#533afd]" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Sliders className="h-4 w-4" />
               <span>{language === "hi" ? "सिम" : "Simulate"}</span>
+              {pathname === "/what-if" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
           </>
         ) : (
           <>
             <Link
               href="/"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname === "/" ? "text-[#533afd]" : "text-slate-500"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative transition-all ${
+                pathname === "/" ? "text-[#533afd]" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Home className="h-4 w-4" />
               <span>{language === "hi" ? "होम" : "Home"}</span>
+              {pathname === "/" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
+
             <Link
               href="/how-it-works"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname === "/how-it-works" ? "text-[#533afd]" : "text-slate-500"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative transition-all ${
+                pathname === "/how-it-works" ? "text-[#533afd]" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Sparkles className="h-4 w-4" />
               <span>{language === "hi" ? "जानकारी" : "How it works"}</span>
+              {pathname === "/how-it-works" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
+
+            {/* 1-Tap Demo Farm Instant Access for Mobile Judges */}
+            <button
+              type="button"
+              onClick={() => {
+                saveProfile({
+                  fullName: "Ishaan Sen",
+                  mobileNumber: "9876543210",
+                  language: language || "hi",
+                  state: "Madhya Pradesh",
+                  district: "Bhopal",
+                  village: "Phanda Kalan",
+                  fieldAreaAcres: 5.0,
+                  primaryCrop: "Soybean",
+                  cropVariety: "JS-9560 High Yield",
+                  sowingDate: "2026-06-25",
+                  soilType: "Deep Black Clay Soil",
+                  irrigationType: "Rainfed + Borewell Drip",
+                  hasKisanCreditCard: true,
+                  pmKisanBeneficiary: true,
+                  preferredCommunication: "Voice & WhatsApp",
+                  voiceResponsesEnabled: true,
+                  helpTopics: ["Heat Stress", "Quantis Sprays"],
+                  dataConsent: true,
+                });
+                setLoggedIn(true);
+                setProfile(getStoredProfile());
+                router.push("/dashboard");
+              }}
+              className="flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold text-emerald-700 active-press cursor-pointer"
+            >
+              <div className="h-9 w-9 -mt-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md animate-bounce-subtle">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <span className="font-extrabold">{language === "hi" ? "डेमो खोलें" : "Try Demo"}</span>
+            </button>
+
             <Link
               href="/product"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname === "/product" ? "text-[#533afd]" : "text-slate-500"
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold active-press relative transition-all ${
+                pathname === "/product" ? "text-[#533afd]" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Layers className="h-4 w-4" />
               <span>{language === "hi" ? "फीचर्स" : "Product"}</span>
+              {pathname === "/product" && <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-[#533afd]" />}
             </Link>
+
             <Link
-              href="/signup"
-              className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-[#533afd]"
+              href="/login"
+              className="flex flex-col items-center justify-center min-w-[54px] min-h-[44px] gap-0.5 text-[10px] font-bold text-[#533afd] active-press"
             >
-              <UserPlus className="h-4 w-4" />
-              <span>{language === "hi" ? "साइन अप" : "Sign Up"}</span>
+              <User className="h-4 w-4" />
+              <span>{language === "hi" ? "लॉगिन" : "Login"}</span>
             </Link>
           </>
         )}
-      </div>
+      </nav>
 
       {/* ── Add New Farm Portfolio Modal ──────────────────────── */}
       {showNewFarmModal && (

@@ -544,7 +544,7 @@ export const WhatIfSimulator: React.FC = () => {
                 
                 {/* Pod Cluster Diagnostic */}
                 <div
-                  className={`absolute top-1/3 left-6 sm:left-1/4 border-2 rounded-2xl p-3 backdrop-blur-xs transition-all duration-500 max-w-xs ${
+                  className={`absolute top-1/4 sm:top-1/3 left-3 sm:left-1/4 border-2 rounded-2xl p-2 sm:p-3 backdrop-blur-xs transition-all duration-500 max-w-[210px] sm:max-w-xs ${
                     delayDays === 0
                       ? "border-emerald-400/90 bg-emerald-950/60 text-emerald-200 shadow-lg shadow-emerald-500/30"
                       : delayDays <= 2
@@ -552,17 +552,17 @@ export const WhatIfSimulator: React.FC = () => {
                       : "border-rose-400/90 bg-rose-950/70 text-rose-200 shadow-lg shadow-rose-500/40"
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold">
-                    <Target className="h-3.5 w-3.5 shrink-0" />
+                  <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-mono font-bold">
+                    <Target className="h-3 sm:h-3.5 w-3 sm:w-3.5 shrink-0" />
                     <span>
                       {delayDays === 0
                         ? "Pod Viability: 98% (Protected)"
                         : delayDays <= 2
-                        ? `Pod Retention: ${podRetentionPct}% (Stress Abortions)`
-                        : `Pod Abortion: ${flowerAbortionRiskPct}% (Severe Loss)`}
+                        ? `Pod Retention: ${podRetentionPct}%`
+                        : `Pod Abortion: ${flowerAbortionRiskPct}%`}
                     </span>
                   </div>
-                  <div className="text-[11px] opacity-85 mt-0.5 font-sans leading-tight">
+                  <div className="text-[9px] sm:text-[11px] opacity-85 mt-0.5 font-sans leading-tight">
                     {delayDays === 0
                       ? "Cellular osmolyte shield prevents flower drop."
                       : delayDays <= 2

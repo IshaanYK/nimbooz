@@ -1,0 +1,25 @@
+{
+  "name": "AASRA — Precision Agriculture Web App",
+  "short_name": "AASRA",
+  "description": "Evidence-Based Agronomic Intelligence & Multilingual Kisan Voice Assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#533afd",
+  "orientation": "portrait-primary",
+  "categories": ["agriculture", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/images/aasra_logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/aasra-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

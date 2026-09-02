@@ -227,6 +227,19 @@ export const InterventionJournal: React.FC<InterventionJournalProps> = ({ filter
     setEntries(updated);
     try {
       localStorage.setItem("aasra_journal_entries_v3", JSON.stringify(updated));
+      fetch("/api/journal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: newCategory,
+          title: newTitle,
+          subtitle: `${activeFarm.name || "Main Field"} · ${activeFarm.primaryCrop || profile.primaryCrop || "Soybean"} · ${activeFarm.areaAcres || profile.fieldAreaAcres || 5.0} Acres`,
+          date: newDate,
+          dose_per_ha: newDose,
+          costINR: newCost,
+          notes: newNotes,
+        }),
+      }).catch(console.error);
     } catch {}
 
     setExpandedEntryId(createdEntry.id);
