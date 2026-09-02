@@ -35,7 +35,14 @@ export async function sendChatMessage(
   audioBase64?: string,
   audioMimeType?: string,
   conversation_history?: Array<{ sender: string; text: string }>,
-  last_resolved_location?: any
+  last_resolved_location?: any,
+  extraTelemetry?: {
+    temperature?: number | null;
+    humidity?: number | null;
+    wind_speed?: number | null;
+    soil_moisture?: number | null;
+    state?: string;
+  }
 ) {
   try {
     const res = await fetch(`${API_BASE}/chat`, {
@@ -49,6 +56,11 @@ export async function sendChatMessage(
         language,
         location,
         night_temp,
+        temperature: extraTelemetry?.temperature ?? (typeof night_temp === "number" ? night_temp : null),
+        humidity: extraTelemetry?.humidity ?? null,
+        wind_speed: extraTelemetry?.wind_speed ?? null,
+        soil_moisture: extraTelemetry?.soil_moisture ?? null,
+        state: extraTelemetry?.state ?? undefined,
         farmer_name,
         field_acres,
         crop_variety,

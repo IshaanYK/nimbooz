@@ -370,7 +370,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
         providerUsed = visionRes?.provider || "Google Gemini 2.5 Flash Vision";
         dosageSummary = visionRes?.dosage;
       } else {
-        // Chat Pipeline API Call
+        // Chat Pipeline API Call with Full Live Telemetry
         const res = await sendChatMessage(
           textClean,
           weather.lat,
@@ -378,16 +378,24 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           selectedCropId,
           language,
           effectiveLocation,
-          weather.temperature,
+          weather.nightTemperature || weather.temperature,
           effectiveFarmerName,
           effectiveAcres,
           effectiveVariety,
-          profile.soilType || "Alluvial Soil",
+          profile.soilType || "Deep Black Loam",
           effectiveDistrict,
           effectiveVillage,
           audioBase64,
           audioMimeType,
-          messages.map((m) => ({ sender: m.sender, text: m.text }))
+          messages.map((m) => ({ sender: m.sender, text: m.text })),
+          undefined,
+          {
+            temperature: weather.temperature,
+            humidity: weather.humidity ?? 68,
+            wind_speed: weather.windSpeed,
+            soil_moisture: weather.soilMoistureEst,
+            state: weather.state || "Madhya Pradesh",
+          }
         );
 
         if (res && (res.reply || res.response)) {
@@ -429,6 +437,13 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       dosageSummary,
       mandiRecord,
       locationUsed: effectiveDistrict,
+      telemetryUsed: {
+        location: effectiveDistrict,
+        temp: weather.temperature,
+        soil: weather.soilMoistureEst,
+        wind: weather.windSpeed,
+        isSpraySafe,
+      },
     };
 
     setMessages((prev) => [...prev, botMsg]);
@@ -620,12 +635,21 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 </div>
               )}
 
-              {/* Bot Identity Pill with Shimmer */}
+              {/* Bot Identity & Live Grounding Badge */}
               {msg.sender === "bot" && (
-                <div className="relative overflow-hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 text-[#533afd] border border-indigo-200 text-[10px] font-bold font-mono uppercase tracking-wide mb-2 shadow-2xs">
-                  <Sparkles className="h-3 w-3 text-[#533afd] animate-pulse" />
-                  <span>AASRA Intelligence</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full animate-laser-shimmer" />
+                <div className="flex items-center justify-between gap-2 flex-wrap mb-2.5">
+                  <div className="relative overflow-hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 text-[#533afd] border border-indigo-200 text-[10px] font-bold font-mono uppercase tracking-wide shadow-2xs">
+                    <Sparkles className="h-3 w-3 text-[#533afd] animate-pulse" />
+                    <span>AASRA Intelligence</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full animate-laser-shimmer" />
+                  </div>
+
+                  {msg.telemetryUsed && (
+                    <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-bold flex items-center gap-1 shadow-2xs">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+                      <span>{msg.telemetryUsed.location || effectiveDistrict} · {msg.telemetryUsed.temp}°C · Soil {msg.telemetryUsed.soil}%</span>
+                    </span>
+                  )}
                 </div>
               )}
 

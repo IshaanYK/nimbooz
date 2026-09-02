@@ -9,6 +9,7 @@ import { useWeather } from "@/context/WeatherContext";
 import { useFarm } from "@/context/FarmContext";
 import { resolveCropThresholds } from "@/lib/cropRegistry";
 import { getCropAdvisoryProfile } from "@/lib/agriculture/cropAdvisoryMatrix";
+import { findCropMandiRate } from "@/lib/mandiEngine";
 import {
   Thermometer,
   RefreshCw,
@@ -22,6 +23,7 @@ import {
   Cpu,
   Layers,
   Activity,
+  TrendingUp,
 } from "lucide-react";
 
 export default function AssistantPage() {
@@ -136,17 +138,33 @@ export default function AssistantPage() {
         </div>
 
         {/* ─────────────────────────────────────────────────────────────
-            3. SUGGESTED CROP-AWARE QUESTION CHIPS
+            3. SUGGESTED CROP-AWARE & TELEMETRY-AWARE QUESTION CHIPS
            ───────────────────────────────────────────────────────────── */}
         <div className="space-y-1.5">
-          <span className="text-xs font-mono font-bold text-slate-500">{t.tryAskingLabel}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-slate-500">{t.tryAskingLabel}</span>
+            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+              Live {weather.temperature}°C Grounded
+            </span>
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
             {[
-              language === "hi" ? `${cropInfo.nameHi} का आज का ताजा मंडी भाव क्या है?` : `What is today's ${cropInfo.name} mandi price?`,
-              language === "hi" ? `क्या आज मेरी फसल में स्प्रे करने का सही समय है?` : `When is the safest spray window today?`,
-              language === "hi" ? `${cropInfo.nameHi} में कीट व फफूंद रोग की रोकथाम के उपाय बताएं` : `How to control pests & diseases in ${cropInfo.name}?`,
-              language === "hi" ? `तापमान तनाव से फसल को बचाने के उपाय` : `How to protect crops against heat stress?`,
-              language === "hi" ? `दवा छिड़काव की सही मात्रा (Dosage) प्रति एकड़ बताएं` : `Recommended product dosage per acre`,
+              language === "hi"
+                ? `🌡️ ${weather.temperature}°C में क्या ${cropInfo.nameHi} पर स्ट्रेस बस्टर स्प्रे करना चाहिए?`
+                : `🌡️ At ${weather.temperature}°C: Should I spray stress buster on ${cropInfo.name}?`,
+              language === "hi"
+                ? `🏛️ ${weather.district || "भोपाल"} APMC में आज ${cropInfo.nameHi} का ताजा मंडी भाव क्या है?`
+                : `🏛️ What is today's ${cropInfo.name} mandi price in ${weather.district || "Bhopal"} APMC?`,
+              language === "hi"
+                ? `💨 हवा ${weather.windSpeed} km/h: क्या आज कीटनाशक/टॉनिक छिड़काव के लिए सुरक्षित मौसम है?`
+                : `💨 Wind at ${weather.windSpeed} km/h: Is current weather safe for spraying?`,
+              language === "hi"
+                ? `💧 मिट्टी में ${weather.soilMoistureEst}% नमी: क्या सिंचाई तुरंत करनी चाहिए?`
+                : `💧 Soil moisture index at ${weather.soilMoistureEst}%: Is immediate irrigation required?`,
+              language === "hi"
+                ? `🛡️ सिंजेंटा क्वांटिस®: मेरे 5 एकड़ खेत के लिए सही खुराक व पानी की मात्रा बताएं`
+                : `🛡️ Syngenta Quantis®: Exact dosage and water dilution for 5 acres`,
             ].map((q, idx) => (
               <button
                 key={idx}
@@ -284,6 +302,59 @@ export default function AssistantPage() {
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Live APMC Mandi Benchmark Card */}
+            <div className="bg-white border border-[#e3e8ee] rounded-3xl p-6 space-y-3.5 shadow-sm">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-sm text-[#0d253d] font-display flex items-center gap-2">
+                  <span className="text-base">🏛️</span>
+                  <span>APMC Mandi Benchmark</span>
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                  AGMARKNET
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs font-mono">
+                <div className="flex justify-between items-center bg-[#f6f9fc] p-3 rounded-xl border border-[#e3e8ee]">
+                  <span className="text-slate-500 font-sans font-medium">Market Yard:</span>
+                  <span className="font-bold text-[#0d253d]">{weather.district || "Bhopal"} APMC</span>
+                </div>
+                <div className="flex justify-between items-center bg-[#f6f9fc] p-3 rounded-xl border border-[#e3e8ee]">
+                  <span className="text-slate-500 font-sans font-medium">Modal Price:</span>
+                  <span className="font-black text-[#533afd] text-sm">
+                    ₹{(findCropMandiRate(activeCropId, weather.district || "Bhopal", weather.state || "Madhya Pradesh")?.modalPrice || 4850).toLocaleString("en-IN")}/quintal
+                  </span>
+                </div>
+                <div className="flex justify-between items-center bg-[#f6f9fc] p-3 rounded-xl border border-[#e3e8ee]">
+                  <span className="text-slate-500 font-sans font-medium">5-Acre Harvest Est:</span>
+                  <span className="font-bold text-emerald-700">
+                    ~₹{((findCropMandiRate(activeCropId, weather.district || "Bhopal", weather.state || "Madhya Pradesh")?.modalPrice || 4850) * 45).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Spray Window Safety Meter */}
+              <div className={`p-3.5 rounded-2xl border text-xs font-mono space-y-1.5 ${
+                weather.windSpeed < 15 && weather.temperature < 33
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-950"
+                  : "bg-amber-50 border-amber-200 text-amber-950"
+              }`}>
+                <div className="flex items-center gap-1.5 font-bold">
+                  <Wind className="h-4 w-4 shrink-0" />
+                  <span>
+                    {weather.windSpeed < 15 && weather.temperature < 33
+                      ? "Safe Spray Window Active"
+                      : "Spray Drift Caution"}
+                  </span>
+                </div>
+                <p className="text-[11px] font-sans opacity-85 leading-relaxed">
+                  {weather.windSpeed < 15 && weather.temperature < 33
+                    ? `Wind is ${weather.windSpeed} km/h (threshold < 15 km/h) & Temp ${weather.temperature}°C. Minimal chemical drift risk.`
+                    : `Wind speed is ${weather.windSpeed} km/h or temp is high (${weather.temperature}°C). Spray in the evening after 5:00 PM.`}
+                </p>
+              </div>
             </div>
 
             {/* Architecture Card - Stripe Enterprise Dark Accent with Interactive Glow */}

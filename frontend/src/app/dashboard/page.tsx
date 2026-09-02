@@ -22,6 +22,7 @@ import { useFarm } from "@/context/FarmContext";
 import { calculateDeterministicROI } from "@/lib/calculations/roiEngine";
 import { getRegionalCrops, saveCustomCrop } from "@/lib/cropRegistry";
 import { findCropMandiRate } from "@/lib/mandiEngine";
+import { DashboardAiAssistantWidget } from "@/components/DashboardAiAssistantWidget";
 import {
   Sparkles, TrendingUp, ArrowRight, Sun, Zap, AlertTriangle, Mic, Layers, MapPin, CheckCircle2, Sliders,
   Thermometer, Droplets, Sprout, RefreshCw, Volume2, VolumeX, Edit3, ShieldCheck, X, Plus
@@ -344,6 +345,14 @@ export default function DashboardPage() {
         {/* 🌟 1. Today's Farmer Action Verdict & 1-Tap Voice Briefing */}
         <KisanActionVerdict />
 
+        {/* 🌟 Instant Grounded AI Copilot (Live Sensor & Mandi Telemetry) */}
+        <DashboardAiAssistantWidget
+          crop={currentCrop}
+          acres={currentAcres}
+          district={currentDistrict}
+          farmerName={profile.fullName || ""}
+        />
+
         {/* 🌟 2. Concept Note PS-02: Biological Activation Countdown */}
         <BiologicalActivationCountdown
           cropName={currentCrop.toUpperCase()}
@@ -442,6 +451,94 @@ export default function DashboardPage() {
                 <span className="text-[10px] text-slate-500 block">
                   {weather.windSpeed <= 15 ? "✅ Safe for Spray" : "⚠️ Drift Warning"}
                 </span>
+              </div>
+
+            </div>
+
+            {/* Live Agro-Climatic Intelligence & Market Valuation Bar */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-100 font-mono text-xs">
+              
+              {/* 1. Agro-Climatic Risk Index */}
+              <div className="bg-[#f6f9fc] p-3.5 rounded-2xl border border-slate-200 space-y-1.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-sans font-bold text-[10px] uppercase">Agro-Climatic Risk Index</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    weather.isNightHeatStress ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"
+                  }`}>
+                    {weather.isNightHeatStress ? "High Risk" : "Normal"}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-2xl font-black font-display ${
+                    weather.isNightHeatStress ? "text-rose-600" : "text-emerald-600"
+                  }`}>
+                    {weather.heatStressPercent}%
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-sans">
+                    {weather.isNightHeatStress ? "Nocturnal Respiration Loss" : "Optimal Vegetative State"}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      weather.isNightHeatStress ? "bg-rose-500" : "bg-emerald-500"
+                    }`}
+                    style={{ width: `${Math.min(100, Math.max(10, weather.heatStressPercent))}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 2. Today's Spray Feasibility Window */}
+              <div className={`p-3.5 rounded-2xl border space-y-1.5 shadow-2xs ${
+                weather.windSpeed < 15 && weather.temperature < 33
+                  ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
+                  : "bg-amber-50/70 border-amber-200 text-amber-950"
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-sans font-bold text-[10px] uppercase opacity-75">Chemical Spray Window</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    weather.windSpeed < 15 && weather.temperature < 33
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-amber-100 text-amber-800"
+                  }`}>
+                    {weather.windSpeed < 15 && weather.temperature < 33 ? "Safe to Spray" : "Hold Spray"}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-black font-display">
+                    {weather.windSpeed < 15 && weather.temperature < 33 ? "Active Now" : "Delay to 5 PM"}
+                  </span>
+                  <span className="text-[10px] opacity-75 font-sans">
+                    Wind {weather.windSpeed} km/h (Limit: 15 km/h)
+                  </span>
+                </div>
+                <p className="text-[11px] font-sans opacity-80 leading-tight">
+                  {weather.windSpeed < 15 && weather.temperature < 33
+                    ? "Ideal conditions for Quantis / Isabion foliar uptake."
+                    : "High wind drift or heat risk. Apply in late evening."}
+                </p>
+              </div>
+
+              {/* 3. APMC Mandi Harvest Valuation */}
+              <div className="bg-[#f6f9fc] p-3.5 rounded-2xl border border-slate-200 space-y-1.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-sans font-bold text-[10px] uppercase">
+                    {currentDistrict} APMC Rate
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Live Agmarknet
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-black text-slate-900 font-display">
+                    ₹{currentMandiPrice.toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-sans">/quintal</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-600 font-sans">
+                  <span>5-Ac Harvest: ~₹{(currentMandiPrice * currentAcres * 9).toLocaleString("en-IN")}</span>
+                  <span className="font-bold text-emerald-700">+₹{netProfitEst.toLocaleString("en-IN")} ROI</span>
+                </div>
               </div>
 
             </div>
