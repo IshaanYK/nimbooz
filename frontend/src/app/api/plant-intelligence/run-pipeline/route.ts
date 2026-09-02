@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getRecommendations, FarmerInput } from "@/lib/recommendationEngine";
+import { getAllProducts } from "@/lib/syngentaProductsDB";
 
 const REGIONS_DATA: Record<string, { name: string; lat: number; lon: number; soil_type: string; soil_buffer: number; salinity_index: number; crops: string[]; dominant_stresses: string[] }> = {
   punjab: {
@@ -63,105 +65,47 @@ const REGIONS_DATA: Record<string, { name: string; lat: number; lon: number; soi
   }
 };
 
-const SYNGENTA_PRODUCTS: Record<string, any> = {
-  isabion: {
-    name: "Isabion®",
-    category: "Biostimulant",
-    subcategory: "Amino Acid & Peptide Complex",
-    active_ingredient: "Free L-Amino Acids (62.5%) + Short-Chain Peptides",
-    registration: "CIB&RC Registered (FCO)",
-    base_dosage: 2.0,
-    retail_price_inr: "₹400-₹1,300 (250ml-1L)",
-    moa_vector: [0.95, 0.60, 0.98, 0.70, 0.40, 0.85],
-    target: "Flower Drop Prevention & Heat Shock Protein (HSP) Activation",
-    description: "Supplies ready-made L-amino acids to bypass energy-costly biosynthesis; maintains pollen vitality under thermal stress.",
-    synergist: "+ 1% Foliar Urea (synergistic nitrogen uptake)",
-    tank_mix_safe: ["Urea (1%)", "Ampligo®", "NPK 19-19-19", "Amistar Top®"],
-    tank_mix_danger: ["Copper Fungicides", "Alkaline Sulfur Compounds", "Bordeaux Mixture"],
-    crops_recommended: ["Soybean", "Cotton", "Chilli", "Tomato", "Grape", "Mango", "Rice", "Wheat"]
-  },
-  quantis: {
-    name: "Quantis®",
-    category: "Biostimulant",
-    subcategory: "Osmoprotectant & Anti-Stress Shield",
-    active_ingredient: "Yeast Extract + Potassium (K) + Calcium (Ca) + Organic Carbon",
-    registration: "CIB&RC Registered",
-    base_dosage: 2.0,
-    retail_price_inr: "₹400-₹900 (250ml-1L)",
-    moa_vector: [0.90, 0.95, 0.80, 0.65, 0.85, 0.80],
-    target: "Extreme Thermal Shock & Cell Turgor / Membrane Stabilization",
-    description: "Activates plant antioxidant defense enzymes (SOD, Catalase); stabilizes cell membranes during heatwave and drought events.",
-    synergist: "+ 0.5% Potassium Nitrate (KNO3) for stomatal turgor",
-    tank_mix_safe: ["Ampligo®", "Score®", "Micronutrients (Zn, B, Fe)"],
-    tank_mix_danger: ["Strong Acids (pH<4)"],
-    crops_recommended: ["Soybean", "Cotton", "Groundnut", "Wheat", "Maize", "Sugarcane"]
-  },
-  ampligo: {
-    name: "Ampligo®",
-    category: "Insecticide",
-    subcategory: "Dual-Action Lepidoptera Control",
-    active_ingredient: "Chlorantraniliprole 10% + Lambda-Cyhalothrin 5% ZC",
-    registration: "CIB&RC 9(3) Registered",
-    base_dosage: 0.5,
-    retail_price_inr: "₹550-₹1,800 (80ml-250ml)",
-    target: "Bollworm, Armyworm, Fruit Borer & Caterpillar Complex",
-    description: "Dual-action ZC formulation providing rapid knockdown + sustained ovi-larvicidal control.",
-    tank_mix_safe: ["Isabion®", "Amistar Top®", "Foliar Fertilizers"],
-    tank_mix_danger: ["Alkaline Compounds (pH>9)"]
-  },
-  actara: {
-    name: "Actara®",
-    category: "Insecticide",
-    subcategory: "Systemic Neonicotinoid",
-    active_ingredient: "Thiamethoxam 25% WG",
-    registration: "CIB&RC 9(3) Registered",
-    base_dosage: 0.2,
-    retail_price_inr: "₹180-₹650 (40g-100g)",
-    target: "Sucking Pests: Whitefly, Aphids, Jassids, Thrips",
-    description: "Translaminar systemic insecticide absorbed through foliage; 14-21 day residual control.",
-    tank_mix_safe: ["Ridomil Gold®", "Score®", "Foliar Fertilizers"],
-    tank_mix_danger: ["Highly Alkaline Mixtures"]
-  },
-  amistar_top: {
-    name: "Amistar Top®",
-    category: "Fungicide",
-    subcategory: "Systemic Broad-Spectrum (Strobilurin + Triazole)",
-    active_ingredient: "Azoxystrobin 18.2% + Difenoconazole 11.4% SC",
-    registration: "CIB&RC 9(3) Registered",
-    base_dosage: 1.0,
-    retail_price_inr: "₹500-₹1,400 (100ml-500ml)",
-    target: "Anthracnose, Rust, Powdery Mildew, Leaf Spot, Early/Late Blight",
-    description: "Combines QoI respiratory inhibition with ergosterol biosynthesis block with proven greening effect.",
-    tank_mix_safe: ["Isabion®", "Ampligo®", "Actara®", "Foliar NPK"],
-    tank_mix_danger: ["Copper Oxychloride", "Strong Alkaline Solutions"]
-  },
-  ridomil_gold: {
-    name: "Ridomil Gold®",
-    category: "Fungicide",
-    subcategory: "Systemic + Contact (Oomycete Specialist)",
-    active_ingredient: "Metalaxyl-M 4% + Mancozeb 64% WP",
-    registration: "CIB&RC 9(3) Registered",
-    base_dosage: 2.5,
-    retail_price_inr: "₹350-₹1,200 (100g-500g)",
-    target: "Downy Mildew, Late Blight, Damping Off (Phytophthora / Pythium)",
-    description: "Gold-standard oomycete fungicide combining acropetal systemic protection with multi-site contact shield.",
-    tank_mix_safe: ["Actara®", "Most Insecticides"],
-    tank_mix_danger: ["Alkaline Compounds", "Lime Sulfur"]
-  },
-  score: {
-    name: "Score®",
-    category: "Fungicide",
-    subcategory: "Systemic Triazole",
-    active_ingredient: "Difenoconazole 25% EC",
-    registration: "CIB&RC 9(3) Registered",
-    base_dosage: 0.5,
-    retail_price_inr: "₹380-₹1,100 (100ml-500ml)",
-    target: "Powdery Mildew, Rust, Scab, Alternaria, Cercospora",
-    description: "Fast-acting systemic triazole with curative and protective action; rainfast within 1 hour.",
-    tank_mix_safe: ["Actara®", "Quantis®", "Foliar Fertilizers"],
-    tank_mix_danger: ["EC Insecticides at high volume"]
-  }
-};
+// Map soil_type from region data to recommendation engine soil types
+function mapSoilType(soilType: string): string {
+  const lower = soilType.toLowerCase();
+  if (lower.includes("alluvial")) return "alluvial";
+  if (lower.includes("black") || lower.includes("vertisol")) return "black_cotton";
+  if (lower.includes("red") || lower.includes("laterite")) return "red_laterite";
+  if (lower.includes("sandy")) return "sandy";
+  if (lower.includes("loam")) return "loamy";
+  if (lower.includes("clay")) return "clay";
+  return "loamy";
+}
+
+// Detect current season based on date
+function getCurrentSeason(): string {
+  const month = new Date().getMonth() + 1; // 1-12
+  if (month >= 6 && month <= 10) return "kharif";
+  if (month >= 11 || month <= 3) return "rabi";
+  return "zaid";
+}
+
+// Map symptoms from frontend to engine format
+function mapSymptoms(symptoms: string): string {
+  const lower = (symptoms || "none").toLowerCase();
+  if (lower.includes("wilt")) return "wilting";
+  if (lower.includes("yellow") || lower.includes("chlorosis")) return "yellowing";
+  if (lower.includes("spot") || lower.includes("lesion")) return "leaf_spots";
+  if (lower.includes("pest") || lower.includes("insect") || lower.includes("borer") || lower.includes("worm")) return "pest_damage";
+  if (lower.includes("stunt") || lower.includes("dwarf")) return "stunting";
+  return "none";
+}
+
+// Map growth stage from frontend to engine format
+function mapGrowthStage(stage: string): string {
+  const lower = (stage || "flowering").toLowerCase();
+  if (lower.includes("germin") || lower.includes("emerg") || lower.includes("seedl")) return "germination";
+  if (lower.includes("veget") || lower.includes("tiller")) return "vegetative";
+  if (lower.includes("flower") || lower.includes("bloom") || lower.includes("anthes")) return "flowering";
+  if (lower.includes("pod") || lower.includes("grain") || lower.includes("fruit") || lower.includes("boll") || lower.includes("tuber")) return "podFormation";
+  if (lower.includes("matur") || lower.includes("ripen") || lower.includes("harvest")) return "maturity";
+  return "flowering";
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
@@ -172,8 +116,11 @@ export async function POST(request: NextRequest) {
   const soilMoisture = body.soil_moisture || "Optimal";
 
   const regionInfo = REGIONS_DATA[regionKey] || REGIONS_DATA["bhopal"];
-  const lat = regionInfo.lat;
-  const lon = regionInfo.lon;
+  
+  // Use custom coordinates if provided, otherwise use region defaults
+  const lat = body.lat != null ? Number(body.lat) : regionInfo.lat;
+  const lon = body.lon != null ? Number(body.lon) : regionInfo.lon;
+  const locationName = body.custom_location_name || regionInfo.name;
 
   // 1. Fetch live 14-day weather from Open-Meteo
   let dailyData: any = null;
@@ -186,15 +133,22 @@ export async function POST(request: NextRequest) {
     }
   } catch (err) {}
 
-  // 2. Crop thresholds
+  // 2. Crop thresholds for forecast stress calculation
   const cropThresholds: Record<string, { tmax_opt: number; tmax_lim: number; tmin_opt: number; tmin_lim: number }> = {
     soybean: { tmax_opt: 32, tmax_lim: 45, tmin_opt: 22, tmin_lim: 28 },
     wheat: { tmax_opt: 25, tmax_lim: 32, tmin_opt: 15, tmin_lim: 20 },
     cotton_bt: { tmax_opt: 32, tmax_lim: 38, tmin_opt: 20, tmin_lim: 25 },
+    cotton: { tmax_opt: 32, tmax_lim: 38, tmin_opt: 20, tmin_lim: 25 },
     rice: { tmax_opt: 32, tmax_lim: 38, tmin_opt: 22, tmin_lim: 28 },
     groundnut: { tmax_opt: 30, tmax_lim: 40, tmin_opt: 20, tmin_lim: 26 },
     chickpea: { tmax_opt: 28, tmax_lim: 35, tmin_opt: 15, tmin_lim: 22 },
-    chilli: { tmax_opt: 30, tmax_lim: 38, tmin_opt: 18, tmin_lim: 24 }
+    chilli: { tmax_opt: 30, tmax_lim: 38, tmin_opt: 18, tmin_lim: 24 },
+    maize: { tmax_opt: 33, tmax_lim: 44, tmin_opt: 22, tmin_lim: 28 },
+    potato: { tmax_opt: 20, tmax_lim: 30, tmin_opt: 12, tmin_lim: 20 },
+    mustard: { tmax_opt: 24, tmax_lim: 34, tmin_opt: 12, tmin_lim: 22 },
+    sugarcane: { tmax_opt: 30, tmax_lim: 40, tmin_opt: 20, tmin_lim: 28 },
+    tomato: { tmax_opt: 26, tmax_lim: 36, tmin_opt: 16, tmin_lim: 24 },
+    onion: { tmax_opt: 25, tmax_lim: 35, tmin_opt: 15, tmin_lim: 24 },
   };
   const th = cropThresholds[crop.toLowerCase()] || { tmax_opt: 32, tmax_lim: 42, tmin_opt: 20, tmin_lim: 26 };
 
@@ -214,6 +168,11 @@ export async function POST(request: NextRequest) {
   let avgHsi = 0;
   let avgDsi = 0;
   let heavyRainDays = 0;
+  let totalRainfall = 0;
+  let avgHumidity = 0;
+  let maxWind = 0;
+  let peakTmax = 0;
+  let peakTmin = 0;
 
   for (let i = 0; i < 14; i++) {
     let tmax = 28 + (i % 3);
@@ -235,6 +194,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (precip >= 15) heavyRainDays++;
+    totalRainfall += precip;
+    avgHumidity += (rhMax + rhMin) / 2;
+    if (wind > maxWind) maxWind = wind;
+    if (tmax > peakTmax) peakTmax = tmax;
+    if (tmin > peakTmin) peakTmin = tmin;
 
     // Calculate HSI
     let hsiDay = 0;
@@ -309,6 +273,7 @@ export async function POST(request: NextRequest) {
 
   avgHsi /= 14;
   avgDsi /= 14;
+  avgHumidity /= 14;
 
   if (soilMoisture === "Dry") avgDsi = Math.max(avgDsi, 0.65);
   if (symptoms === "Wilting") avgDsi += 0.15;
@@ -318,63 +283,112 @@ export async function POST(request: NextRequest) {
   const yieldRisk = Math.min(Math.round(compoundStress * 1000) / 10, 95.0);
   const riskLevel = yieldRisk > 70 ? "CRITICAL" : yieldRisk > 45 ? "HIGH" : yieldRisk > 25 ? "MODERATE" : "LOW";
 
-  // Product selection (Biostimulant primary + Crop Protection secondary)
-  const isFlowering = stage === "Flowering" || stage === "Pod Formation";
-  const primaryKey = isFlowering || avgHsi > avgDsi ? "isabion" : "quantis";
-  const primaryProd = SYNGENTA_PRODUCTS[primaryKey];
-
-  const soilBuffer = regionInfo.soil_buffer;
-  const optimizedDosage = (primaryProd.base_dosage * (1.0 + 0.5 * compoundStress + 0.3 * wStage - 0.2 * soilBuffer)).toFixed(2);
-  const waterVolume = (avgHsi > 0.5 || avgDsi > 0.5) ? 250 : 200;
-  const countdownDays = yieldRisk > 70 ? 3 : yieldRisk > 45 ? 5 : 8;
-
-  // Secondary Crop Protection Recommendation (Fungicide / Insecticide based on wetness / symptoms)
-  let secondaryProd = null;
-  if (heavyRainDays >= 2 || symptoms.includes("Yellowing") || symptoms.includes("Chlorosis")) {
-    secondaryProd = {
-      product_name: "Amistar Top®",
-      category: "Fungicide",
-      active_ingredient: "Azoxystrobin 18.2% + Difenoconazole 11.4% SC",
-      dosage: "1.0 L/ha (200 ml/acre)",
-      rationale: "High humidity and upcoming rain events create high risk of leaf spot, anthracnose, and rust.",
-      tank_mix_compatibility: "100% Compatible with Isabion® in the same spray tank."
-    };
-  } else if (symptoms === "Wilting" || isFlowering) {
-    secondaryProd = {
-      product_name: "Ampligo®",
-      category: "Insecticide",
-      active_ingredient: "Chlorantraniliprole 10% + Lambda-Cyhalothrin 5% ZC",
-      dosage: "0.5 L/ha (100 ml/acre)",
-      rationale: "Preventative pod borer and caterpillar shield during reproductive stage.",
-      tank_mix_compatibility: "100% Compatible with Isabion® — saves one tractor application pass."
-    };
-  }
-
-  const mandiPrices: Record<string, number> = {
-    soybean: 4800, wheat: 2275, cotton_bt: 7100, rice: 2200,
-    groundnut: 6300, chilli: 14000, chickpea: 5600, apple: 8500
+  // ============================================================
+  // 3-LAYER HYBRID RECOMMENDATION ENGINE (50 Syngenta Products)
+  // ============================================================
+  const farmerInput: FarmerInput = {
+    cropType: crop.replace("_bt", "").replace("_", ""),
+    growthStage: mapGrowthStage(stage),
+    temperatureMax: peakTmax || 35,
+    temperatureMin: peakTmin || 24,
+    humidityAvg: avgHumidity || 75,
+    rainfall7Day: totalRainfall || 0,
+    windSpeed: maxWind || 12,
+    soilMoisture: soilMoisture.toLowerCase() === "dry" ? "dry" : soilMoisture.toLowerCase() === "waterlogged" ? "waterlogged" : "optimal",
+    soilType: mapSoilType(regionInfo.soil_type),
+    symptoms: mapSymptoms(symptoms),
+    season: getCurrentSeason(),
+    daysSinceLastSpray: 14,
+    acreage: 5,
+    locationName: locationName,
   };
-  const mandiPrice = mandiPrices[crop.toLowerCase()] || 4800;
-  const expectedYieldGain = primaryKey === "isabion" ? 3.6 : 2.9;
-  const productCost = 1250;
-  const appCost = 400;
-  const totalCost = productCost + appCost;
-  const expectedRevenue = expectedYieldGain * mandiPrice;
-  const robi = Number((expectedRevenue / totalCost).toFixed(1));
 
-  const catalogSummary = Object.entries(SYNGENTA_PRODUCTS).map(([key, p]) => ({
-    key,
+  const recommendationResult = getRecommendations(farmerInput);
+  const topRec = recommendationResult.recommendations[0];
+  const secondRec = recommendationResult.recommendations[1];
+  const thirdRec = recommendationResult.recommendations[2];
+
+  // Build the primary product response from the top recommendation
+  const primaryProduct = topRec ? {
+    product_key: topRec.product.key,
+    product_name: topRec.product.name,
+    category: topRec.product.category,
+    active_ingredient: topRec.product.activeIngredient,
+    dosage: topRec.dosageForThisCase,
+    application_method: topRec.product.category === "seed_treatment" ? "Seed Treatment" : "Foliar Spray with Boom / Knapsack Nozzle",
+    water_usage: `${topRec.product.waterPerAcre} L/acre`,
+    target: topRec.product.targetPests.join(", "),
+    description: topRec.farmerExplanation,
+    synergist: topRec.product.tankMixSafe.length > 0 ? `Compatible with: ${topRec.product.tankMixSafe.slice(0, 3).join(", ")}` : undefined,
+    tank_mix_safe: topRec.product.tankMixSafe,
+    tank_mix_danger: topRec.product.tankMixDanger,
+    retail_price: topRec.product.mrpInr,
+  } : null;
+
+  // Build secondary recommendation
+  const secondaryProd = secondRec ? {
+    product_name: secondRec.product.name,
+    category: secondRec.product.category,
+    active_ingredient: secondRec.product.activeIngredient,
+    dosage: secondRec.dosageForThisCase,
+    rationale: secondRec.farmerExplanation,
+    tank_mix_compatibility: secondRec.product.tankMixSafe.some(s => topRec && s.toLowerCase().includes(topRec.product.name.toLowerCase().replace("®", "")))
+      ? `Compatible with ${topRec?.product.name} in the same spray tank.`
+      : "Apply separately for best results.",
+  } : null;
+
+  // Build top candidates list for UI display
+  const topCandidates = recommendationResult.recommendations.map(r => ({
+    name: r.product.name,
+    score: Math.round(r.score * 10) / 10,
+    target: r.product.targetPests.slice(0, 3).join(", "),
+    category: r.product.category,
+    costPerAcre: r.costBreakdown.totalPerAcre,
+    mrp: r.product.mrpInr,
+    dosage: r.dosageForThisCase,
+    reasoning: r.farmerExplanation,
+    triggerReasons: r.triggerReasons,
+    stressType: r.stressType,
+    costBreakdown: r.costBreakdown,
+    expectedBenefit: r.expectedBenefit,
+    sprayWindow: r.sprayWindow,
+  }));
+
+  // Build complete catalog from all 50 products
+  const allProducts = getAllProducts();
+  const catalogSummary = allProducts.map(p => ({
+    key: p.key,
     name: p.name,
     category: p.category,
-    active_ingredient: p.active_ingredient,
-    retail_price: p.retail_price_inr,
-    target: p.target
+    active_ingredient: p.activeIngredient,
+    retail_price: p.mrpInr,
+    target: p.targetPests.slice(0, 3).join(", "),
+    dosage: p.dosagePerAcre,
+    approved_crops: p.approvedCrops.slice(0, 5).join(", "),
   }));
+
+  // Economic ROI from recommendation engine
+  const economicROI = topRec ? {
+    productCost: topRec.costBreakdown.productCost,
+    applicationCost: topRec.costBreakdown.laborCost,
+    waterCost: topRec.costBreakdown.waterCost,
+    totalCostPerAcre: topRec.costBreakdown.totalPerAcre,
+    totalCostForField: topRec.costBreakdown.totalForField,
+    expectedYieldGain: `${topRec.expectedBenefit.yieldProtectedQPerAcre} q/acre`,
+    mandiPrice: topRec.expectedBenefit.revenueProtectedPerAcre / (topRec.expectedBenefit.yieldProtectedQPerAcre || 1),
+    expectedRevenue: topRec.expectedBenefit.revenueProtectedPerAcre,
+    robi: topRec.expectedBenefit.robi,
+  } : { productCost: 1250, applicationCost: 400, totalCostPerAcre: 1650, totalCostForField: 8250, expectedYieldGain: "2 q/acre", mandiPrice: 4800, expectedRevenue: 9600, robi: 5.8 };
 
   return NextResponse.json({
     data_source: dailyData ? "LIVE_OPEN_METEO" : "CALIBRATED_FALLBACK",
     weather_api: "Open-Meteo (api.open-meteo.com) — Live GPS Telemetry",
-    region: regionInfo,
+    region: {
+      ...regionInfo,
+      lat,
+      lon,
+      name: locationName,
+    },
     crop_profile: {
       crop,
       stage,
@@ -384,68 +398,62 @@ export async function POST(request: NextRequest) {
     has_critical_alert: yieldRisk > 45,
     alert: {
       title: `Compound Climate Stress Alert (${riskLevel})`,
-      description: `Meteorological telemetry for ${crop} at ${stage} stage in ${regionInfo.name}.`,
+      description: `Meteorological telemetry for ${crop} at ${stage} stage in ${locationName}. ${recommendationResult.stressProfile.dominantStress !== 'none' ? `Dominant stress: ${recommendationResult.stressProfile.dominantStress.toUpperCase()}.` : 'Conditions are within acceptable range.'}`,
       severity: riskLevel,
       factors: [
         {
           factor: "Peak Max Temperature",
-          readings: `${Math.max(...forecast.map(f => f.weather_layer.TMax))}°C`,
-          status: Math.max(...forecast.map(f => f.weather_layer.TMax)) > 35 ? "Critical" : "Normal",
+          readings: `${peakTmax.toFixed(1)}°C`,
+          status: peakTmax > 35 ? "Critical" : "Normal",
           threshold_info: ">35°C Denaturing Limit"
         },
         {
           factor: "Peak Night Temperature (HNT)",
-          readings: `${Math.max(...forecast.map(f => f.weather_layer.TMin))}°C`,
-          status: Math.max(...forecast.map(f => f.weather_layer.TMin)) > 22 ? "Warning" : "Normal",
+          readings: `${peakTmin.toFixed(1)}°C`,
+          status: peakTmin > 22 ? "Warning" : "Normal",
           threshold_info: ">22°C Dark Respiration Threshold"
         },
         {
           factor: "14-Day Cumulative Rain",
-          readings: `${Math.round(forecast.reduce((a, b) => a + b.weather_layer.Precipitation_mm, 0))} mm`,
+          readings: `${Math.round(totalRainfall)} mm`,
           status: heavyRainDays >= 2 ? "High Monsoon Rain" : "Normal",
           threshold_info: "Monsoon Season Active"
+        },
+        {
+          factor: "Average Humidity",
+          readings: `${Math.round(avgHumidity)}%`,
+          status: avgHumidity > 80 ? "Fungal Risk" : "Normal",
+          threshold_info: ">80% Fungal Disease Conducive"
         }
       ],
-      recommendations: [
-        `Apply ${primaryProd.name} (${optimizedDosage} L/ha) in ${waterVolume} L/ha water`,
-        `Tank-Mix Synergist: ${primaryProd.synergist}`,
-        secondaryProd ? `Secondary Partner: ${secondaryProd.product_name} (${secondaryProd.dosage})` : "Morning spray (6:00 - 9:00 AM) optimal"
-      ]
+      recommendations: topRec ? [
+        `Apply ${topRec.product.name} (${topRec.dosageForThisCase}) — ${topRec.stressType} stress shield`,
+        secondRec ? `Secondary: ${secondRec.product.name} (${secondRec.dosageForThisCase})` : "Morning spray (6:00 - 9:00 AM) optimal",
+        `Cost: ₹${topRec.costBreakdown.totalPerAcre}/acre | Expected benefit: ₹${topRec.expectedBenefit.revenueProtectedPerAcre}/acre | ROBI: ${topRec.expectedBenefit.robi.toFixed(1)}x`,
+      ] : ["Monitor crop conditions and re-assess in 3 days."]
     },
-    cropfit: {
-      product: {
-        product_key: primaryKey,
-        product_name: primaryProd.name,
-        category: primaryProd.category,
-        active_ingredient: primaryProd.active_ingredient,
-        dosage: `${optimizedDosage} L/ha`,
-        application_method: "Foliar Spray with Boom / Knapsack Nozzle",
-        water_usage: `${waterVolume} L/ha`,
-        target: primaryProd.target,
-        description: primaryProd.description,
-        synergist: primaryProd.synergist,
-        tank_mix_safe: primaryProd.tank_mix_safe,
-        tank_mix_danger: primaryProd.tank_mix_danger,
-        retail_price: primaryProd.retail_price_inr
-      },
+    cropfit: primaryProduct ? {
+      product: primaryProduct,
       secondary_crop_protection: secondaryProd,
-      rationale: `Multi-Criteria Engine selected ${primaryProd.name} for ${crop} at ${stage} in ${regionInfo.soil_type}.`,
-      confidence: 96,
-      top_candidates: [
-        { name: "Isabion®", score: 96.2, target: "Flower Drop Prevention & Thermal Cellular Shield" },
-        { name: "Quantis®", score: 89.4, target: "Extreme Thermal Shock & Cell Turgor Regulation" },
-        { name: "Amistar Top®", score: 84.1, target: "Preventative Fungal Disease Shield during Monsoon" }
-      ]
-    },
+      rationale: topRec?.farmerExplanation || `Recommendation engine analysis for ${crop} at ${stage} in ${locationName}.`,
+      confidence: Math.min(96, Math.round(topRec?.score || 80)),
+      top_candidates: topCandidates,
+    } : null,
+    // Stress profile from the 3-layer engine
+    stress_profile: recommendationResult.stressProfile,
+    // Gemini prompt for LLM explanation layer
+    gemini_explanation_prompt: recommendationResult.geminiPrompt,
     forecast,
-    economicROI: {
-      productCost,
-      applicationCost: appCost,
-      expectedYieldGain: `${expectedYieldGain} q/ha`,
-      mandiPrice,
-      expectedRevenue,
-      robi
-    },
-    syngenta_india_catalog: catalogSummary
+    economicROI,
+    // Full 50-product catalog
+    syngenta_india_catalog: catalogSummary,
+    // Engine metadata
+    engine_metadata: {
+      version: "3.0-hybrid",
+      layers: ["Deterministic Filter (50 products → candidates)", "Multi-Criteria Scoring (6 weights)", "Farmer Explanation Generator"],
+      total_products_evaluated: allProducts.length,
+      candidates_after_filter: recommendationResult.recommendations.length > 0 ? "filtered" : "all",
+      recommendation_count: recommendationResult.recommendations.length,
+    }
   });
 }

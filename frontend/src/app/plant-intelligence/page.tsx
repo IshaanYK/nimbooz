@@ -917,36 +917,85 @@ export default function PlantIntelligencePage() {
                     </div>
                   )}
 
-                  {/* Multi-Candidate Vector Match Ranking */}
+                  {/* Multi-Candidate Hybrid Engine Ranking — Top 3 from 50 Products */}
                   {pipelineData.cropfit?.top_candidates && pipelineData.cropfit.top_candidates.length > 0 && (
                     <div className="bg-slate-900/90 rounded-xl p-3 border border-slate-700/80 space-y-2">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                           <Sliders className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>Vectorized Syngenta Formulation Ranking (6D Tensor)</span>
+                          <span>3-Layer Hybrid Recommendation Engine (50 Syngenta Products)</span>
                         </span>
-                        <span className="text-[10px] font-mono text-emerald-400 font-bold">MULTI-CRITERIA MATCH</span>
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold">RULE → SCORE → EXPLAIN</span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 gap-2">
                         {pipelineData.cropfit.top_candidates.map((cand: any, idx: number) => (
                           <div
                             key={idx}
-                            className={`p-2.5 rounded-lg border text-xs space-y-1 ${
+                            className={`p-3 rounded-lg border text-xs space-y-2 ${
                               idx === 0
                                 ? "bg-emerald-950/60 border-emerald-500/50 text-white"
                                 : "bg-slate-800/60 border-slate-700/60 text-slate-300"
                             }`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-extrabold">{cand.name}</span>
-                              <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded ${
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded ${
+                                  idx === 0 ? "bg-emerald-500 text-slate-950" : "bg-slate-700 text-slate-300"
+                                }`}>
+                                  #{idx + 1}
+                                </span>
+                                <span className="font-extrabold">{cand.name}</span>
+                                <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full border ${
+                                  cand.category === "biostimulant" ? "bg-purple-500/20 text-purple-300 border-purple-500/40" :
+                                  cand.category === "fungicide" ? "bg-blue-500/20 text-blue-300 border-blue-500/40" :
+                                  cand.category === "insecticide" ? "bg-amber-500/20 text-amber-300 border-amber-500/40" :
+                                  cand.category === "herbicide" ? "bg-green-500/20 text-green-300 border-green-500/40" :
+                                  "bg-slate-500/20 text-slate-300 border-slate-500/40"
+                                }`}>
+                                  {cand.category?.toUpperCase() || "PRODUCT"}
+                                </span>
+                              </div>
+                              <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded ${
                                 idx === 0 ? "bg-emerald-500 text-slate-950" : "bg-slate-700 text-slate-300"
                               }`}>
-                                {cand.score}% Fit
+                                {typeof cand.score === 'number' ? cand.score.toFixed(1) : cand.score} Score
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-400 line-clamp-1">{cand.target}</p>
+                            <p className="text-[10px] text-slate-400">{cand.target}</p>
+                            {/* Cost & Benefit Row */}
+                            {(cand.costBreakdown || cand.costPerAcre) && (
+                              <div className="flex items-center gap-3 text-[10px] font-mono">
+                                <span className="text-amber-300">💰 ₹{cand.costBreakdown?.totalPerAcre || cand.costPerAcre}/acre</span>
+                                {cand.expectedBenefit && (
+                                  <>
+                                    <span className="text-slate-500">→</span>
+                                    <span className="text-emerald-300">💵 ₹{cand.expectedBenefit.revenueProtectedPerAcre}/acre saved</span>
+                                    <span className="text-slate-500">→</span>
+                                    <span className="text-emerald-400 font-bold">{cand.expectedBenefit.robi?.toFixed(1)}x ROBI</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            {/* Dosage */}
+                            {cand.dosage && (
+                              <div className="text-[10px] text-slate-400">
+                                📋 Dosage: <strong className="text-slate-200">{cand.dosage}</strong>
+                                {cand.mrp && <span className="ml-2">| MRP: {cand.mrp}</span>}
+                              </div>
+                            )}
+                            {/* Farmer-Friendly Reasoning */}
+                            {cand.reasoning && (
+                              <p className="text-[10px] text-slate-300 bg-white/5 rounded-lg px-2.5 py-1.5 border border-white/10 leading-relaxed">
+                                💡 <strong className="text-emerald-300">Why:</strong> {cand.reasoning}
+                              </p>
+                            )}
+                            {/* Spray Window */}
+                            {cand.sprayWindow && (
+                              <div className={`text-[10px] font-mono flex items-center gap-1.5 ${cand.sprayWindow.isSafeToSpray ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                {cand.sprayWindow.isSafeToSpray ? '✅' : '⚠️'} {cand.sprayWindow.reason} | Best: {cand.sprayWindow.bestTime}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
