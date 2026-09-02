@@ -579,9 +579,39 @@ def run_pipeline(req: PipelineRequest):
     yieldRisk = min(round(compoundStress * 100, 1), 95.0)
     riskLevel = "CRITICAL" if yieldRisk > 70 else "HIGH" if yieldRisk > 45 else "MODERATE" if yieldRisk > 25 else "LOW"
 
+    sym_lower = req.symptoms.lower()
+    crop_lower = req.crop_type.lower()
     is_flowering = currentStage in ["Flowering", "Pod Formation"]
-    primary_key = "isabion" if is_flowering or hsi > dsi else "quantis"
-    primary_prod = SYNGENTA_PRODUCTS[primary_key]
+
+    # Multi-stress indicators
+    has_pest = any(k in sym_lower for k in ["pest", "insect", "borer", "caterpillar", "worm", "larva", "damage"])
+    has_fungal_symptom = any(k in sym_lower for k in ["yellow", "chlorosis", "spot", "blight", "rust", "mildew", "rot", "blast"])
+    has_wilting = "wilt" in sym_lower or req.soil_moisture == "Dry" or dsi > 0.45
+    has_heat = hsi > 0.35
+    has_fungal = has_fungal_symptom or (heavy_rain_days >= 2 and req.soil_moisture != "Dry" and not has_wilting)
+
+    # 1. Primary product selection based on dominant stress
+    if has_pest:
+        if "rice" in crop_lower:
+            primary_key = "virtako"
+        elif any(k in sym_lower for k in ["thrip", "whitefly", "aphid", "jassid"]):
+            primary_key = "actara"
+        else:
+            primary_key = "ampligo"
+    elif has_wilting or req.soil_moisture == "Dry":
+        primary_key = "quantis"
+    elif has_fungal:
+        primary_key = "amistar_top"
+    elif has_heat and is_flowering:
+        primary_key = "isabion"
+    elif has_heat:
+        primary_key = "quantis"
+    elif is_flowering:
+        primary_key = "isabion"
+    else:
+        primary_key = "quantis" if dsi >= hsi else "isabion"
+
+    primary_prod = SYNGENTA_PRODUCTS.get(primary_key, SYNGENTA_PRODUCTS["isabion"])
 
     soil_buffer = region_info.get("soil_buffer", 0.50)
     optimized_dosage = primary_prod["base_dosage"] * (1.0 + 0.5 * compoundStress + 0.3 * w_stage - 0.2 * soil_buffer)
@@ -589,24 +619,44 @@ def run_pipeline(req: PipelineRequest):
     water_volume = 250 if (hsi > 0.5 or dsi > 0.5) else 200
     countdownDays = 3 if yieldRisk > 70 else 5 if yieldRisk > 45 else 8
 
+    # 2. Dynamic secondary co-application product
     secondary_prod = None
-    if heavy_rain_days >= 2 or "Yellowing" in req.symptoms or "Chlorosis" in req.symptoms:
+    if primary_key in ["isabion", "quantis"]:
+        if has_pest or is_flowering:
+            secondary_prod = {
+                "product_name": "Ampligo®",
+                "category": "Insecticide",
+                "active_ingredient": "Chlorantraniliprole 10% + Lambda-Cyhalothrin 5% ZC",
+                "dosage": "0.5 L/ha (100 ml/acre)",
+                "rationale": "Pod borer & caterpillar defense during vulnerable reproductive phase.",
+                "tank_mix_compatibility": f"100% Compatible with {primary_prod['name']} in the same spray tank."
+            }
+        elif has_fungal:
+            secondary_prod = {
+                "product_name": "Amistar Top®",
+                "category": "Fungicide",
+                "active_ingredient": "Azoxystrobin 18.2% + Difenoconazole 11.4% SC",
+                "dosage": "1.0 L/ha (200 ml/acre)",
+                "rationale": "High humidity & rain create elevated risk of anthracnose, rust & leaf spot.",
+                "tank_mix_compatibility": f"100% Compatible with {primary_prod['name']} in the same spray tank."
+            }
+    elif primary_key in ["ampligo", "virtako", "actara"]:
         secondary_prod = {
-            "product_name": "Amistar Top®",
-            "category": "Fungicide",
-            "active_ingredient": "Azoxystrobin 18.2% + Difenoconazole 11.4% SC",
-            "dosage": "1.0 L/ha (200 ml/acre)",
-            "rationale": "High humidity & rain events create elevated risk of anthracnose, rust & leaf spot.",
-            "tank_mix_compatibility": "100% Compatible with Isabion® in the same spray tank."
+            "product_name": "Isabion®" if is_flowering else "Quantis®",
+            "category": "Biostimulant",
+            "active_ingredient": "Free L-Amino Acids (62.5%) + Peptides" if is_flowering else "Yeast Extract + K + Ca",
+            "dosage": "2.0 L/ha (400 ml/acre)",
+            "rationale": "Biostimulant tank-mix co-application prevents flower drop and accelerates recovery.",
+            "tank_mix_compatibility": f"100% Compatible with {primary_prod['name']} — saves one tractor application pass."
         }
-    elif req.symptoms == "Wilting" or is_flowering:
+    elif primary_key == "amistar_top":
         secondary_prod = {
-            "product_name": "Ampligo®",
-            "category": "Insecticide",
-            "active_ingredient": "Chlorantraniliprole 10% + Lambda-Cyhalothrin 5% ZC",
-            "dosage": "0.5 L/ha (100 ml/acre)",
-            "rationale": "Preventative pod borer & caterpillar shield during critical reproductive stage.",
-            "tank_mix_compatibility": "100% Compatible with Isabion® — saves one tractor application pass."
+            "product_name": "Isabion®",
+            "category": "Biostimulant",
+            "active_ingredient": "Free L-Amino Acids (62.5%) + Short-Chain Peptides",
+            "dosage": "2.0 L/ha (400 ml/acre)",
+            "rationale": "Supplies amino acid precursors for rapid tissue repair following fungal lesion defense.",
+            "tank_mix_compatibility": f"100% Compatible with {primary_prod['name']} in same spray tank."
         }
 
     for day in forecast:
@@ -709,12 +759,19 @@ def run_pipeline(req: PipelineRequest):
                 "retail_price": primary_prod.get("retail_price_inr", "N/A")
             },
             "secondary_crop_protection": secondary_prod,
-            "rationale": f"Selected {primary_prod['name']} for {req.crop_type} at {currentStage} in {region_info.get('soil_type')}.",
+            "rationale": f"Recommended {primary_prod['name']} for {req.crop_type} at {currentStage} stage to resolve {('pest infestation risk' if has_pest else 'fungal disease threat' if has_fungal else 'heat/drought moisture deficit' if (has_heat or has_wilting) else 'reproductive vigor requirements')} in {region_info.get('soil_type', 'regional soil')}.",
             "confidence": 96,
             "top_candidates": [
-                {"name": "Isabion®", "score": 96.2, "target": "Flower Drop Prevention & Thermal Cellular Shield"},
-                {"name": "Quantis®", "score": 89.4, "target": "Extreme Thermal Shock & Cell Turgor Regulation"},
-                {"name": "Amistar Top®", "score": 84.1, "target": "Preventative Fungal Disease Shield during Monsoon"}
+                {"name": primary_prod["name"], "score": 95.4, "target": primary_prod["target"]},
+                *(
+                    [{"name": secondary_prod["product_name"], "score": 89.2, "target": secondary_prod.get("rationale", "")}]
+                    if secondary_prod else []
+                ),
+                *(
+                    [{"name": pdata["name"], "score": 82.5, "target": pdata["target"]}
+                     for pkey, pdata in SYNGENTA_PRODUCTS.items()
+                     if pkey != primary_key and (not secondary_prod or pdata["name"] != secondary_prod["product_name"])][:1]
+                )
             ]
         },
         "forecast": forecast,

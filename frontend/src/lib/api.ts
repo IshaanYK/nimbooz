@@ -212,18 +212,18 @@ export async function fetchPlantIntelligenceRegions() {
     return data;
   }
 
-  // 1. Try FastAPI backend
+  // 1. Try Next.js API route
   try {
-    const res = await fetch(`${FASTAPI_URL}/regions`, { cache: "no-store" });
+    const res = await fetch(`/api/plant-intelligence/regions`, { cache: "no-store" });
     if (res.ok) {
       const data = normalize(await res.json());
       if (data && Object.keys(data).length > 0) return data;
     }
   } catch {}
 
-  // 2. Try Next.js API proxy route
+  // 2. Try FastAPI backend
   try {
-    const res = await fetch(`/api/plant-intelligence/regions`, { cache: "no-store" });
+    const res = await fetch(`${FASTAPI_URL}/regions`, { cache: "no-store" });
     if (res.ok) {
       const data = normalize(await res.json());
       if (data && Object.keys(data).length > 0) return data;
@@ -251,19 +251,21 @@ export async function runPlantIntelligencePipeline(payload: {
   lon?: number | null;
   custom_location_name?: string | null;
 }) {
-  // 1. Try FastAPI backend
+  // 1. Try Next.js API route (Primary — evaluates all 50 Syngenta products with 3-layer hybrid engine & ICAR trial citations)
   try {
-    const res = await fetch(`${FASTAPI_URL}/run-pipeline`, {
+    const res = await fetch(`/api/plant-intelligence/run-pipeline`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     if (res.ok) return await res.json();
-  } catch {}
+  } catch (err) {
+    console.warn("Next.js run-pipeline failed, trying fallbacks:", err);
+  }
 
-  // 2. Try Next.js API proxy
+  // 2. Try FastAPI backend if running
   try {
-    const res = await fetch(`/api/plant-intelligence/run-pipeline`, {
+    const res = await fetch(`${FASTAPI_URL}/run-pipeline`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

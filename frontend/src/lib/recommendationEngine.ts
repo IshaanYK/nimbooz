@@ -139,11 +139,26 @@ function filterCandidates(input: FarmerInput): { candidates: SyngentaProduct[], 
   if ((input.growthStage === 'germination' || input.growthStage === 'vegetative') && input.season === 'kharif') weedRisk = 'moderate';
 
   let dominantStress = 'none';
-  if (hsi > 0.4) dominantStress = 'heat';
-  else if (dsi > 0.4) dominantStress = 'drought';
-  else if (fungalRisk === 'high' || fungalRisk === 'moderate') dominantStress = 'fungal';
-  else if (insectRisk === 'high' || insectRisk === 'moderate') dominantStress = 'insect';
-  else if (weedRisk === 'moderate') dominantStress = 'weed';
+  // Farmer reported symptoms and acute biological threats take absolute first priority
+  if (input.symptoms.includes('pest_damage') || insectRisk === 'high') {
+    dominantStress = 'insect';
+  } else if (input.symptoms.includes('leaf_spots') || input.symptoms.includes('yellowing')) {
+    dominantStress = 'fungal';
+  } else if (input.symptoms.includes('wilting') || input.soilMoisture === 'dry') {
+    dominantStress = 'drought';
+  } else if (fungalRisk === 'high') {
+    dominantStress = 'fungal';
+  } else if (dsi > 0.4) {
+    dominantStress = 'drought';
+  } else if (hsi > 0.4) {
+    dominantStress = 'heat';
+  } else if (fungalRisk === 'moderate') {
+    dominantStress = 'fungal';
+  } else if (insectRisk === 'moderate') {
+    dominantStress = 'insect';
+  } else if (weedRisk === 'moderate') {
+    dominantStress = 'weed';
+  }
 
   const activeStresses = [
     ...(hsi > 0.4 ? ['heat'] : []),
@@ -165,38 +180,33 @@ function filterCandidates(input: FarmerInput): { candidates: SyngentaProduct[], 
     dominantStress
   };
 
-  // Filter by stress relevance
-  products = products.filter(p => {
-    let relevant = false;
-    
-    // Type casting logic for dynamic fields that may be present on SyngentaProduct
+  // Filter by stress relevance — targeted to the dominant stress
+  const relevantProducts = products.filter(p => {
     const efficacyHeat = (p as any).efficacyHeat || 0;
     const efficacyDrought = (p as any).efficacyDrought || 0;
     const efficacyFungal = (p as any).efficacyFungal || 0;
     const efficacyInsect = (p as any).efficacyInsect || 0;
     const efficacyWeed = (p as any).efficacyWeed || 0;
-    
-    if (activeStresses.includes('heat') || activeStresses.includes('drought')) {
-      if (efficacyHeat > 0.3 || efficacyDrought > 0.3) relevant = true;
+
+    if (dominantStress === 'insect') {
+      return efficacyInsect > 0.3 || p.category === 'insecticide';
+    } else if (dominantStress === 'fungal') {
+      return efficacyFungal > 0.3 || p.category === 'fungicide';
+    } else if (dominantStress === 'weed') {
+      return efficacyWeed > 0.3 || p.category === 'herbicide';
+    } else if (dominantStress === 'drought' || dominantStress === 'heat') {
+      return efficacyHeat > 0.3 || efficacyDrought > 0.3 || p.category === 'biostimulant';
     }
-    if (fungalRisk === 'high' && efficacyFungal > 0.3) relevant = true;
-    if (insectRisk === 'high' && efficacyInsect > 0.3) relevant = true;
-    if (weedRisk === 'moderate' && efficacyWeed > 0.3) relevant = true;
-    
-    // Compound stress or catch all
-    if (activeStresses.length > 1 && (efficacyHeat > 0.3 || efficacyDrought > 0.3 || efficacyFungal > 0.3 || efficacyInsect > 0.3 || efficacyWeed > 0.3)) relevant = true;
-
-    // ALWAYS include biostimulants (Isabion, Quantis) if heat or drought stress is active
-    if ((activeStresses.includes('heat') || activeStresses.includes('drought')) && p.category === 'biostimulant') relevant = true;
-
-    if (activeStresses.length === 0) relevant = true; // Include if no active stress
-
-    return relevant;
+    return true;
   });
+
+  // If relevant filter returns at least 2 products, use it; otherwise fallback to general crop products
+  if (relevantProducts.length >= 2) {
+    products = relevantProducts;
+  }
 
   // Remove products by rule
   products = products.filter(p => {
-    // Assuming category shouldn't be reused within 7 days, we don't have past history so we won't strictly drop unless it's a seed treatment at wrong stage.
     if (p.category === 'seed_treatment' && input.growthStage !== 'germination') return false;
     return true;
   });
@@ -228,20 +238,26 @@ function scoreProducts(candidates: SyngentaProduct[], input: FarmerInput, stress
   return candidates.map(product => {
     const p: any = product; // For extra properties
     
-    // Efficacy_Match (0-1) — combines agronomic stress match with validated ICAR/SAU field trial efficacy
-    let efficacyMatch = 0;
+    // Efficacy_Match (0-1) — strictly evaluated against DOMINANT stress first
     const validatedTrialRate = (p.trialEfficacyPct || 85) / 100;
-    if (activeStresses.length > 0) {
-      let maxEfficacy = 0;
-      if (activeStresses.includes('heat') && p.efficacyHeat > maxEfficacy) maxEfficacy = p.efficacyHeat;
-      if (activeStresses.includes('drought') && p.efficacyDrought > maxEfficacy) maxEfficacy = p.efficacyDrought;
-      if (activeStresses.includes('fungal') && p.efficacyFungal > maxEfficacy) maxEfficacy = p.efficacyFungal;
-      if (activeStresses.includes('insect') && p.efficacyInsect > maxEfficacy) maxEfficacy = p.efficacyInsect;
-      if (activeStresses.includes('weed') && p.efficacyWeed > maxEfficacy) maxEfficacy = p.efficacyWeed;
-      efficacyMatch = ((maxEfficacy || 0.5) * 0.6) + (validatedTrialRate * 0.4);
+    let targetStressEfficacy = 0.5;
+
+    if (stressProfile.dominantStress === 'insect') {
+      targetStressEfficacy = p.efficacyInsect || 0;
+    } else if (stressProfile.dominantStress === 'fungal') {
+      targetStressEfficacy = p.efficacyFungal || 0;
+    } else if (stressProfile.dominantStress === 'weed') {
+      targetStressEfficacy = p.efficacyWeed || 0;
+    } else if (stressProfile.dominantStress === 'drought') {
+      targetStressEfficacy = p.efficacyDrought || 0;
+    } else if (stressProfile.dominantStress === 'heat') {
+      targetStressEfficacy = p.efficacyHeat || 0;
     } else {
-      efficacyMatch = validatedTrialRate;
+      targetStressEfficacy = Math.max(p.efficacyHeat || 0, p.efficacyDrought || 0, 0.5);
     }
+
+    // 60% targeted stress efficacy + 40% validated multi-center trial rate
+    const efficacyMatch = (targetStressEfficacy * 0.6) + (validatedTrialRate * 0.4);
 
     // Stage_Suitability (0-1)
     const stageSuitability = p.stageSuitability ? (p.stageSuitability[input.growthStage] || 0) : 0;
