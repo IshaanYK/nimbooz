@@ -84,7 +84,7 @@ export const SYNGENTA_LOCAL_DEALS: SyngentaDeal[] = [
   {
     id: "deal-free-soil-test",
     title: "Syngenta Krishi Vikas Free Soil Test Voucher",
-    badge: "🌱 100% FREE VOUCHER",
+    badge: "🌱 COMPLIMENTARY VOUCHER",
     product: "Biological Soil & Canopy Diagnostic",
     discountSummary: "Free ₹500 Soil pH & Organic Carbon Diagnostic",
     validTill: "Limited to first 50 farmers per district",

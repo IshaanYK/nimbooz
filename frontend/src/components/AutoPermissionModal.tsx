@@ -25,24 +25,41 @@ export const AutoPermissionModal: React.FC = () => {
     setLoading(true);
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
           const profile = getStoredProfile();
+          
+          let detectedDistrict = profile.district || "Sehore";
+          try {
+            const res = await fetch(`/api/geocode?lat=${lat}&lon=${lon}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.district || data.city) {
+                detectedDistrict = data.district || data.city;
+                localStorage.setItem("aasra_user_district", detectedDistrict);
+              }
+            }
+          } catch (e) {
+            console.warn("Geocoding lookup error", e);
+          }
+
           const updated = {
             ...profile,
+            district: detectedDistrict,
             gpsLocation: { lat, lon },
             dataConsent: true,
           };
           saveProfile(updated);
           localStorage.setItem("aasra_permission_granted", "true");
+          localStorage.setItem("aasra_user_district", detectedDistrict);
           setLocationInfo({ lat, lon });
           setGranted(true);
           setLoading(false);
           setTimeout(() => setIsOpen(false), 1600);
         },
         (err) => {
-          console.warn("Geolocation fallback to Bhopal default", err);
+          console.warn("Geolocation fallback", err);
           localStorage.setItem("aasra_permission_granted", "true");
           setGranted(true);
           setLoading(false);

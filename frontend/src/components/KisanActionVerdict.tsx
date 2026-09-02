@@ -12,7 +12,6 @@ import {
   Sparkles,
   Volume2,
   VolumeX,
-  Clock,
   Droplets,
   Wind,
   ShieldCheck,
@@ -24,20 +23,23 @@ import {
   ArrowRight,
   Phone,
   MessageSquare,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 import { generateWhatsAppOrderLink, getNearbySyngentaDealers } from "@/lib/syngentaDealers";
 
 export const KisanActionVerdict: React.FC = () => {
   const { language } = useLanguage();
+  const isHindi = language === "hi";
   const { weather } = useWeather();
   const { activeFarm } = useFarm();
   const profile = getStoredProfile();
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : (language === "hi" ? "किसान साथी" : "Farmer Friend");
+  const farmerName = profile?.fullName && profile.fullName.trim() ? profile.fullName : (isHindi ? "किसान साथी" : "Farmer Friend");
   const crop = activeFarm.primaryCrop || "Soybean";
   const acreage = activeFarm.areaAcres || 5.0;
-  const district = activeFarm.district || weather?.district || (language === "hi" ? "आपके क्षेत्र" : "Your Region");
+  const district = activeFarm.district || weather?.district || (isHindi ? "आपके क्षेत्र" : "Your Region");
   const village = activeFarm.village || "";
 
   // Deterministic Spray Evaluation
@@ -77,7 +79,7 @@ export const KisanActionVerdict: React.FC = () => {
       ? `${sprayVerdict.actionText}. ${sprayVerdict.primaryReason} Recommended window: ${sprayVerdict.recommendedWindow}. Apply ${totalDoseLiters}L in ${totalWaterLiters}L water to safeguard ~₹${roi.totalFieldNetProfit.toLocaleString("en-IN")} in net farm profit.`
       : `${sprayVerdict.actionText}. ${sprayVerdict.primaryReason} Recheck conditions at ${sprayVerdict.recommendedWindow}.`);
 
-  const currentSpeechText = language === "hi" ? verdictTextHindi : verdictTextEnglish;
+  const currentSpeechText = isHindi ? verdictTextHindi : verdictTextEnglish;
 
   const handleToggleVoice = () => {
     if (isPlayingAudio) {
@@ -87,7 +89,7 @@ export const KisanActionVerdict: React.FC = () => {
       setIsPlayingAudio(true);
       playGoogleNeuralSpeech(
         currentSpeechText,
-        language === "hi" ? "hi-IN" : "en-IN",
+        isHindi ? "hi-IN" : "en-IN",
         {
           onEnd: () => setIsPlayingAudio(false),
           onError: () => setIsPlayingAudio(false),
@@ -99,9 +101,9 @@ export const KisanActionVerdict: React.FC = () => {
   const handleShareWhatsApp = () => {
     const isOptimalSpray = sprayVerdict.isSuitable;
     const estimatedSavings = roi.totalFieldNetProfit;
-    const shareText = language === "hi"
+    const shareText = isHindi
       ? `🌾 *AASRA किसान सलाह पत्र — ${farmerName} (${crop})*\n` +
-        `📍 स्थान: ${village}, ${district} (${acreage} एकड़)\n` +
+        `📍 स्थान: ${village ? village + ", " : ""}${district} (${acreage} एकड़)\n` +
         `🌡️ लाइव तापमान: ${weather.temperature}°C | रात का तापमान: ${weather.nightTemperature || weather.temperature}°C\n` +
         `✅ आज का फैसला: ${isOptimalSpray ? "छिडकाव का सही समय है (Optimal Spray Window)" : "आज छिडकाव न करें"}\n` +
         `🧪 खुराक: ${totalDoseLiters} लीटर Syngenta Quantis + ${totalWaterLiters} लीटर पानी\n` +
@@ -109,7 +111,7 @@ export const KisanActionVerdict: React.FC = () => {
         `📞 सिंजेंटा हेल्पलाइन: 1800-102-7964\n` +
         `👉 देखें: https://frontend-phi-flame-21.vercel.app/dashboard`
       : `🌾 *AASRA Farmer Advisory Note — ${farmerName} (${crop})*\n` +
-        `📍 Location: ${village}, ${district} (${acreage} Acres)\n` +
+        `📍 Location: ${village ? village + ", " : ""}${district} (${acreage} Acres)\n` +
         `🌡️ Live Temp: ${weather.temperature}°C | Night Temp: ${weather.nightTemperature || weather.temperature}°C\n` +
         `✅ Today's Action: ${isOptimalSpray ? "Optimal Spray Window Active" : "Hold Spray Operations"}\n` +
         `🧪 Dosage: ${totalDoseLiters}L Syngenta Quantis + ${totalWaterLiters}L Water\n` +
@@ -120,47 +122,47 @@ export const KisanActionVerdict: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-teal-950 text-white rounded-3xl p-5 sm:p-7 border-2 border-emerald-500/40 shadow-xl space-y-5 font-sans relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="bg-white border border-[#e3e8ee] rounded-3xl p-6 sm:p-7 shadow-sm space-y-5 transition-all">
       {/* Top Banner Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 relative z-10">
-        <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-mono font-bold bg-amber-400 text-slate-950 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
-              <Sparkles className="h-3.5 w-3.5 fill-slate-950" />
-              {language === "hi" ? "आज का किसान फैसला" : "Today's Farm Action Verdict"}
+            <span className="text-[11px] font-mono font-bold bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-2xs">
+              <Sparkles className="h-3.5 w-3.5 text-amber-600 fill-amber-500" />
+              {isHindi ? "आज का किसान फैसला" : "Today's Farm Action Verdict"}
             </span>
-            <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+            <span className="text-[11px] font-mono font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">
               {farmerName} · {activeFarm.name} · {acreage} Ac ({crop}) · {district}
             </span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black font-display text-white tracking-tight flex items-center gap-2">
-            <span>{language === "hi" ? sprayVerdict.actionTextHi : sprayVerdict.actionText}</span>
+          <h2 className="text-xl sm:text-2xl font-black font-display text-[#0d253d] tracking-tight flex items-center gap-2">
+            <span>{isHindi ? sprayVerdict.actionTextHi : sprayVerdict.actionText}</span>
           </h2>
-          <p className="text-xs text-emerald-200 font-medium max-w-3xl">
-            💡 {language === "hi" ? sprayVerdict.primaryReasonHi : sprayVerdict.primaryReason}
+          <p className="text-xs sm:text-sm text-slate-600 font-normal max-w-3xl">
+            💡 {isHindi ? sprayVerdict.primaryReasonHi : sprayVerdict.primaryReason}
           </p>
         </div>
 
         {/* Action Controls: Audio Briefing & Share */}
         <div className="flex items-center gap-2 shrink-0">
           <button
+            type="button"
             onClick={handleToggleVoice}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md ${
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-2xs ${
               isPlayingAudio
                 ? "bg-rose-500 hover:bg-rose-600 text-white animate-pulse"
-                : "bg-amber-400 hover:bg-amber-300 text-slate-950"
+                : "bg-indigo-50 hover:bg-indigo-100 text-[#533afd] border border-indigo-200"
             }`}
           >
             {isPlayingAudio ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            <span>{isPlayingAudio ? (language === "hi" ? "आवाज बंद करें" : "Stop Voice") : (language === "hi" ? "🔊 बोलकर सुनें" : "🔊 Listen Voice")}</span>
+            <span>{isPlayingAudio ? (isHindi ? "आवाज बंद करें" : "Stop Voice") : (isHindi ? "🔊 बोलकर सुनें" : "🔊 Listen Voice")}</span>
           </button>
 
           <button
+            type="button"
             onClick={handleShareWhatsApp}
-            className="px-3.5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+            className="px-3.5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
             title="Share on WhatsApp"
           >
             <Share2 className="h-4 w-4" />
@@ -170,81 +172,82 @@ export const KisanActionVerdict: React.FC = () => {
       </div>
 
       {/* 4 Action Cards for the Farmer */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 relative z-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         
         {/* 1. Exact Recommended Dose */}
-        <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 space-y-1">
+        <div className="bg-[#f6f9fc] border border-[#e3e8ee] hover:border-slate-300 transition-all rounded-2xl p-4 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold">
-              {language === "hi" ? "दवा और सही मात्रा" : "Chemical & Dosage"}
+            <span className="text-[10px] font-mono text-indigo-700 uppercase font-bold">
+              {isHindi ? "दवा और सही मात्रा" : "Chemical & Dosage"}
             </span>
             <span className="text-base">🧪</span>
           </div>
-          <p className="text-base font-black text-white">Syngenta Quantis / Biostimulant</p>
-          <p className="text-xs font-mono font-bold text-emerald-300">
-            {totalDoseLiters} L {language === "hi" ? `कुल (${acreage} एकड़)` : `Total (${acreage} Acres)`}
+          <p className="text-sm font-bold text-[#0d253d]">Syngenta Quantis / Biostimulant</p>
+          <p className="text-xs font-mono font-bold text-indigo-600">
+            {totalDoseLiters} L {isHindi ? `कुल (${acreage} एकड़)` : `Total (${acreage} Acres)`}
           </p>
-          <p className="text-[10px] text-slate-400">@ 250 ml/acre in {totalWaterLiters}L water</p>
+          <p className="text-[10px] text-slate-500">@ 250 ml/acre in {totalWaterLiters}L water</p>
         </div>
 
         {/* 2. Ideal Timing Window */}
-        <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 space-y-1">
+        <div className="bg-[#f6f9fc] border border-[#e3e8ee] hover:border-slate-300 transition-all rounded-2xl p-4 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold">
-              {language === "hi" ? "छिड़काव का सही समय" : "Recommended Window"}
+            <span className="text-[10px] font-mono text-amber-700 uppercase font-bold">
+              {isHindi ? "छिड़काव का सही समय" : "Recommended Window"}
             </span>
             <span className="text-base">⏰</span>
           </div>
-          <p className="text-sm font-black text-amber-300">
-            {language === "hi" ? sprayVerdict.recommendedWindowHi : sprayVerdict.recommendedWindow}
+          <p className="text-xs font-bold text-amber-900">
+            {isHindi ? sprayVerdict.recommendedWindowHi : sprayVerdict.recommendedWindow}
           </p>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-[10px] text-slate-500">
             Wind: {weather.windSpeed} km/h · Rain Prob: {weather.precipitationProbability}%
           </p>
         </div>
 
         {/* 3. Biological Return on Investment */}
-        <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 space-y-1">
+        <div className="bg-[#f6f9fc] border border-[#e3e8ee] hover:border-slate-300 transition-all rounded-2xl p-4 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold">
-              {language === "hi" ? "अनुमानित शुद्ध बचत" : "Protected Net Value"}
+            <span className="text-[10px] font-mono text-emerald-700 uppercase font-bold">
+              {isHindi ? "अनुमानित शुद्ध बचत" : "Protected Net Value"}
             </span>
             <span className="text-base">💰</span>
           </div>
-          <p className="text-xl font-black text-emerald-400 font-mono">
+          <p className="text-lg font-black text-emerald-700 font-mono">
             +₹{roi.totalFieldNetProfit.toLocaleString("en-IN")}
           </p>
-          <p className="text-[10px] text-emerald-300/80 font-mono">
+          <p className="text-[10px] text-emerald-800 font-mono font-medium">
             ROBI: {roi.robiMultiple}x · {roi.roiPercentage}% Net Return
           </p>
         </div>
+
         {/* 4. Nearest Syngenta Dealer */}
-        <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 space-y-2 flex flex-col justify-between">
+        <div className="bg-[#f6f9fc] border border-[#e3e8ee] hover:border-slate-300 transition-all rounded-2xl p-4 space-y-2 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-sky-400 uppercase font-bold">
-                {language === "hi" ? "निकटतम विक्रेता" : "Nearest Dealer"}
+              <span className="text-[10px] font-mono text-sky-700 uppercase font-bold">
+                {isHindi ? "निकटतम विक्रेता" : "Nearest Dealer"}
               </span>
-              <span className="text-xs font-mono text-emerald-300 font-bold">{primaryDealer?.distanceKm} km</span>
+              <span className="text-[11px] font-mono text-emerald-700 font-bold">{primaryDealer?.distanceKm} km</span>
             </div>
-            <p className="text-xs font-black text-white truncate">{primaryDealer?.name}</p>
-            <p className="text-[10px] text-slate-400">{primaryDealer?.phone}</p>
+            <p className="text-xs font-bold text-[#0d253d] truncate">{primaryDealer?.name}</p>
+            <p className="text-[10px] text-slate-500">{primaryDealer?.phone}</p>
           </div>
 
           <div className="flex items-center gap-1.5 pt-1">
             <a
               href={`tel:${primaryDealer?.phone}`}
-              className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] text-center flex items-center justify-center gap-1 cursor-pointer"
+              className="flex-1 py-1.5 px-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-[10px] text-center flex items-center justify-center gap-1 cursor-pointer transition-all shadow-2xs"
             >
-              <Phone className="h-3 w-3" />
-              <span>{language === "hi" ? "कॉल" : "Call"}</span>
+              <Phone className="h-3 w-3 text-slate-600" />
+              <span>{isHindi ? "कॉल करें" : "Call"}</span>
             </a>
             {primaryDealer && (
               <a
                 href={generateWhatsAppOrderLink(primaryDealer, farmerName, crop, acreage, "Syngenta Quantis")}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 py-1.5 px-2 rounded-lg bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-[10px] text-center flex items-center justify-center gap-1 cursor-pointer"
+                className="flex-1 py-1.5 px-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-[10px] text-center flex items-center justify-center gap-1 cursor-pointer transition-all shadow-2xs"
               >
                 <MessageSquare className="h-3 w-3" />
                 <span>WhatsApp</span>
@@ -254,14 +257,6 @@ export const KisanActionVerdict: React.FC = () => {
         </div>
 
       </div>
-
-      {/* Voice Waveform Note */}
-      {isPlayingAudio && (
-        <div className="bg-amber-400/20 border border-amber-400/40 rounded-2xl p-3 flex items-center gap-3 text-xs text-amber-200 font-mono animate-pulse relative z-10">
-          <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-          <span>🎙️ Google Chirp 3 HD Neural Voice Live Streaming... ({language === "hi" ? "आज की बोलती किसान रिपोर्ट" : "Daily Spoken Agronomic Briefing"})</span>
-        </div>
-      )}
     </div>
   );
 };

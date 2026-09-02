@@ -163,7 +163,7 @@ export const HackathonJudgeHUD: React.FC = () => {
           {/* Live Production Proof Footnote */}
           <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-slate-400">
             <span className="flex items-center gap-1 text-emerald-400 font-bold">
-              <ShieldCheck className="h-3.5 w-3.5" /> 100% Real Live Satellite Data
+              <ShieldCheck className="h-3.5 w-3.5" /> Open-Meteo Satellite Telemetry
             </span>
             <Link
               href="https://github.com/IshaanYK/nimbooz"

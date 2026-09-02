@@ -5,7 +5,7 @@ import { FarmProvider } from "@/context/FarmContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ASSARA — Evidence-Based Precision Agriculture Intelligence",
+  title: "AASRA — Evidence-Based Precision Agriculture Intelligence",
   description: "Production-grade, location-aware decision support for farmers combining real weather telemetry, satellite monitoring, and deterministic agronomics. No fabricated data.",
 };
 

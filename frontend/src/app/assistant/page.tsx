@@ -21,6 +21,7 @@ import {
   Compass,
   Cpu,
   Layers,
+  Activity,
 } from "lucide-react";
 
 export default function AssistantPage() {
@@ -40,39 +41,40 @@ export default function AssistantPage() {
       <div className="max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 font-sans">
         
         {/* ─────────────────────────────────────────────────────────────
-            1. HEADER SECTION (LINEAR-INSPIRED SLEEK HERO)
+            1. HEADER SECTION (STRIPE-INSPIRED REFINED HERO)
            ───────────────────────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5 sm:pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e3e8ee] pb-5 sm:pb-6">
           <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1.5">
-              <span className="text-[11px] font-mono font-bold text-[#5e6ad2] bg-[#5e6ad2]/10 px-2.5 py-0.5 rounded-full border border-[#5e6ad2]/30 uppercase tracking-wide">
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span className="text-xs font-mono font-bold text-[#533afd] bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200 flex items-center gap-1.5 shadow-2xs">
+                <span className="h-2 w-2 rounded-full bg-[#533afd] animate-ping" />
                 PS-04 · PRECISION MULTI-CROP AGRI-STACK
               </span>
-              <span className="text-[11px] font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+              <span className="text-xs font-mono font-bold text-slate-700 bg-[#f6f9fc] px-2.5 py-0.5 rounded-full border border-[#e3e8ee]">
                 50+ CROPS
               </span>
-              <span className="text-[11px] font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+              <span className="text-xs font-mono font-bold text-slate-700 bg-[#f6f9fc] px-2.5 py-0.5 rounded-full border border-[#e3e8ee]">
                 GEMINI 2.5 FLASH
               </span>
-              <span className="text-[11px] font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+              <span className="text-xs font-mono font-bold text-slate-700 bg-[#f6f9fc] px-2.5 py-0.5 rounded-full border border-[#e3e8ee]">
                 GOOGLE CHIRP 3 HD
               </span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold font-display text-[#111827] tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-[#0d253d] tracking-tight">
               {t.askAasraTitle}
             </h1>
-            <p className="text-xs sm:text-sm text-[#64748B] font-medium mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-3xl mt-1">
               Hyper-local, zero-hallucination agricultural intelligence grounded in live Open-Meteo telemetry & APMC Agmarknet prices.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               type="button"
               onClick={() => refetch(true)}
-              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-[#e3e8ee] bg-white hover:bg-[#f6f9fc] text-[#0d253d] text-xs font-bold flex items-center gap-1.5 shadow-xs hover:border-indigo-300 transition-all cursor-pointer"
             >
-              <RefreshCw className="h-3.5 w-3.5 text-[#5e6ad2]" />
+              <RefreshCw className="h-3.5 w-3.5 text-[#533afd]" />
               <span>Sync Live Sensors</span>
             </button>
 
@@ -119,13 +121,13 @@ export default function AssistantPage() {
                 onClick={() => setLanguage(code)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-all select-none whitespace-nowrap notranslate shrink-0 ${
                   language === code
-                    ? "bg-[#5e6ad2] text-white border-[#5e6ad2] shadow-xs ring-2 ring-[#5e6ad2]/20"
-                    : "bg-white border-slate-200 text-slate-700 hover:border-[#5e6ad2]/50 hover:text-[#5e6ad2]"
+                    ? "bg-gradient-to-r from-[#533afd] to-[#4434d4] text-white border-[#4434d4] shadow-sm ring-2 ring-[#533afd]/20"
+                    : "bg-white border-[#e3e8ee] text-[#0d253d] hover:border-indigo-300 hover:bg-indigo-50/50 shadow-2xs"
                 }`}
                 translate="no"
               >
                 <span className="notranslate font-bold" translate="no">{label}</span>{" "}
-                <span className={`text-[10px] notranslate ${language === code ? "text-indigo-100" : "opacity-60"}`} translate="no">
+                <span className={`text-[10px] notranslate ${language === code ? "text-indigo-100" : "text-slate-400"}`} translate="no">
                   {name}
                 </span>
               </button>
@@ -150,9 +152,10 @@ export default function AssistantPage() {
                 key={idx}
                 type="button"
                 onClick={() => setSelectedQuestion(q)}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-white hover:bg-indigo-50/70 border border-slate-200/90 hover:border-[#5e6ad2]/50 text-slate-700 hover:text-[#5e6ad2] cursor-pointer transition-all whitespace-nowrap shrink-0 shadow-2xs text-left"
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-indigo-50/80 border border-[#e3e8ee] hover:border-indigo-300 text-[#0d253d] hover:text-[#533afd] cursor-pointer transition-all whitespace-nowrap shrink-0 shadow-2xs text-left flex items-center gap-1.5 hover:scale-[1.01]"
               >
-                💡 {q}
+                <span>💡</span>
+                <span>{q}</span>
               </button>
             ))}
           </div>
@@ -161,7 +164,7 @@ export default function AssistantPage() {
         {/* ─────────────────────────────────────────────────────────────
             4. MAIN GRID LAYOUT (AI ADVISORY + TELEMETRY SIDEBAR)
            ───────────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
           
           {/* Main Multilingual AI Voice Chat & Leaf Scanner (2 Cols) */}
           <div className="lg:col-span-2">
@@ -178,74 +181,100 @@ export default function AssistantPage() {
           <div className="space-y-6">
             
             {/* Live Telemetry Card */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xs">
+            <div className="bg-white border border-[#e3e8ee] rounded-3xl p-6 space-y-4 shadow-sm">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-sm text-slate-900 font-display flex items-center gap-2">
-                  <Thermometer className="h-4 w-4 text-[#5e6ad2]" />
+                <h3 className="font-bold text-sm text-[#0d253d] font-display flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <Thermometer className="h-4 w-4 text-[#533afd]" />
                   <span>{t.liveFieldTelemetry}</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => refetch(true)}
-                  className="p-1 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                  className="p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                  title="Refresh Telemetry"
                 >
                   <RefreshCw className="h-3.5 w-3.5 text-slate-400" />
                 </button>
               </div>
 
               <div className="space-y-2.5 font-mono text-xs">
-                <div className="flex justify-between items-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/80">
-                  <span className="text-slate-500">Active Crop:</span>
-                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Sprout className="h-3.5 w-3.5 text-[#5e6ad2]" />
+                <div className="flex justify-between items-center bg-[#f6f9fc] p-3 rounded-xl border border-[#e3e8ee]">
+                  <span className="text-slate-500 font-sans font-medium">Active Crop:</span>
+                  <span className="font-bold text-[#0d253d] flex items-center gap-1.5">
+                    <Sprout className="h-3.5 w-3.5 text-emerald-600" />
                     <span>{language === "hi" ? cropInfo.nameHi : cropInfo.name}</span>
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/80">
-                  <span className="text-slate-500">Air Temperature:</span>
-                  <span className="font-bold text-[#5e6ad2]">{weather.temperature}°C</span>
+                <div className="flex justify-between items-center bg-[#f6f9fc] p-3 rounded-xl border border-[#e3e8ee]">
+                  <span className="text-slate-500 font-sans font-medium">Air Temperature:</span>
+                  <span className="font-bold text-[#533afd] text-sm">{weather.temperature}°C</span>
                 </div>
 
-                <div className="flex justify-between items-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/80">
-                  <span className="text-slate-500">Soil Moisture:</span>
-                  <span className="font-bold text-emerald-600">{weather.soilMoistureEst}% Index</span>
+                <div className="flex justify-between items-center bg-[#f6f9fc] p-3 rounded-xl border border-[#e3e8ee]">
+                  <span className="text-slate-500 font-sans font-medium">Soil Moisture:</span>
+                  <span className="font-bold text-emerald-600 text-sm">{weather.soilMoistureEst}% Index</span>
                 </div>
 
-                <div className="flex justify-between items-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/80">
-                  <span className="text-slate-500">Wind Speed:</span>
-                  <span className="font-bold text-slate-800">{weather.windSpeed} km/h</span>
+                <div className="flex justify-between items-center bg-[#f6f9fc] p-3 rounded-xl border border-[#e3e8ee]">
+                  <span className="text-slate-500 font-sans font-medium">Wind Speed:</span>
+                  <span className="font-bold text-[#0d253d]">{weather.windSpeed} km/h</span>
                 </div>
 
-                <div className="flex justify-between items-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/80">
-                  <span className="text-slate-500">Night Temperature:</span>
-                  <span className="font-bold text-slate-800">
+                <div className="flex justify-between items-center bg-[#f6f9fc] p-3 rounded-xl border border-[#e3e8ee]">
+                  <span className="text-slate-500 font-sans font-medium">Night Temperature:</span>
+                  <span className="font-bold text-[#0d253d]">
                     {weather.nightTemperature ? `${weather.nightTemperature}°C` : "21.0°C"}
                   </span>
                 </div>
               </div>
 
-              {/* Crop Thermal Range Indicator */}
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2 text-xs">
-                <div className="flex justify-between text-slate-700 font-bold font-mono">
-                  <span>Optimal Range ({cropInfo.name}):</span>
-                  <span>{cropInfo.t_opt_day}°C – {cropInfo.t_limit_day}°C</span>
+              {/* Interactive Crop Thermal Range Indicator with Live Gauge Needle */}
+              <div className="bg-[#f6f9fc] p-4 rounded-2xl border border-[#e3e8ee] space-y-3 text-xs shadow-2xs">
+                <div className="flex justify-between text-[#0d253d] font-bold font-mono">
+                  <span className="flex items-center gap-1.5">
+                    <Activity className="h-3.5 w-3.5 text-[#533afd]" />
+                    <span>Live Thermal Gauge</span>
+                  </span>
+                  <span className="text-[#533afd] font-extrabold">{cropInfo.t_opt_day}°C – {cropInfo.t_limit_day}°C Opt</span>
                 </div>
-                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden flex">
-                  <div className="bg-emerald-500 h-full" style={{ width: "65%" }}></div>
-                  <div className="bg-amber-500 h-full" style={{ width: "20%" }}></div>
-                  <div className="bg-rose-500 h-full" style={{ width: "15%" }}></div>
+                
+                {/* Visual Gauge Bar with Dynamic Pointer */}
+                <div className="relative pt-4 pb-1">
+                  {/* Gauge Needle */}
+                  <div 
+                    className="absolute -top-1 transition-all duration-700 ease-out flex flex-col items-center -translate-x-1/2 z-10"
+                    style={{
+                      left: `${Math.min(94, Math.max(6, ((weather.temperature - 15) / (45 - 15)) * 100))}%`
+                    }}
+                  >
+                    <span className="px-1.5 py-0.5 rounded-md bg-[#0d253d] text-white text-[9px] font-mono font-bold shadow-xs whitespace-nowrap">
+                      {weather.temperature}°C
+                    </span>
+                    <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-[#0d253d]" />
+                  </div>
+
+                  <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden flex shadow-inner">
+                    <div className="bg-gradient-to-r from-blue-400 to-emerald-500 h-full" style={{ width: "55%" }} title="Safe Range"></div>
+                    <div className="bg-amber-400 h-full" style={{ width: "25%" }} title="Thermal Caution"></div>
+                    <div className="bg-rose-500 h-full" style={{ width: "20%" }} title="Critical Respiration Loss"></div>
+                  </div>
                 </div>
-                <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                  <span>Optimal</span>
-                  <span>Caution</span>
-                  <span>Critical Stress</span>
+
+                <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-0.5">
+                  <span className="text-emerald-700 font-bold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+                    Optimal
+                  </span>
+                  <span className="text-amber-700 font-bold">Caution (32°C+)</span>
+                  <span className="text-rose-700 font-bold">Critical Stress (38°C+)</span>
                 </div>
               </div>
 
               {/* Heat Stress Alert if active */}
               {weather.isNightHeatStress && (
-                <div className="bg-rose-50 border border-rose-200 p-3.5 rounded-xl text-rose-900 text-xs font-mono space-y-1.5">
+                <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl text-rose-900 text-xs font-mono space-y-1.5 animate-pulse">
                   <div className="flex items-center gap-1.5 font-bold text-rose-700">
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     <span>Thermal Stress Risk: {weather.heatStressPercent}%</span>
@@ -257,32 +286,62 @@ export default function AssistantPage() {
               )}
             </div>
 
-            {/* Architecture Card */}
-            <div className="bg-gradient-to-br from-[#0f1011] to-[#18191a] text-white border border-[#23252a] rounded-2xl p-5 sm:p-6 space-y-3 shadow-md">
-              <div className="flex items-center gap-2 font-bold text-sm text-[#f7f8f8]">
-                <Cpu className="h-4 w-4 text-[#5e6ad2]" />
-                <span>AASRA 5-Stage Precision Engine</span>
+            {/* Architecture Card - Stripe Enterprise Dark Accent with Interactive Glow */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#0d253d] via-[#141d38] to-[#1c1e54] text-white border border-[#273951] rounded-3xl p-6 space-y-4 shadow-xl">
+              <div className="absolute -top-12 -right-12 w-44 h-44 bg-[#533afd]/25 rounded-full blur-3xl pointer-events-none animate-float-gentle" />
+              <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-purple-600/15 rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="flex items-center justify-between border-b border-indigo-900/50 pb-3">
+                <div className="flex items-center gap-2.5 font-bold text-sm text-white">
+                  <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-[#533afd] to-indigo-400 text-white flex items-center justify-center shadow-md animate-pulse-ring">
+                    <Cpu className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-mono text-indigo-300 font-bold uppercase tracking-wider">AASRA Core</div>
+                    <span className="text-white font-extrabold text-sm">5-Stage Precision Engine</span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  LIVE
+                </span>
               </div>
-              <ul className="text-xs text-[#8a8f98] space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="text-[#5e6ad2] font-bold">1.</span>
-                  <span><strong>Multi-Crop Registry:</strong> 50+ crops with thermal & GDD thresholds</span>
+
+              <ul className="text-xs text-slate-300 space-y-3 leading-relaxed">
+                <li className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-white/5 transition-colors">
+                  <span className="h-6 w-6 rounded-lg bg-[#533afd]/40 text-[#b9b9f9] font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-[#533afd]/60 shadow-xs">1</span>
+                  <div>
+                    <strong className="text-white block">Multi-Crop Registry</strong>
+                    <span className="text-slate-400 text-[11px]">50+ crops with thermal, GDD & pest phenology limits</span>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-[#5e6ad2] font-bold">2.</span>
-                  <span><strong>Hyper-Local Grounding:</strong> Live Open-Meteo telemetry for exact coordinates</span>
+                <li className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-white/5 transition-colors">
+                  <span className="h-6 w-6 rounded-lg bg-[#533afd]/40 text-[#b9b9f9] font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-[#533afd]/60 shadow-xs">2</span>
+                  <div>
+                    <strong className="text-white block">Hyper-Local Grounding</strong>
+                    <span className="text-slate-400 text-[11px]">Live Open-Meteo microclimate per GPS field polygon</span>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-[#5e6ad2] font-bold">3.</span>
-                  <span><strong>APMC Mandi Intelligence:</strong> 700+ verified government market yards</span>
+                <li className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-white/5 transition-colors">
+                  <span className="h-6 w-6 rounded-lg bg-[#533afd]/40 text-[#b9b9f9] font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-[#533afd]/60 shadow-xs">3</span>
+                  <div>
+                    <strong className="text-white block">APMC Mandi Intelligence</strong>
+                    <span className="text-slate-400 text-[11px]">700+ verified government market yards with real modal rates</span>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-[#5e6ad2] font-bold">4.</span>
-                  <span><strong>Agronomic Safety Guard:</strong> Real-time spray drift & dosage calculator</span>
+                <li className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-white/5 transition-colors">
+                  <span className="h-6 w-6 rounded-lg bg-[#533afd]/40 text-[#b9b9f9] font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-[#533afd]/60 shadow-xs">4</span>
+                  <div>
+                    <strong className="text-white block">Agronomic Safety Guard</strong>
+                    <span className="text-slate-400 text-[11px]">Real-time chemical drift & per-acre dilution calculator</span>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-[#5e6ad2] font-bold">5.</span>
-                  <span><strong>Multilingual Chirp 3 HD:</strong> 12 Indian languages with natural acoustic speech</span>
+                <li className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-white/5 transition-colors">
+                  <span className="h-6 w-6 rounded-lg bg-[#533afd]/40 text-[#b9b9f9] font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-[#533afd]/60 shadow-xs">5</span>
+                  <div>
+                    <strong className="text-white block">Multilingual Chirp 3 HD</strong>
+                    <span className="text-slate-400 text-[11px]">12 Indian regional languages with natural acoustic speech</span>
+                  </div>
                 </li>
               </ul>
             </div>

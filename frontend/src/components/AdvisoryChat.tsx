@@ -169,6 +169,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
   const voiceServiceRef = useRef<VoiceRecognitionService | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -245,8 +246,14 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     }
   }, [externalQuery, onClearExternalQuery]);
 
+  // Smooth container-scoped scroll
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }, [messages, voiceState, liveTranscript]);
 
   // Voice Controls
@@ -444,32 +451,32 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   });
 
   return (
-    <div className="flex flex-col h-full space-y-4 font-sans text-slate-100">
+    <div className="flex flex-col h-full space-y-4 font-sans text-[#0d253d]">
       
       {/* ─────────────────────────────────────────────────────────────
-          1. LINEAR-STYLE TOP HUD: MULTI-CROP PICKER & LOCATION BAR
+          1. STRIPE-STYLE TOP HUD: MULTI-CROP PICKER & LOCATION BAR
          ───────────────────────────────────────────────────────────── */}
-      <div className="bg-[#0f1011] border border-[#23252a] rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3">
+      <div className="bg-white border border-[#e3e8ee] rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5">
         
         {/* Active Crop Bar + Quick Switcher Toggle */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#23252a] pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
           
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-[#18191a] border border-[#23252a] flex items-center justify-center text-[#5e6ad2] shrink-0">
+            <div className="h-11 w-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#533afd] shrink-0 shadow-2xs">
               <Sprout className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#8a8f98]">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">
                   Target Crop
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18191a] text-[#5e6ad2] border border-[#23252a]">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-[#533afd] border border-indigo-200">
                   {currentCropProfile.category.toUpperCase()}
                 </span>
               </div>
-              <h2 className="text-base sm:text-lg font-bold text-[#f7f8f8] flex items-center gap-2">
+              <h2 className="text-base sm:text-xl font-extrabold text-[#0d253d] font-display flex items-center gap-2">
                 <span>{language === "hi" ? currentCropInfo.nameHi : currentCropInfo.name}</span>
-                <span className="text-xs font-normal text-[#8a8f98]">({currentCropProfile.season})</span>
+                <span className="text-xs font-normal text-slate-500">({currentCropProfile.season})</span>
               </h2>
             </div>
           </div>
@@ -478,19 +485,20 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             <button
               type="button"
               onClick={() => setShowCropPicker(!showCropPicker)}
-              className="px-3 py-1.5 rounded-xl bg-[#18191a] hover:bg-[#23252a] border border-[#23252a] hover:border-[#5e6ad2] text-xs font-medium text-[#f7f8f8] flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-[#f6f9fc] hover:bg-indigo-50 border border-[#e3e8ee] hover:border-indigo-300 text-xs font-bold text-[#0d253d] hover:text-[#533afd] flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
             >
-              <Layers className="h-3.5 w-3.5 text-[#5e6ad2]" />
+              <Layers className="h-3.5 w-3.5 text-[#533afd]" />
               <span>{showCropPicker ? "Hide Crops" : "Change Crop"}</span>
-              <ChevronDown className={`h-3.5 w-3.5 text-[#8a8f98] transition-transform ${showCropPicker ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform ${showCropPicker ? "rotate-180" : ""}`} />
             </button>
 
             {/* Spray Window Status Pill */}
-            <div className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-mono font-bold flex items-center gap-1.5 ${
+            <div className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-2xs ${
               isSpraySafe
-                ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-400"
-                : "bg-amber-950/40 border-amber-800/60 text-amber-400"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-amber-50 border-amber-200 text-amber-800"
             }`}>
+              <div className={`h-1.5 w-1.5 rounded-full ${isSpraySafe ? "bg-emerald-600 animate-pulse" : "bg-amber-600"}`} />
               <Wind className="h-3 w-3" />
               <span>{isSpraySafe ? "Spray Safe" : "Spray Caution"}</span>
             </div>
@@ -499,17 +507,17 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
         {/* Expandable Multi-Crop Selector Panel */}
         {showCropPicker && (
-          <div className="bg-[#141516] border border-[#23252a] rounded-xl p-3.5 space-y-3 animate-in fade-in duration-200">
+          <div className="bg-[#f6f9fc] border border-[#e3e8ee] rounded-2xl p-4 space-y-3 animate-in fade-in duration-200 shadow-inner">
             {/* Search and Category Filter */}
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#8a8f98]" />
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
                 <input
                   type="text"
                   value={cropSearchQuery}
                   onChange={(e) => setCropSearchQuery(e.target.value)}
                   placeholder="Search 50+ crops (e.g. Wheat, Cotton, Tomato, Mustard)..."
-                  className="w-full pl-8 pr-3 py-1.5 bg-[#0f1011] border border-[#23252a] rounded-lg text-xs text-[#f7f8f8] placeholder-[#8a8f98] focus:outline-none focus:border-[#5e6ad2]"
+                  className="w-full pl-8 pr-3 py-2 bg-white border border-[#e3e8ee] rounded-xl text-xs text-[#0d253d] placeholder-slate-400 focus:outline-none focus:border-[#533afd] shadow-2xs"
                 />
               </div>
 
@@ -520,10 +528,10 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => setCropCategoryFilter(cat.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                       cropCategoryFilter === cat.id
-                        ? "bg-[#5e6ad2] text-white"
-                        : "bg-[#0f1011] text-[#8a8f98] hover:text-[#f7f8f8] border border-[#23252a]"
+                        ? "bg-[#533afd] text-white shadow-xs"
+                        : "bg-white text-slate-700 hover:text-[#533afd] border border-[#e3e8ee]"
                     }`}
                   >
                     {language === "hi" ? cat.labelHi : cat.label}
@@ -539,16 +547,16 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                   key={c.id}
                   type="button"
                   onClick={() => handleSelectCrop(c.id)}
-                  className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                  className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
                     selectedCropId === c.id
-                      ? "bg-[#5e6ad2]/20 border-[#5e6ad2] text-white shadow-xs"
-                      : "bg-[#0f1011] border-[#23252a] text-[#8a8f98] hover:border-[#34343a] hover:text-[#f7f8f8]"
+                      ? "bg-indigo-50 border-[#533afd] text-[#533afd] shadow-xs"
+                      : "bg-white border-[#e3e8ee] text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/30"
                   }`}
                 >
                   <span className="text-xs font-bold truncate">
                     {language === "hi" ? c.nameHi : c.name}
                   </span>
-                  <span className="text-[10px] font-mono opacity-70">
+                  <span className="text-[10px] font-mono text-slate-400">
                     Opt: {c.t_opt_day}°C
                   </span>
                 </button>
@@ -559,101 +567,113 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
 
         {/* Hyper-Local Telemetry Ribbon */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-          <div className="bg-[#141516] border border-[#23252a] p-2.5 rounded-xl flex items-center justify-between">
-            <span className="text-[#8a8f98] flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-[#5e6ad2]" /> Location
+          <div className="bg-[#f6f9fc] border border-[#e3e8ee] p-2.5 rounded-xl flex items-center justify-between shadow-2xs">
+            <span className="text-slate-500 font-sans font-medium flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-[#533afd]" /> Location
             </span>
-            <span className="font-bold text-[#f7f8f8] truncate max-w-[120px]">{effectiveDistrict}</span>
+            <span className="font-bold text-[#0d253d] truncate max-w-[120px]">{effectiveDistrict}</span>
           </div>
 
-          <div className="bg-[#141516] border border-[#23252a] p-2.5 rounded-xl flex items-center justify-between">
-            <span className="text-[#8a8f98] flex items-center gap-1.5">
-              <Thermometer className="h-3.5 w-3.5 text-blue-400" /> Air Temp
+          <div className="bg-[#f6f9fc] border border-[#e3e8ee] p-2.5 rounded-xl flex items-center justify-between shadow-2xs">
+            <span className="text-slate-500 font-sans font-medium flex items-center gap-1.5">
+              <Thermometer className="h-3.5 w-3.5 text-blue-600" /> Air Temp
             </span>
-            <span className="font-bold text-[#f7f8f8]">{weather.temperature}°C</span>
+            <span className="font-bold text-[#533afd]">{weather.temperature}°C</span>
           </div>
 
-          <div className="bg-[#141516] border border-[#23252a] p-2.5 rounded-xl flex items-center justify-between">
-            <span className="text-[#8a8f98] flex items-center gap-1.5">
-              <Droplets className="h-3.5 w-3.5 text-emerald-400" /> Soil Index
+          <div className="bg-[#f6f9fc] border border-[#e3e8ee] p-2.5 rounded-xl flex items-center justify-between shadow-2xs">
+            <span className="text-slate-500 font-sans font-medium flex items-center gap-1.5">
+              <Droplets className="h-3.5 w-3.5 text-emerald-600" /> Soil Index
             </span>
-            <span className="font-bold text-emerald-400">{weather.soilMoistureEst}%</span>
+            <span className="font-bold text-emerald-600">{weather.soilMoistureEst}%</span>
           </div>
 
-          <div className="bg-[#141516] border border-[#23252a] p-2.5 rounded-xl flex items-center justify-between">
-            <span className="text-[#8a8f98] flex items-center gap-1.5">
-              <Wind className="h-3.5 w-3.5 text-amber-400" /> Wind Speed
+          <div className="bg-[#f6f9fc] border border-[#e3e8ee] p-2.5 rounded-xl flex items-center justify-between shadow-2xs">
+            <span className="text-slate-500 font-sans font-medium flex items-center gap-1.5">
+              <Wind className="h-3.5 w-3.5 text-amber-600" /> Wind Speed
             </span>
-            <span className="font-bold text-[#f7f8f8]">{weather.windSpeed} km/h</span>
+            <span className="font-bold text-[#0d253d]">{weather.windSpeed} km/h</span>
           </div>
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          2. CHAT STREAM (GROUNDED LINEAR-INSPIRED CARDS)
+          2. CHAT STREAM (STRIPE ELEVATED CARDS)
          ───────────────────────────────────────────────────────────── */}
-      <div className="flex-1 bg-[#0f1011] border border-[#23252a] rounded-2xl p-4 sm:p-5 overflow-y-auto space-y-4 min-h-[380px] max-h-[520px]">
+      <div ref={chatContainerRef} className="flex-1 bg-[#fbfcfd] border border-[#e3e8ee] rounded-3xl p-4 sm:p-6 overflow-y-auto space-y-4 min-h-[420px] max-h-[560px] shadow-inner">
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"} space-y-1`}
+            className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"} space-y-1.5`}
           >
             <div
-              className={`max-w-[92%] sm:max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed border transition-all ${
+              className={`max-w-[92%] sm:max-w-[82%] rounded-2xl p-4 sm:p-5 text-sm leading-relaxed border transition-all animate-card-entrance ${
                 msg.sender === "user"
-                  ? "bg-[#5e6ad2] text-white border-[#5e6ad2]/80 rounded-br-none shadow-sm"
-                  : "bg-[#141516] text-[#f7f8f8] border-[#23252a] rounded-bl-none shadow-xs"
+                  ? "bg-gradient-to-r from-[#533afd] to-[#4434d4] text-white border-[#4434d4] rounded-br-xs shadow-sm font-medium"
+                  : "bg-white text-[#0d253d] border-[#e3e8ee] rounded-bl-xs shadow-xs"
               }`}
             >
               {/* Multimodal Image Preview */}
               {msg.imageUrl && (
-                <div className="mb-2.5 rounded-xl overflow-hidden border border-white/20 max-w-[200px]">
+                <div className="relative mb-3 rounded-xl overflow-hidden border border-slate-200 max-w-[220px] shadow-xs">
                   <img src={msg.imageUrl} alt="Uploaded Leaf" className="w-full h-auto object-cover" />
                 </div>
               )}
 
+              {/* Bot Identity Pill with Shimmer */}
+              {msg.sender === "bot" && (
+                <div className="relative overflow-hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 text-[#533afd] border border-indigo-200 text-[10px] font-bold font-mono uppercase tracking-wide mb-2 shadow-2xs">
+                  <Sparkles className="h-3 w-3 text-[#533afd] animate-pulse" />
+                  <span>AASRA Intelligence</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full animate-laser-shimmer" />
+                </div>
+              )}
+
               {/* Message Content */}
-              <p className="whitespace-pre-line">{msg.text}</p>
+              <p className="whitespace-pre-line text-xs sm:text-sm leading-relaxed">{msg.text}</p>
 
               {/* Verified Mandi Rate Record Card */}
               {msg.mandiRecord && (
-                <div className="mt-3 bg-[#0f1011] border border-[#23252a] p-3 rounded-xl space-y-1.5 font-mono text-xs text-[#d0d6e0]">
-                  <div className="flex items-center justify-between border-b border-[#23252a] pb-1.5">
-                    <span className="text-[#5e6ad2] font-bold">🏛️ {msg.mandiRecord.mandiHi || msg.mandiRecord.mandi}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      msg.mandiRecord.isToday ? "bg-emerald-950 text-emerald-400 border border-emerald-800" : "bg-amber-950 text-amber-400 border border-amber-800"
+                <div className="mt-3 bg-gradient-to-br from-[#f6f9fc] to-white border border-[#e3e8ee] p-3.5 rounded-2xl space-y-2 font-mono text-xs text-[#0d253d] shadow-2xs">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                    <span className="text-[#533afd] font-bold flex items-center gap-1">
+                      <span>🏛️</span>
+                      <span>{msg.mandiRecord.mandiHi || msg.mandiRecord.mandi}</span>
+                    </span>
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold shadow-2xs ${
+                      msg.mandiRecord.isToday ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"
                     }`}>
                       {msg.mandiRecord.formattedDate}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#8a8f98]">Modal Price:</span>
-                    <span className="font-bold text-white text-sm">₹{msg.mandiRecord.modalPrice?.toLocaleString("en-IN")}/quintal</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-sans">Modal Price:</span>
+                    <span className="font-extrabold text-[#0d253d] text-sm sm:text-base">₹{msg.mandiRecord.modalPrice?.toLocaleString("en-IN")}/quintal</span>
                   </div>
-                  <div className="flex justify-between text-[11px] text-[#8a8f98]">
+                  <div className="flex justify-between text-[11px] text-slate-500 font-sans">
                     <span>Range: ₹{msg.mandiRecord.minPrice?.toLocaleString("en-IN")} – ₹{msg.mandiRecord.maxPrice?.toLocaleString("en-IN")}</span>
-                    <span>{msg.mandiRecord.grade || "FAQ"}</span>
+                    <span className="font-bold text-slate-700">{msg.mandiRecord.grade || "FAQ"}</span>
                   </div>
                 </div>
               )}
 
               {/* Dosage Summary Card */}
               {msg.dosageSummary && (
-                <div className="mt-2.5 bg-[#18191a] border border-[#23252a] p-2.5 rounded-xl text-xs font-mono text-emerald-400 flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                <div className="mt-2.5 bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs font-mono text-emerald-800 flex items-center gap-2 font-bold shadow-2xs">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
                   <span>Dosage: {msg.dosageSummary}</span>
                 </div>
               )}
 
               {/* Technical Reasoning Drawer & Audio Readout */}
               {msg.sender === "bot" && (
-                <div className="mt-3 pt-2 border-t border-[#23252a] flex items-center justify-between text-xs text-[#8a8f98]">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                   <button
                     type="button"
                     onClick={() => setOpenWhyId(openWhyId === msg.id ? null : msg.id)}
-                    className="flex items-center gap-1 hover:text-[#f7f8f8] cursor-pointer transition-colors"
+                    className="flex items-center gap-1.5 text-slate-600 hover:text-[#533afd] font-semibold cursor-pointer transition-colors"
                   >
-                    <Sparkles className="h-3 w-3 text-[#5e6ad2]" />
+                    <Sparkles className="h-3 w-3 text-[#533afd]" />
                     <span>Ground Truth Provenance</span>
                     {openWhyId === msg.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                   </button>
@@ -661,29 +681,38 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                   <button
                     type="button"
                     onClick={() => speakResponse(msg.id, msg.text)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-bold transition-all cursor-pointer shadow-2xs ${
                       speakingMessageId === msg.id
-                        ? "bg-[#5e6ad2] text-white border-[#5e6ad2]"
-                        : "bg-[#0f1011] text-[#8a8f98] hover:text-[#f7f8f8] border-[#23252a]"
+                        ? "bg-[#533afd] text-white border-[#533afd] shadow-sm animate-pulse-ring"
+                        : "bg-[#f6f9fc] text-slate-700 hover:text-[#533afd] hover:bg-indigo-50 border-[#e3e8ee]"
                     }`}
                   >
-                    {speakingMessageId === msg.id ? <VolumeX className="h-3.5 w-3.5 animate-pulse" /> : <Volume2 className="h-3.5 w-3.5" />}
-                    <span>{speakingMessageId === msg.id ? "Stop" : "Listen"}</span>
+                    {speakingMessageId === msg.id ? (
+                      <div className="flex items-center gap-0.5 h-3.5 px-0.5">
+                        <div className="w-0.5 bg-white rounded-full animate-soundwave-1" />
+                        <div className="w-0.5 bg-white rounded-full animate-soundwave-2" />
+                        <div className="w-0.5 bg-white rounded-full animate-soundwave-3" />
+                        <div className="w-0.5 bg-white rounded-full animate-soundwave-4" />
+                      </div>
+                    ) : (
+                      <Volume2 className="h-3.5 w-3.5 text-[#533afd]" />
+                    )}
+                    <span>{speakingMessageId === msg.id ? "Playing Audio" : "Listen"}</span>
                   </button>
                 </div>
               )}
 
               {/* Technical Provenance Details */}
               {openWhyId === msg.id && msg.whyRecommendation && (
-                <div className="mt-2 p-2.5 bg-[#0f1011] border border-[#23252a] rounded-xl text-xs text-[#8a8f98] font-mono animate-in fade-in duration-150">
-                  <div className="font-bold text-[#f7f8f8] mb-1">Telemetry Grounding:</div>
-                  <p>{msg.whyRecommendation}</p>
-                  <div className="mt-1 text-[10px] text-[#5e6ad2]">Engine: {msg.provider || "Google Gemini 2.5 Flash"} · Confidence {msg.confidenceScore || 98}%</div>
+                <div className="mt-2.5 p-3 bg-[#f6f9fc] border border-[#e3e8ee] rounded-xl text-xs text-slate-600 font-mono animate-in fade-in duration-150 space-y-1">
+                  <div className="font-bold text-[#0d253d] mb-1">Telemetry Grounding:</div>
+                  <p className="leading-relaxed">{msg.whyRecommendation}</p>
+                  <div className="mt-1 text-[10px] font-bold text-[#533afd]">Engine: {msg.provider || "Google Gemini 2.5 Flash"} · Confidence {msg.confidenceScore || 98}%</div>
                 </div>
               )}
             </div>
 
-            {/* Contextual Follow-up Chips */}
+            {/* Contextual Follow-up Chips with Animated Hover */}
             {msg.sender === "bot" && msg.followUpQuestions && msg.followUpQuestions.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1.5 pl-1 max-w-[90%]">
                 {msg.followUpQuestions.map((q, idx) => (
@@ -691,7 +720,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => processUserMessage(q)}
-                    className="px-2.5 py-1 rounded-xl text-xs bg-[#141516] hover:bg-[#18191a] border border-[#23252a] hover:border-[#5e6ad2] text-[#8a8f98] hover:text-[#f7f8f8] cursor-pointer transition-all flex items-center gap-1 text-left"
+                    className="px-3.5 py-1.5 rounded-xl text-xs bg-white hover:bg-indigo-50 border border-[#e3e8ee] hover:border-indigo-300 text-[#0d253d] hover:text-[#533afd] font-semibold cursor-pointer transition-all flex items-center gap-1.5 text-left shadow-2xs hover:scale-[1.02] hover:-translate-y-0.5"
                   >
                     <span>💡 {q}</span>
                     <ArrowRight className="h-2.5 w-2.5 opacity-50" />
@@ -700,37 +729,58 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
               </div>
             )}
 
-            <span className="text-[10px] font-mono text-[#62666d] px-1">{msg.time}</span>
+            <span className="text-[10px] font-mono text-slate-400 px-1">{msg.time}</span>
           </div>
         ))}
 
-        {/* Live Audio / Processing State */}
+        {/* Live Audio / Soundwave Equalizer State (design-spells) */}
         {voiceState === "LISTENING" && (
-          <div className="bg-[#141516] border border-[#5e6ad2] p-3 rounded-2xl flex items-center gap-3 animate-pulse">
-            <div className="h-8 w-8 rounded-full bg-rose-500/20 border border-rose-500 flex items-center justify-center text-rose-500">
-              <Mic className="h-4 w-4 animate-bounce" />
+          <div className="bg-gradient-to-r from-rose-50 via-pink-50 to-rose-50 border-2 border-rose-300 p-4 rounded-2xl flex items-center gap-4 animate-card-entrance shadow-md">
+            <div className="relative h-11 w-11 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-lg animate-pulse-ring">
+              <Mic className="h-5 w-5" />
             </div>
-            <div className="flex-1 text-xs">
-              <div className="font-bold text-white flex items-center gap-1.5">
-                <span>Listening in {language.toUpperCase()}...</span>
-                <span className="text-[#8a8f98]">(Speak naturally)</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm text-rose-900 font-display">
+                  Listening in {language.toUpperCase()}...
+                </span>
+                <span className="text-xs text-rose-600 font-medium">Speak in your dialect</span>
               </div>
-              <p className="text-[#d0d6e0] italic mt-0.5">{liveTranscript || "Listening to your voice..."}</p>
+              <p className="text-slate-700 italic text-xs mt-1 truncate">
+                {liveTranscript || "Listening for crop queries, spray timings, or mandi rates..."}
+              </p>
             </div>
+            
+            {/* Live Dancing Equalizer Soundwave Bars */}
+            <div className="flex items-center gap-1 h-8 px-2.5 py-1 bg-white/80 rounded-xl border border-rose-200">
+              <div className="w-1 bg-rose-500 rounded-full animate-soundwave-1" />
+              <div className="w-1 bg-rose-500 rounded-full animate-soundwave-2" />
+              <div className="w-1 bg-rose-500 rounded-full animate-soundwave-3" />
+              <div className="w-1 bg-rose-500 rounded-full animate-soundwave-4" />
+              <div className="w-1 bg-rose-500 rounded-full animate-soundwave-5" />
+            </div>
+
             <button
               type="button"
               onClick={handleStopListening}
-              className="px-2.5 py-1 bg-[#5e6ad2] text-white text-xs font-bold rounded-lg cursor-pointer"
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-md hover:scale-105 transition-all"
             >
               Done
             </button>
           </div>
         )}
 
+        {/* Synthesis Processing State with Shimmer */}
         {voiceState === "PROCESSING" && (
-          <div className="bg-[#141516] border border-[#23252a] p-3 rounded-2xl flex items-center gap-2.5 text-xs text-[#8a8f98]">
-            <Loader2 className="h-4 w-4 text-[#5e6ad2] animate-spin" />
-            <span>AASRA Intelligence synthesizing live Open-Meteo & APMC data...</span>
+          <div className="relative overflow-hidden bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 border border-indigo-200 p-4 rounded-2xl flex items-center gap-3 text-xs text-indigo-950 font-medium shadow-sm animate-card-entrance">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-laser-shimmer" />
+            <div className="h-8 w-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Loader2 className="h-4 w-4 animate-spin text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="font-bold text-indigo-900 text-xs">Synthesizing Agronomic Intelligence...</div>
+              <div className="text-[11px] text-slate-500">Cross-referencing Open-Meteo telemetry & APMC Mandi price buffers</div>
+            </div>
           </div>
         )}
 
@@ -740,20 +790,39 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       {/* ─────────────────────────────────────────────────────────────
           3. BOTTOM INPUT BAR (VOICE, CAMERA, TEXT)
          ───────────────────────────────────────────────────────────── */}
-      <div className="bg-[#0f1011] border border-[#23252a] rounded-2xl p-2.5 sm:p-3 shadow-md space-y-2">
+      <div className="bg-white border border-[#e3e8ee] rounded-3xl p-3 shadow-md space-y-2">
         
-        {/* Selected Image Thumbnail */}
+        {/* Selected Image Thumbnail with Futuristic Laser Scan Effect */}
         {imagePreviewUrl && (
-          <div className="flex items-center gap-2 bg-[#141516] border border-[#23252a] p-2 rounded-xl">
-            <img src={imagePreviewUrl} alt="Leaf Preview" className="h-10 w-10 object-cover rounded-lg border border-[#23252a]" />
-            <span className="text-xs text-[#f7f8f8] flex-1 truncate">{selectedImage?.name} (Ready for AI Leaf Diagnostics)</span>
+          <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-50/70 via-[#f6f9fc] to-indigo-50/70 border border-emerald-300/80 p-3 rounded-2xl shadow-sm animate-card-entrance">
+            <div className="relative h-14 w-14 rounded-xl overflow-hidden border-2 border-emerald-500 shadow-md shrink-0">
+              <img src={imagePreviewUrl} alt="Leaf Preview" className="h-full w-full object-cover" />
+              {/* Laser Scanning Line */}
+              <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_8px_#10b981] animate-scanline" />
+              {/* Corner Reticles */}
+              <div className="absolute top-0.5 left-0.5 w-2 h-2 border-t-2 border-l-2 border-emerald-400" />
+              <div className="absolute top-0.5 right-0.5 w-2 h-2 border-t-2 border-r-2 border-emerald-400" />
+              <div className="absolute bottom-0.5 left-0.5 w-2 h-2 border-b-2 border-l-2 border-emerald-400" />
+              <div className="absolute bottom-0.5 right-0.5 w-2 h-2 border-b-2 border-r-2 border-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+                <span>Multimodal Leaf Scanner Active</span>
+              </div>
+              <p className="text-xs text-[#0d253d] font-medium truncate mt-0.5">
+                {selectedImage?.name}
+              </p>
+              <span className="text-[10px] text-slate-500">Gemini 2.5 Flash ready to diagnose rust, chlorosis & pest necrosis</span>
+            </div>
             <button
               type="button"
               onClick={() => {
                 setSelectedImage(null);
                 setImagePreviewUrl(null);
               }}
-              className="p-1 text-[#8a8f98] hover:text-rose-400 cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors"
+              title="Remove photo"
             >
               <X className="h-4 w-4" />
             </button>
@@ -780,7 +849,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Scan Crop Leaf Photo"
-            className="p-2.5 rounded-xl bg-[#141516] hover:bg-[#18191a] border border-[#23252a] hover:border-[#5e6ad2] text-[#8a8f98] hover:text-[#f7f8f8] cursor-pointer transition-all shrink-0"
+            className="p-3 rounded-2xl bg-[#f6f9fc] hover:bg-indigo-50 border border-[#e3e8ee] hover:border-indigo-300 text-slate-600 hover:text-[#533afd] cursor-pointer transition-all shrink-0 shadow-2xs"
           >
             <Camera className="h-4 w-4" />
           </button>
@@ -790,10 +859,10 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             type="button"
             onClick={voiceState === "LISTENING" ? handleStopListening : handleStartListening}
             title={voiceState === "LISTENING" ? "Stop Recording" : "Speak in any Indian language"}
-            className={`p-2.5 rounded-xl border transition-all cursor-pointer shrink-0 ${
+            className={`p-3 rounded-2xl border transition-all cursor-pointer shrink-0 shadow-2xs ${
               voiceState === "LISTENING"
                 ? "bg-rose-600 text-white border-rose-500 shadow-md animate-pulse"
-                : "bg-[#141516] hover:bg-[#18191a] border-[#23252a] hover:border-[#5e6ad2] text-[#5e6ad2]"
+                : "bg-[#f6f9fc] hover:bg-indigo-50 border-[#e3e8ee] hover:border-indigo-300 text-[#533afd]"
             }`}
           >
             {voiceState === "LISTENING" ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -809,14 +878,14 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                 ? `${currentCropInfo.nameHi} के बारे में पूछें, मंडी भाव या मौसम...`
                 : `Ask about ${currentCropInfo.name}, mandi rates, or weather...`
             }
-            className="flex-1 bg-[#141516] border border-[#23252a] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#f7f8f8] placeholder-[#62666d] focus:outline-none focus:border-[#5e6ad2] transition-colors"
+            className="flex-1 bg-[#f6f9fc] border border-[#e3e8ee] rounded-2xl px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-[#0d253d] placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#533afd] focus:ring-2 focus:ring-[#533afd]/15 transition-all font-medium"
           />
 
           {/* Send Button */}
           <button
             type="submit"
             disabled={!input.trim() && !selectedImage}
-            className="p-2.5 rounded-xl bg-[#5e6ad2] hover:bg-[#828fff] disabled:opacity-40 text-white font-bold cursor-pointer transition-all shrink-0 disabled:cursor-not-allowed shadow-xs"
+            className="p-3 sm:px-4 sm:py-3 rounded-2xl bg-gradient-to-r from-[#533afd] to-[#4434d4] hover:opacity-95 disabled:opacity-40 text-white font-bold cursor-pointer transition-all shrink-0 disabled:cursor-not-allowed shadow-md hover:scale-[1.02] active:scale-[0.98]"
           >
             <Send className="h-4 w-4" />
           </button>

@@ -82,20 +82,20 @@ export function getInitialFarmerField(): FieldRecord {
     crop: profile.primaryCrop || "Soybean",
     cropVariety: profile.cropVariety || "JS-335",
     areaAcres: profile.fieldAreaAcres || 5.0,
-    areaHa: profile.fieldAreaHa || 2.0,
+    areaHa: profile.fieldAreaHa || +( (profile.fieldAreaAcres || 5.0) * 0.4047 ).toFixed(2),
     center: [lat, lon],
-    polygon: [
-      [lat + 0.001, lon - 0.001],
-      [lat + 0.001, lon + 0.001],
-      [lat - 0.001, lon + 0.001],
-      [lat - 0.001, lon - 0.001],
+    polygon: profile.polygon && profile.polygon.length >= 3 ? profile.polygon : [
+      [lat + 0.0012, lon - 0.0015],
+      [lat + 0.0015, lon + 0.0018],
+      [lat - 0.0011, lon + 0.0014],
+      [lat - 0.0014, lon - 0.0012],
     ],
     sowingDate: profile.sowingDate || "2026-06-15",
-    growthStage: "R2 Flowering Stage",
+    growthStage: profile.growthStage || "R2 Flowering Stage",
     soilType: profile.soilType || "Black Cotton Soil",
     irrigationType: profile.irrigationType || "Rainfed + Borewell",
     color: "#10B981",
-    healthScore: 92,
+    healthScore: 94,
     pins: [],
   };
 }

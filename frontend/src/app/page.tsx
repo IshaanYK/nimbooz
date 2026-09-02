@@ -413,51 +413,107 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── 6. Bottom High-Converting Sign Up CTA Banner ──────────────────────── */}
-        <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-indigo-50/50">
-          <div className="max-w-[1000px] mx-auto px-4 sm:px-6 text-center space-y-6">
+        {/* ── 6. Industry-Grade High-Impact CTA Showcase ──────────────────────── */}
+        <section className="py-16 sm:py-24 bg-[#ffffff]">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
             
-            <div className="h-16 w-16 mx-auto rounded-3xl bg-[#533afd] text-white flex items-center justify-center shadow-xl shadow-[#533afd]/25">
-              <Sprout className="h-8 w-8" />
+            <div className="relative rounded-[32px] sm:rounded-[40px] bg-gradient-to-br from-[#0d253d] via-[#112d4e] to-[#0d253d] border border-indigo-500/30 text-white p-8 sm:p-14 lg:p-16 shadow-2xl shadow-indigo-950/40 overflow-hidden text-center space-y-8">
+              
+              {/* Atmospheric Background Glows */}
+              <div
+                className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[300px] opacity-30 blur-3xl pointer-events-none rounded-full"
+                style={{ background: "radial-gradient(circle, #533afd 0%, #0ea5e9 60%, transparent 80%)" }}
+              />
+              <div
+                className="absolute -bottom-24 -right-24 w-80 h-80 opacity-20 blur-3xl pointer-events-none rounded-full"
+                style={{ background: "radial-gradient(circle, #10b981 0%, transparent 70%)" }}
+              />
+
+              {/* Top Trust Badge */}
+              <div className="relative z-10 flex items-center justify-center">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold font-mono tracking-wide text-indigo-200">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{isHindi ? "सार्वजनिक डिजिटल कृषि सेवा" : "Syngenta Biologicals • Public Good Agricultural Platform"}</span>
+                </div>
+              </div>
+
+              {/* Main Headline & Value Proposition */}
+              <div className="relative z-10 space-y-3 max-w-3xl mx-auto">
+                <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black font-display tracking-tight text-white leading-tight">
+                  {isHindi
+                    ? "अपनी फसल को दें वैज्ञानिक सुरक्षा और वास्तविक मंडी लाभ"
+                    : "Empower Your Farm with Precision Agricultural Intelligence"}
+                </h2>
+                <p className="text-sm sm:text-base lg:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed font-normal">
+                  {isHindi
+                    ? "AASRA से जुड़ें और 14-दिन का लाइव मौसम रडार, 140+ मंडियों के सत्यापित भाव व 50 सिंजेंटा वैज्ञानिक सुरक्षा प्रोटोकॉल से अपनी पैदावार और आमदनी बढ़ाएं।"
+                    : "Deploy real-time agro-meteorological telemetry, ICAR-calibrated multi-crop diagnostics, and verified APMC mandi discovery across your field in under 60 seconds."}
+                </p>
+              </div>
+
+              {/* 4-Pillar Live Capability Badges */}
+              <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto pt-2">
+                {[
+                  { title: isHindi ? "14-दिन मौसम रडार" : "14-Day Weather Radar", sub: isHindi ? "सटीक स्प्रे विंडो" : "Micro-Climate Telemetry", icon: CloudSun },
+                  { title: isHindi ? "140+ मंडियों के भाव" : "140+ APMC Mandis", sub: isHindi ? "दैनिक सत्यापित रेट" : "Live Price Discovery", icon: Store },
+                  { title: isHindi ? "50 फसल सुरक्षा मॉडल" : "50 Syngenta Protocols", sub: isHindi ? "ICAR फील्ड ट्रायल" : "ICAR Field-Validated", icon: ShieldCheck },
+                  { title: isHindi ? "12 भारतीय भाषाएं" : "12 Indian Dialects", sub: isHindi ? "आवाज से सलाह" : "Native AI Voice Assistant", icon: Mic },
+                ].map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 text-left flex items-center gap-3"
+                    >
+                      <div className="h-9 w-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-indigo-300">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="truncate">
+                        <span className="text-xs font-bold text-white block truncate">{item.title}</span>
+                        <span className="text-[10px] text-slate-400 font-mono block truncate">{item.sub}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="relative z-10 flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                <Link
+                  href={isLoggedIn ? "/dashboard" : "/signup"}
+                  className="px-8 py-4 rounded-2xl text-white font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2.5 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  style={{
+                    background: "linear-gradient(135deg, #533afd 0%, #4434d4 100%)",
+                    boxShadow: "0 10px 30px rgba(83, 58, 253, 0.4)",
+                  }}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>{isLoggedIn ? (isHindi ? "मेरा खेत डैशबोर्ड खोलें" : "Open My Farm Dashboard") : (isHindi ? "नया किसान खाता बनाएं (Free)" : "Create Free Farmer Account")}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+
+                <Link
+                  href="/how-it-works"
+                  className="px-7 py-4 rounded-2xl text-white bg-white/10 hover:bg-white/15 border border-white/20 backdrop-blur-md font-bold text-sm transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Sparkles className="h-4 w-4 text-indigo-300" />
+                  <span>{isHindi ? "प्लेटफॉर्म टूर देखें" : "Explore Platform Tour"}</span>
+                </Link>
+              </div>
+
+              {/* Assurance Subtext */}
+              <div className="relative z-10 flex items-center justify-center gap-4 text-xs text-slate-400 pt-2 flex-wrap font-mono">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>{isHindi ? "निःशुल्क सार्वजनिक सेवा" : "Public Good Platform"}</span>
+                </span>
+                <span className="text-slate-600">•</span>
+                <span>{isHindi ? "कोई क्रेडिट कार्ड आवश्यक नहीं" : "No Credit Card Required"}</span>
+                <span className="text-slate-600">•</span>
+                <span>{isHindi ? "सुरक्षित एवं गोपनीय डेटा" : "Encrypted Telemetry Privacy"}</span>
+              </div>
+
             </div>
-
-            <div className="space-y-2">
-              <h2 className="text-3xl sm:text-5xl font-bold text-[#0d253d] font-display tracking-tight">
-                {isHindi ? "आज ही अपनी खेती को स्मार्ट बनाएं" : "Ready to Modernize Your Farm Operations?"}
-              </h2>
-              <p className="text-sm sm:text-base text-[#64748d] max-w-xl mx-auto">
-                {isHindi
-                  ? "AASRA से जुड़ें और लाइव मौसम, 140+ मंडियों के भाव व AI सुरक्षा सलाह से अपनी फसल का उत्पादन और आमदनी बढ़ाएं।"
-                  : "Join thousands of farmers leveraging grounded telemetry, verified APMC prices, and precision AI advisory."}
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Link
-                href={isLoggedIn ? "/dashboard" : "/signup"}
-                className="px-8 py-4 rounded-xl text-white font-bold text-sm shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
-                style={{
-                  background: "linear-gradient(135deg, #533afd 0%, #4434d4 100%)",
-                  boxShadow: "0 8px 25px rgba(83, 58, 253, 0.35)",
-                }}
-              >
-                <UserPlus className="h-4 w-4" />
-                <span>{isLoggedIn ? (isHindi ? "मेरा डैशबोर्ड खोलें" : "Open Dashboard") : (isHindi ? "नया किसान खाता बनाएं (Free)" : "Create Free Farmer Account")}</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-
-              <Link
-                href="/how-it-works"
-                className="px-6 py-4 rounded-xl text-[#0d253d] bg-white border border-[#e3e8ee] hover:border-[#533afd]/40 hover:text-[#533afd] font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2"
-              >
-                <Sparkles className="h-4 w-4 text-[#533afd]" />
-                <span>{isHindi ? "हाउ इट वर्क्स देखें" : "Explore How It Works"}</span>
-              </Link>
-            </div>
-
-            <p className="text-xs text-slate-400 pt-2">
-              {isHindi ? "✓ बिना किसी क्रेडिट कार्ड के · 100% मुफ्त किसान सेवा" : "✓ No payment required · 100% Free Public Good for Farmers"}
-            </p>
 
           </div>
         </section>

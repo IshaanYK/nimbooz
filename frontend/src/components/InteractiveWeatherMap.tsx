@@ -409,7 +409,7 @@ export function InteractiveWeatherMap({
           className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center gap-1 border border-emerald-300 shrink-0 cursor-pointer"
         >
           <Plus className="h-3 w-3" />
-          <span>{language === "hi" ? "+ नया खेत" : "+ Add Field"}</span>
+          <span>{language === "hi" ? "नया खेत" : "Add Field"}</span>
         </button>
 
         <button

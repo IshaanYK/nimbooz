@@ -137,17 +137,17 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
             {/* Global Farm & Location Selector */}
             {loggedIn && (
-              <div className="relative" ref={farmDropdownRef}>
+              <div className="relative shrink-0" ref={farmDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setFarmDropdownOpen((v) => !v)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all text-xs font-bold shadow-xs cursor-pointer border border-slate-700"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#f6f9fc] hover:bg-slate-100 text-[#0d253d] transition-all text-xs font-bold shadow-2xs cursor-pointer border border-[#e3e8ee]"
                   title="Switch Active Farm or Field"
                 >
-                  <MapPin className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                  <MapPin className="h-3.5 w-3.5 text-[#533afd] shrink-0" />
                   <div className="text-left leading-tight max-w-[130px] sm:max-w-[170px] truncate">
-                    <span className="block text-[11px] font-extrabold truncate">{activeFarm.name}</span>
-                    <span className="block text-[9px] text-purple-300 font-mono truncate">{activeFarm.primaryCrop} · {activeFarm.areaAcres} ac</span>
+                    <span className="block text-[11px] font-extrabold text-[#0d253d] truncate">{activeFarm.name}</span>
+                    <span className="block text-[9px] text-slate-500 font-mono truncate">{activeFarm.primaryCrop} · {activeFarm.areaAcres} ac</span>
                   </div>
                   <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform ${farmDropdownOpen ? "rotate-180" : ""}`} />
                 </button>
@@ -156,7 +156,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   <div className="absolute left-0 mt-2 w-80 rounded-2xl bg-white border border-slate-200 shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 text-xs text-slate-800">
                     <div className="px-3.5 py-2 border-b border-slate-100 flex items-center justify-between">
                       <span className="font-mono text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Farm / Portfolio</span>
-                      <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full">{farms.length} Farm(s)</span>
+                      <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">{farms.length} Farm(s)</span>
                     </div>
                     <div className="max-h-64 overflow-y-auto py-1 space-y-1">
                       {farms.map((f) => (
@@ -168,7 +168,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                           }}
                           className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors ${
                             f.id === activeFarm.id
-                              ? "bg-purple-50 text-purple-950 font-extrabold border-l-4 border-purple-600"
+                              ? "bg-indigo-50 text-indigo-950 font-extrabold border-l-4 border-[#533afd]"
                               : "text-slate-700 font-medium"
                           }`}
                         >
@@ -191,10 +191,10 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                           setFarmDropdownOpen(false);
                           setShowNewFarmModal(true);
                         }}
-                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#533afd] to-[#4434d4] hover:opacity-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
                       >
                         <Plus className="h-4 w-4" />
-                        <span>+ Add Another Farm / Field</span>
+                        <span>Add Another Farm / Field</span>
                       </button>
                     </div>
                   </div>
@@ -204,66 +204,66 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </div>
 
           {/* Primary Clean Navigation Links (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1 text-xs font-bold text-slate-700">
+          <nav className="hidden lg:flex items-center gap-1.5 text-xs font-bold text-slate-700">
             {loggedIn ? (
               <>
                 <Link
                   href="/dashboard"
-                  className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all text-sm ${
+                  className={`flex items-center gap-2 py-2 px-3.5 rounded-xl whitespace-nowrap shrink-0 transition-all text-xs font-bold ${
                     pathname === "/dashboard"
-                      ? "bg-purple-50 text-purple-700 font-extrabold border border-purple-200 shadow-xs"
-                      : "text-slate-600 font-semibold hover:text-purple-700 hover:bg-purple-50"
+                      ? "bg-indigo-50 text-[#533afd] border border-indigo-200 shadow-2xs font-extrabold"
+                      : "text-slate-600 font-semibold hover:text-[#533afd] hover:bg-slate-100"
                   }`}
                 >
-                  <LayoutDashboard className="h-4 w-4 text-emerald-600" />
+                  <LayoutDashboard className="h-4 w-4 text-[#533afd]" />
                   <span>{t.navDashboard || "Dashboard"}</span>
                 </Link>
 
                 <Link
                   href="/plant-intelligence"
-                  className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all text-sm ${
+                  className={`flex items-center gap-2 py-2 px-3.5 rounded-xl whitespace-nowrap shrink-0 transition-all text-xs font-bold ${
                     pathname === "/plant-intelligence"
-                      ? "bg-purple-50 text-purple-700 font-extrabold border border-purple-200 shadow-xs"
-                      : "text-slate-600 font-semibold hover:text-purple-700 hover:bg-purple-50"
+                      ? "bg-indigo-50 text-[#533afd] border border-indigo-200 shadow-2xs font-extrabold"
+                      : "text-slate-600 font-semibold hover:text-[#533afd] hover:bg-slate-100"
                   }`}
                 >
-                  <Sprout className="h-4 w-4 text-blue-600" />
+                  <Sprout className="h-4 w-4 text-emerald-600" />
                   <span>{t.navPlantAi || "Plant Health AI"}</span>
                 </Link>
 
                 <Link
                   href="/fields"
-                  className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all text-sm ${
+                  className={`flex items-center gap-2 py-2 px-3.5 rounded-xl whitespace-nowrap shrink-0 transition-all text-xs font-bold ${
                     pathname === "/fields"
-                      ? "bg-purple-50 text-purple-700 font-extrabold border border-purple-200 shadow-xs"
-                      : "text-slate-600 font-semibold hover:text-purple-700 hover:bg-purple-50"
+                      ? "bg-indigo-50 text-[#533afd] border border-indigo-200 shadow-2xs font-extrabold"
+                      : "text-slate-600 font-semibold hover:text-[#533afd] hover:bg-slate-100"
                   }`}
                 >
-                  <Layers className="h-4 w-4 text-purple-600" />
-                  <span>{t.navFields || "Fields"}</span>
+                  <Layers className="h-4 w-4 text-indigo-600" />
+                  <span>{t.navFields || "My Fields"}</span>
                 </Link>
 
                 <Link
                   href="/assistant"
-                  className={`flex items-center gap-1.5 py-2 px-3 rounded-xl transition-all text-sm ${
+                  className={`flex items-center gap-2 py-2 px-3.5 rounded-xl whitespace-nowrap shrink-0 transition-all text-xs font-bold ${
                     pathname === "/assistant"
-                      ? "bg-purple-50 text-purple-700 font-extrabold border border-purple-200 shadow-xs"
-                      : "text-slate-600 font-semibold hover:text-purple-700 hover:bg-purple-50"
+                      ? "bg-indigo-50 text-[#533afd] border border-indigo-200 shadow-2xs font-extrabold"
+                      : "text-slate-600 font-semibold hover:text-[#533afd] hover:bg-slate-100"
                   }`}
                 >
                   <Mic className="h-4 w-4 text-amber-500" />
-                  <span>{t.navAdvisory || "AI सलाह"}</span>
+                  <span>{t.navAdvisory || "Ask AI"}</span>
                 </Link>
 
                 {/* Clean Dropdown for Secondary Tools */}
-                <div className="relative" ref={moreDropdownRef}>
+                <div className="relative shrink-0" ref={moreDropdownRef}>
                   <button
                     type="button"
                     onClick={() => setMoreDropdownOpen((v) => !v)}
-                    className={`flex items-center gap-1 py-2 px-3 rounded-xl transition-all cursor-pointer text-sm ${
+                    className={`flex items-center gap-1.5 py-2 px-3.5 rounded-xl whitespace-nowrap transition-all cursor-pointer text-xs font-bold ${
                       isSecondaryActive
-                        ? "bg-purple-50 text-purple-700 font-extrabold border border-purple-200"
-                        : "text-slate-600 font-semibold hover:text-purple-700 hover:bg-purple-50"
+                        ? "bg-indigo-50 text-[#533afd] border border-indigo-200 font-extrabold"
+                        : "text-slate-600 font-semibold hover:text-[#533afd] hover:bg-slate-100"
                     }`}
                   >
                     <span>{language === "hi" ? "अधिक उपकरण" : "More Tools"}</span>

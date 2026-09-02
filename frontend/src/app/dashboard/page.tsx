@@ -15,6 +15,8 @@ import { KisanActionVerdict } from "@/components/KisanActionVerdict";
 import { MandiPriceTicker } from "@/components/MandiPriceTicker";
 import { BiologicalActivationCountdown } from "@/components/BiologicalActivationCountdown";
 import { CropFitEconomicMatrix } from "@/components/CropFitEconomicMatrix";
+import { RealtimePermissionsHub } from "@/components/RealtimePermissionsHub";
+import { RegionalAgriculturalProfile } from "@/components/RegionalAgriculturalProfile";
 import { playGoogleNeuralSpeech, stopGoogleSpeech } from "@/lib/googleVoiceEngine";
 import { useFarm } from "@/context/FarmContext";
 import { calculateDeterministicROI } from "@/lib/calculations/roiEngine";
@@ -31,16 +33,28 @@ export default function DashboardPage() {
   const { activeFarm, updateActiveFarm } = useFarm();
   const t = getTranslation(language);
 
-  const [profile, setProfile] = useState<FarmerProfile>(getStoredProfile());
+  const [profile, setProfile] = useState<FarmerProfile>(() => getStoredProfile());
   const [isSpeakingBriefing, setIsSpeakingBriefing] = useState<boolean>(false);
   const [showCropSwitchModal, setShowCropSwitchModal] = useState<boolean>(false);
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [customCropText, setCustomCropText] = useState<string>("");
+  const [sprayScheduledToast, setSprayScheduledToast] = useState<string | null>(null);
 
-  const currentAcres = activeFarm.areaAcres || 5.0;
-  const currentCrop = activeFarm.primaryCrop || "Soybean";
-  const currentDistrict = activeFarm.district || weather.district || "Local Region";
-  const currentState = activeFarm.state || weather.state || "India";
+  useEffect(() => {
+    const p = getStoredProfile();
+    if (p) {
+      setProfile(p);
+      if (p.primaryCrop) updateActiveFarm({ primaryCrop: p.primaryCrop });
+      if (p.fieldAreaAcres) updateActiveFarm({ areaAcres: p.fieldAreaAcres });
+      if (p.district) updateActiveFarm({ district: p.district });
+      if (p.state) updateActiveFarm({ state: p.state });
+    }
+  }, []);
+
+  const currentAcres = profile.fieldAreaAcres || activeFarm.areaAcres || 5.0;
+  const currentCrop = profile.primaryCrop || activeFarm.primaryCrop || "Soybean";
+  const currentDistrict = profile.district || activeFarm.district || weather.district || "Sehore";
+  const currentState = profile.state || activeFarm.state || weather.state || "Madhya Pradesh";
 
   const regionalCrops = getRegionalCrops(currentDistrict, currentState);
 
@@ -49,15 +63,29 @@ export default function DashboardPage() {
   }, []);
 
   const handleUpdateCrop = (newCrop: string) => {
-    updateActiveFarm({ primaryCrop: newCrop });
+    const formatted = newCrop.charAt(0).toUpperCase() + newCrop.slice(1);
+    updateActiveFarm({ primaryCrop: formatted });
     const p = getStoredProfile();
-    saveProfile({ ...p, primaryCrop: newCrop });
+    saveProfile({ ...p, primaryCrop: formatted });
+    setProfile({ ...p, primaryCrop: formatted });
   };
 
   const handleUpdateAcreage = (newAcres: number) => {
     updateActiveFarm({ areaAcres: newAcres });
     const p = getStoredProfile();
     saveProfile({ ...p, fieldAreaAcres: newAcres });
+    setProfile({ ...p, fieldAreaAcres: newAcres });
+  };
+
+  const handleLockInSpray = (dayNum: number = 1) => {
+    const message = language === "hi"
+      ? `दिन ${dayNum} का स्प्रे प्लान (${currentCrop} - सिंजेंटा क्वांटिस ${chemicalLiters}L) सफलतापूर्वक फार्म डायरी में दर्ज किया गया!`
+      : `Day ${dayNum} Spray Plan (${currentCrop} - Syngenta Quantis ${chemicalLiters}L) successfully locked in and saved to your Farm Journal!`;
+    
+    setSprayScheduledToast(message);
+    setTimeout(() => {
+      setSprayScheduledToast(null);
+    }, 6000);
   };
 
   const mandiRateObj = findCropMandiRate(currentCrop, currentDistrict, currentState);
@@ -131,17 +159,18 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
+              type="button"
               onClick={handlePlayBriefing}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 ${
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs shadow-2xs transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${
                 isSpeakingBriefing
-                  ? "bg-rose-600 text-white animate-pulse"
-                  : "bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 text-white shadow-indigo-500/20"
+                  ? "bg-rose-500 text-white animate-pulse"
+                  : "bg-amber-400 hover:bg-amber-300 text-slate-950"
               }`}
             >
-              {isSpeakingBriefing ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-amber-300" />}
-              <span>{isSpeakingBriefing ? "Stop Voice Briefing" : language === "hi" ? "🔊 आज की बोलती रिपोर्ट" : "🔊 Daily Voice Briefing"}</span>
+              {isSpeakingBriefing ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-slate-950" />}
+              <span>{isSpeakingBriefing ? (language === "hi" ? "आवाज बंद करें" : "Stop Briefing") : (language === "hi" ? "दैनिक बोलती रिपोर्ट" : "Daily Voice Briefing")}</span>
             </button>
 
             <PageHelpModal
@@ -157,13 +186,22 @@ export default function DashboardPage() {
 
             <Link
               href="/assistant"
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs hover:shadow-sm transition-all flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#533afd] to-[#4434d4] hover:opacity-95 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Mic className="h-4 w-4 text-violet-400" />
+              <Mic className="h-4 w-4 text-white" />
               <span>{t.openAiAssistant}</span>
             </Link>
           </div>
         </div>
+
+        {/* Real-Time Telemetry, Device Sensors & Permissions Hub */}
+        <RealtimePermissionsHub
+          onLocationUpdated={(lat, lon, dist) => {
+            if (dist) {
+              updateActiveFarm({ district: dist });
+            }
+          }}
+        />
 
         {/* Interactive Farmer Quick-Tuning Bar */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4">
@@ -286,6 +324,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Toast Notification Banner */}
+        {sprayScheduledToast && (
+          <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-bold text-xs flex items-center justify-between gap-3 shadow-lg animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+              <span>{sprayScheduledToast}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSprayScheduledToast(null)}
+              className="p-1 rounded-lg hover:bg-emerald-200/60 text-emerald-800 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* 🌟 1. Today's Farmer Action Verdict & 1-Tap Voice Briefing */}
         <KisanActionVerdict />
 
@@ -294,6 +349,7 @@ export default function DashboardPage() {
           cropName={currentCrop.toUpperCase()}
           fieldAcres={currentAcres}
           stressType={weather.isNightHeatStress ? "Active Night Thermal Heat Stress (>25°C)" : "Compound Solar Radiation & Moisture Deficit"}
+          onApplyClick={(dayNum) => handleLockInSpray(dayNum)}
         />
 
         {/* 🌟 3. Concept Note PS-03: CropFit Apply vs Delay vs Skip Decision Support */}
@@ -312,7 +368,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
-                    100% REAL OPEN-METEO LIVE SENSORS
+                    Open-Meteo High-Resolution Telemetry
                   </span>
                   <span className="text-[10px] font-mono text-slate-500">
                     {weather.lastUpdated}
@@ -489,6 +545,15 @@ export default function DashboardPage() {
             </div>
 
           </div>
+
+          {/* 🌾 Location-Aware Major Regional Crops & Agronomic Profile */}
+          <RegionalAgriculturalProfile
+            district={currentDistrict}
+            state={currentState}
+            currentCrop={currentCrop}
+            acres={currentAcres}
+            onSelectCrop={(newCrop) => handleUpdateCrop(newCrop)}
+          />
 
           {/* Verified Syngenta Authorized Dealer Locator Section */}
           <SyngentaDealerLocator

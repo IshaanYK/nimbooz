@@ -75,7 +75,7 @@ export default function WeatherPage() {
                 PS-02: Live Satellite & Atmospheric Telemetry
               </span>
               <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
-                100% REAL OPEN-METEO HOURLY FEED
+                Open-Meteo Hourly Telemetry Stream
               </span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-extrabold font-display text-slate-900 tracking-tight">

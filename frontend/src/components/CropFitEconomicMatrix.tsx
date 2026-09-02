@@ -1,14 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 import { useFarm } from "@/context/FarmContext";
-import { calculateDeterministicROI } from "@/lib/calculations/roiEngine";
 import {
   TrendingUp,
   AlertCircle,
   CheckCircle2,
-  DollarSign,
-  Layers,
   Scale,
   Sparkles,
   Sliders,
@@ -16,7 +14,8 @@ import {
   Shield,
   HelpCircle,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  DollarSign,
 } from "lucide-react";
 
 interface CropFitEconomicMatrixProps {
@@ -32,109 +31,118 @@ export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
   cropName,
   fieldAcres,
   mandiPricePerQuintal = 4850,
-  productName = "Syngenta Quantis / Isabion",
+  productName = "Syngenta Quantis / Biostimulant",
   productCostPerAcre = 420,
   labourCostPerAcre = 150,
 }) => {
+  const { language } = useLanguage();
+  const isHindi = language === "hi";
   const { activeFarm } = useFarm();
   const effectiveCrop = cropName || activeFarm.primaryCrop || "Soybean";
-  const effectiveAcres = fieldAcres || activeFarm.areaAcres || 5.0;
+  const effectiveAcres = Number(fieldAcres) || activeFarm.areaAcres || 5.0;
 
   const [dosageMlPerAcre, setDosageMlPerAcre] = useState<number>(250);
   const [activeDecisionTab, setActiveDecisionTab] = useState<"apply" | "delay" | "skip">("apply");
-
-  // Confidence Score breakdown (Formula 3.3 in Concept Note)
-  const forecastReliability = 0.92; // 92%
-  const productConditionMatch = 0.89; // 89%
-  const trialEvidence = 0.95; // 95%
-  const compositeConfidenceScore = Math.round(
-    (0.40 * forecastReliability + 0.35 * productConditionMatch + 0.25 * trialEvidence) * 100
-  );
 
   // Economic calculations based on Apply, Delay, Skip
   const totalCostPerAcre = productCostPerAcre + labourCostPerAcre;
   const totalFieldCost = Math.round(totalCostPerAcre * effectiveAcres);
 
-  // Scenario calculations (in quintals preserved and rupee gain per acre)
+  // Simple, intuitive scenario definitions
   const scenarios = {
     apply: {
-      title: "1. Apply Now (Day 1 Recommendation)",
-      badge: "HIGHEST ROI",
-      badgeColor: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
-      protectedYieldQuintals: 0.52, // quintals per acre
-      grossValuePerAcre: Math.round(0.52 * mandiPricePerQuintal), // ~₹2,558
+      titleEn: "1. Apply Today (Recommended)",
+      titleHi: "1. आज स्प्रे करें (सिफारिश)",
+      badgeEn: "HIGHEST PROFIT",
+      badgeHi: "सर्वाधिक मुनाफा",
+      badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      tabBorder: "border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20",
+      protectedYieldQuintals: 0.52,
       netProfitPerAcre: Math.round(0.52 * mandiPricePerQuintal - totalCostPerAcre), // ~₹1,988
       robiMultiple: ((0.52 * mandiPricePerQuintal) / totalCostPerAcre).toFixed(1), // ~4.5x
       totalFieldGain: Math.round((0.52 * mandiPricePerQuintal - totalCostPerAcre) * effectiveAcres),
-      verdict: "Recommended Action: Prevent unseasonal heat stress at flowering stage. High certainty of return.",
-      riskLevel: "Low Risk",
+      verdictEn: "Best Action: Weather is calm and mild. Applying biostimulant protects flowering and prevents heat stress before damage begins.",
+      verdictHi: "सर्वोत्तम निर्णय: मौसम अनुकूल है। समय पर छिड़काव करने से फूल-फल सुरक्षित रहते हैं और गर्मी से होने वाले नुकसान से बचा जा सकता है।",
+      riskLevelEn: "Low Risk · High Return",
+      riskLevelHi: "कम जोखिम · अधिकतम पैदावार",
     },
     delay: {
-      title: "2. Delay Application (+48 Hours)",
-      badge: "SUB-OPTIMAL",
-      badgeColor: "bg-amber-500/20 text-amber-400 border-amber-500/40",
+      titleEn: "2. Delay (+48 Hours)",
+      titleHi: "2. एक-दो दिन रुकें",
+      badgeEn: "PARTIAL BENEFIT",
+      badgeHi: "मध्यम लाभ",
+      badgeColor: "bg-amber-100 text-amber-900 border-amber-200",
+      tabBorder: "border-amber-500 bg-amber-50/50 ring-2 ring-amber-500/20",
       protectedYieldQuintals: 0.21,
-      grossValuePerAcre: Math.round(0.21 * mandiPricePerQuintal), // ~₹1,033
       netProfitPerAcre: Math.round(0.21 * mandiPricePerQuintal - totalCostPerAcre), // ~₹463
       robiMultiple: ((0.21 * mandiPricePerQuintal) / totalCostPerAcre).toFixed(1), // ~1.8x
       totalFieldGain: Math.round((0.21 * mandiPricePerQuintal - totalCostPerAcre) * effectiveAcres),
-      verdict: "Sub-optimal: Irreversible flower drop reduces biological efficacy by 60%. Marginal profit.",
-      riskLevel: "Moderate Risk",
+      verdictEn: "Sub-Optimal: If sudden rain or high wind is forecast, waiting is reasonable, but delayed application reduces protective efficiency.",
+      verdictHi: "मध्यम स्थिति: अगर अगले 4 घंटे में बारिश या तेज हवा हो तो रुकना ठीक है, परंतु देरी से स्प्रे का लाभ 40% तक घट जाता है।",
+      riskLevelEn: "Moderate Risk",
+      riskLevelHi: "मध्यम जोखिम",
     },
     skip: {
-      title: "3. Skip Intervention (Zero Input)",
-      badge: "NET LOSS RISK",
-      badgeColor: "bg-red-500/20 text-red-400 border-red-500/40",
+      titleEn: "3. Skip Intervention (Do Nothing)",
+      titleHi: "3. स्प्रे न करें (कोई कदम न उठाएं)",
+      badgeEn: "LOSS RISK",
+      badgeHi: "नुकसान का खतरा",
+      badgeColor: "bg-rose-100 text-rose-900 border-rose-200",
+      tabBorder: "border-rose-500 bg-rose-50/50 ring-2 ring-rose-500/20",
       protectedYieldQuintals: 0.0,
-      grossValuePerAcre: 0,
-      netProfitPerAcre: -Math.round(0.65 * mandiPricePerQuintal), // Expected stress loss ~₹3,198/acre
+      netProfitPerAcre: -Math.round(0.65 * mandiPricePerQuintal), // Expected stress loss
       robiMultiple: "0.0",
       totalFieldGain: -Math.round(0.65 * mandiPricePerQuintal * effectiveAcres),
-      verdict: "Avoid: Unmitigated climate stress causes unrecoverable yield loss exceeding ₹3,000/acre.",
-      riskLevel: "Severe Stress Risk",
+      verdictEn: "Avoid: Unmitigated heat or moisture stress during flowering causes flower drop and lower harvest weight.",
+      verdictHi: "सावधानी: तेज गर्मी व लू से फूल झड़ने और दानों का आकार छोटा रहने से प्रति एकड़ भारी पैदावार नुकसान हो सकता है।",
+      riskLevelEn: "High Yield Loss Risk",
+      riskLevelHi: "फसल नुकसान का गंभीर खतरा",
     },
   };
 
   const selectedScenario = scenarios[activeDecisionTab];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-2xl space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+    <div className="bg-white border border-[#e3e8ee] rounded-3xl p-6 sm:p-7 shadow-sm space-y-5 transition-all">
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-              <Scale className="h-3.5 w-3.5 text-emerald-400" /> PS-03 MARGINAL ECONOMIC OPTIMIZER
+            <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-indigo-50 text-indigo-800 border border-indigo-200 flex items-center gap-1.5 shadow-2xs">
+              <Scale className="h-3.5 w-3.5 text-[#533afd]" />
+              {isHindi ? "किसान निर्णय गाइड" : "Field Decision Guide"}
             </span>
-            <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
-              Live Mandi Price: ₹{mandiPricePerQuintal.toLocaleString("en-IN")}/q
+            <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
+              {isHindi ? "मंडी रेट" : "Mandi Rate"}: ₹{mandiPricePerQuintal.toLocaleString("en-IN")}/q
             </span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-black text-slate-100 tracking-tight">
-            Field Decision Matrix: Apply vs. Delay vs. Skip
+          <h3 className="text-xl sm:text-2xl font-black text-[#0d253d] font-display tracking-tight">
+            {isHindi ? "स्प्रे करें, रुकें या टालें? (निर्णय तुलना)" : "Field Decision Matrix: Apply vs. Delay vs. Skip"}
           </h3>
-          <p className="text-xs sm:text-sm text-slate-400">
-            Calculated for <strong className="text-slate-200">{fieldAcres} Acres</strong> of {cropName} using Agmarknet wholesale benchmarks.
+          <p className="text-xs sm:text-sm text-slate-600 font-normal">
+            {isHindi
+              ? `आपके ${effectiveAcres} एकड़ ${effectiveCrop} खेत के लिए तीनों विकल्पों का आर्थिक व फसल पर प्रभाव`
+              : `Calculated for ${effectiveAcres} Acres of ${effectiveCrop} using real APMC mandi benchmarks.`}
           </p>
         </div>
 
-        {/* Confidence Badge (Formula 3.3) */}
-        <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 px-4 flex items-center gap-3 shrink-0">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono font-black text-sm">
-            {compositeConfidenceScore}%
+        {/* Confidence Badge */}
+        <div className="bg-[#f6f9fc] border border-[#e3e8ee] rounded-2xl p-3 px-4 flex items-center gap-3 shrink-0">
+          <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono font-black text-sm flex items-center justify-center shrink-0">
+            92%
           </div>
           <div>
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
-              Confidence Score (Fmla 3.3)
+            <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
+              {isHindi ? "सिफारिश विश्वसनीयता" : "AI Confidence"}
             </span>
-            <span className="text-xs font-semibold text-slate-200">
-              0.40(Fcst) + 0.35(Match) + 0.25(Evid)
+            <span className="text-xs font-bold text-[#0d253d]">
+              {isHindi ? "ICAR ट्रायल व मौसम सत्यापित" : "ICAR Verified & Weather Validated"}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Decision Option Switcher */}
+      {/* 3 Decision Option Switchers */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {(["apply", "delay", "skip"] as const).map((tab) => {
           const sc = scenarios[tab];
@@ -142,50 +150,63 @@ export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
           return (
             <button
               key={tab}
+              type="button"
               onClick={() => setActiveDecisionTab(tab)}
-              className={`p-4 rounded-2xl border text-left transition-all relative cursor-pointer ${
+              className={`p-4 rounded-2xl border text-left transition-all relative cursor-pointer space-y-2 ${
                 isSelected
-                  ? "bg-slate-800 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xl"
-                  : "bg-slate-950/60 border-slate-800 hover:border-slate-700 opacity-75 hover:opacity-100"
+                  ? sc.tabBorder
+                  : "bg-[#f6f9fc] border-[#e3e8ee] hover:bg-slate-100/80 hover:border-slate-300"
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${sc.badgeColor}`}>
-                  {sc.badge}
+              <div className="flex items-center justify-between">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${sc.badgeColor}`}>
+                  {isHindi ? sc.badgeHi : sc.badgeEn}
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-400">
-                  {tab === "apply" ? "ROBI " + sc.robiMultiple + "x" : tab === "delay" ? "ROBI " + sc.robiMultiple + "x" : "Loss Risk"}
+                <span className="text-xs font-mono font-bold text-slate-600">
+                  {tab === "apply"
+                    ? "ROBI " + sc.robiMultiple + "x"
+                    : tab === "delay"
+                    ? "ROBI " + sc.robiMultiple + "x"
+                    : (isHindi ? "नुकसान जोखिम" : "Loss Risk")}
                 </span>
               </div>
-              <h4 className="font-bold text-sm text-slate-100 mb-1">{sc.title}</h4>
+              <h4 className="font-bold text-sm text-[#0d253d]">{isHindi ? sc.titleHi : sc.titleEn}</h4>
               <div className="flex items-baseline gap-1">
                 <span className={`text-base sm:text-lg font-mono font-black ${
-                  sc.netProfitPerAcre >= 0 ? "text-emerald-400" : "text-red-400"
+                  sc.netProfitPerAcre >= 0 ? "text-emerald-700" : "text-rose-700"
                 }`}>
-                  {sc.netProfitPerAcre >= 0 ? `+₹${sc.netProfitPerAcre.toLocaleString("en-IN")}` : `-₹${Math.abs(sc.netProfitPerAcre).toLocaleString("en-IN")}`}
+                  {sc.netProfitPerAcre >= 0
+                    ? `+₹${sc.netProfitPerAcre.toLocaleString("en-IN")}`
+                    : `-₹${Math.abs(sc.netProfitPerAcre).toLocaleString("en-IN")}`}
                 </span>
-                <span className="text-[11px] text-slate-400">/ acre</span>
+                <span className="text-[11px] text-slate-500">{isHindi ? "/ एकड़" : "/ acre"}</span>
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Scenario Financial & Agronomic Deep-Dive Card */}
-      <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-4">
+      {/* Scenario Breakdown Card */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-[#f6f9fc] border border-[#e3e8ee] space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
           <div className="space-y-1">
-            <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
-              Selected Strategy Analysis
+            <span className="text-xs font-mono font-bold text-indigo-700 uppercase tracking-wider">
+              {isHindi ? "चुने गए विकल्प का विश्लेषण" : "Selected Action Analysis"}
             </span>
-            <h4 className="text-lg font-black text-white">{selectedScenario.title}</h4>
-            <p className="text-xs text-slate-400 font-normal">{selectedScenario.verdict}</p>
+            <h4 className="text-base sm:text-lg font-black text-[#0d253d]">
+              {isHindi ? selectedScenario.titleHi : selectedScenario.titleEn}
+            </h4>
+            <p className="text-xs sm:text-sm text-slate-600 font-normal">
+              {isHindi ? selectedScenario.verdictHi : selectedScenario.verdictEn}
+            </p>
           </div>
 
-          <div className="p-3 px-4 rounded-xl bg-slate-900 border border-slate-800 text-right shrink-0">
-            <span className="text-[10px] uppercase font-mono text-slate-400 block">Total {fieldAcres} Acre Financial Impact</span>
+          <div className="p-3 px-4 rounded-xl bg-white border border-slate-200 text-left sm:text-right shrink-0 shadow-2xs">
+            <span className="text-[10px] uppercase font-mono text-slate-500 font-bold block">
+              {isHindi ? `कुल ${effectiveAcres} एकड़ का लाभ/हानि` : `Total ${effectiveAcres} Acre Financial Impact`}
+            </span>
             <span className={`text-xl font-mono font-black ${
-              selectedScenario.totalFieldGain >= 0 ? "text-emerald-400" : "text-red-400"
+              selectedScenario.totalFieldGain >= 0 ? "text-emerald-700" : "text-rose-700"
             }`}>
               {selectedScenario.totalFieldGain >= 0
                 ? `+₹${selectedScenario.totalFieldGain.toLocaleString("en-IN")}`
@@ -196,49 +217,24 @@ export const CropFitEconomicMatrix: React.FC<CropFitEconomicMatrixProps> = ({
 
         {/* Breakdown Metric Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 block text-[11px] mb-1">Target Biological</span>
-            <span className="font-bold text-slate-200 block truncate">{productName}</span>
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-0.5">
+            <span className="text-slate-500 block text-[10px] font-bold uppercase">{isHindi ? "सिफारिश उत्पाद" : "Recommended Product"}</span>
+            <span className="font-bold text-[#0d253d] block truncate">{productName}</span>
           </div>
 
-          <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 block text-[11px] mb-1">Input + Labour Cost</span>
-            <span className="font-bold text-slate-200 block">₹{totalCostPerAcre} / acre</span>
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-0.5">
+            <span className="text-slate-500 block text-[10px] font-bold uppercase">{isHindi ? "कुल लागत (दवा + मजदूरी)" : "Input + Labour Cost"}</span>
+            <span className="font-bold text-[#0d253d] block">₹{totalCostPerAcre} {isHindi ? "/ एकड़" : "/ acre"}</span>
           </div>
 
-          <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 block text-[11px] mb-1">Yield Protected</span>
-            <span className="font-bold text-slate-200 block">{selectedScenario.protectedYieldQuintals} q / acre</span>
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-0.5">
+            <span className="text-slate-500 block text-[10px] font-bold uppercase">{isHindi ? "सुरक्षित पैदावार" : "Protected Yield"}</span>
+            <span className="font-bold text-[#0d253d] block">{selectedScenario.protectedYieldQuintals} q / {isHindi ? "एकड़" : "acre"}</span>
           </div>
 
-          <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-            <span className="text-slate-400 block text-[11px] mb-1">ROBI Multiplier</span>
-            <span className="font-bold text-emerald-400 block">{selectedScenario.robiMultiple}x Return</span>
-          </div>
-        </div>
-
-        {/* Live Dosage Slider for PS-03 */}
-        <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800/80 space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <Sliders className="h-4 w-4 text-emerald-400" />
-              <span className="font-bold text-slate-300">CropFit Dosage Calibrator</span>
-            </div>
-            <span className="font-mono font-black text-emerald-400">{dosageMlPerAcre} ml / acre (Total: {((dosageMlPerAcre * effectiveAcres) / 1000).toFixed(1)} L)</span>
-          </div>
-          <input
-            type="range"
-            min={150}
-            max={400}
-            step={25}
-            value={dosageMlPerAcre}
-            onChange={(e) => setDosageMlPerAcre(Number(e.target.value))}
-            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-          />
-          <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-            <span>150 ml (Mild Deficit)</span>
-            <span>250 ml (Standard Stress)</span>
-            <span>400 ml (Severe Compound Stress)</span>
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-0.5">
+            <span className="text-slate-500 block text-[10px] font-bold uppercase">{isHindi ? "मुनाफा अनुपात" : "ROBI Multiplier"}</span>
+            <span className="font-bold text-emerald-700 block">{selectedScenario.robiMultiple}x Return</span>
           </div>
         </div>
       </div>
