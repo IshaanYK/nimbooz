@@ -35,12 +35,12 @@ import {
   BookOpen,
   CloudSun,
   FileText,
-  HelpCircle,
   Plus,
   CheckCircle2,
+  Database,
 } from "lucide-react";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/how-it-works", "/product", "/impact-story", "/architecture"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/how-it-works", "/product", "/impact-story", "/architecture", "/database"];
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
@@ -114,7 +114,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const currentLangObj = INDIAN_LANGUAGES.find((l) => l.code === language) || INDIAN_LANGUAGES[0];
 
-  const isSecondaryActive = ["/what-if", "/impact", "/journal", "/architecture", "/robi"].includes(pathname);
+  const isSecondaryActive = ["/what-if", "/impact", "/journal", "/architecture", "/robi", "/database"].includes(pathname);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAFA] text-[#111827] selection:bg-[#7C3AED] selection:text-white font-sans pb-20 md:pb-0">
@@ -305,6 +305,18 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                         <div>
                           <span className="font-bold block">Intervention Journal</span>
                           <span className="text-[10px] text-slate-500">Farm Spray Records</span>
+                        </div>
+                      </Link>
+
+                      <Link
+                        href="/database"
+                        onClick={() => setMoreDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                      >
+                        <Database className="h-4 w-4 text-[#533afd]" />
+                        <div>
+                          <span className="font-bold block">MVP Database Engine</span>
+                          <span className="text-[10px] text-slate-500">Persistent Tables & GeoJSON</span>
                         </div>
                       </Link>
 

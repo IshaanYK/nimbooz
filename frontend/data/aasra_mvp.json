@@ -1,0 +1,294 @@
+{
+  "version": "1.0.0-mvp",
+  "lastUpdated": "2026-09-02T17:38:59.223Z",
+  "farmers": [
+    {
+      "id": "farmer-001",
+      "fullName": "Ishaan Sen",
+      "mobileNumber": "9876543210",
+      "email": "ishaan@syngenta-aasra.in",
+      "language": "hi",
+      "state": "Madhya Pradesh",
+      "district": "Bhopal",
+      "village": "Phanda Kalan",
+      "fieldAreaAcres": 5,
+      "primaryCrop": "Soybean",
+      "cropVariety": "JS-9560 High Yield",
+      "sowingDate": "2026-06-25",
+      "soilType": "Deep Black Clay Soil",
+      "irrigationType": "Rainfed + Borewell Drip",
+      "hasKisanCreditCard": true,
+      "pmKisanBeneficiary": true,
+      "updatedAt": "2026-09-02T17:38:20.797Z"
+    }
+  ],
+  "fields": [
+    {
+      "id": "f-bhopal-main",
+      "name": "Main Acreage (Soybean North)",
+      "lat": 23.2599,
+      "lon": 77.4126,
+      "area_acres": 5,
+      "crop": "Soybean",
+      "variety": "JS-9560 High Yield",
+      "soil_type": "Deep Black Clay Soil",
+      "polygon": [
+        [
+          23.2625,
+          77.411
+        ],
+        [
+          23.263,
+          77.4155
+        ],
+        [
+          23.258,
+          77.415
+        ],
+        [
+          23.2575,
+          77.4105
+        ]
+      ],
+      "created_at": "2026-06-20T10:00:00Z"
+    },
+    {
+      "id": "f-sehore-river",
+      "name": "Riverbank Plot (Gram / Chana)",
+      "lat": 23.2014,
+      "lon": 77.0845,
+      "area_acres": 3.2,
+      "crop": "Gram / Chana",
+      "variety": "JG-11 Desi",
+      "soil_type": "Loamy Alluvial",
+      "polygon": [
+        [
+          23.203,
+          77.082
+        ],
+        [
+          23.2045,
+          77.086
+        ],
+        [
+          23.2,
+          77.087
+        ],
+        [
+          23.199,
+          77.083
+        ]
+      ],
+      "created_at": "2026-07-02T14:30:00Z"
+    },
+    {
+      "id": "f-phanda-trial",
+      "name": "Biological Trial Plot (Quantis Test)",
+      "lat": 23.245,
+      "lon": 77.389,
+      "area_acres": 1.8,
+      "crop": "Soybean",
+      "variety": "JS-335 Benchmark",
+      "soil_type": "Clay Loam",
+      "polygon": [
+        [
+          23.2465,
+          77.3875
+        ],
+        [
+          23.247,
+          77.391
+        ],
+        [
+          23.2435,
+          77.3905
+        ],
+        [
+          23.243,
+          77.387
+        ]
+      ],
+      "created_at": "2026-07-15T09:15:00Z"
+    }
+  ],
+  "journal": [
+    {
+      "id": "j-001",
+      "category": "spray",
+      "title": "Syngenta Quantis / Stress Buster Application",
+      "subtitle": "Main Acreage · Soybean (JS-9560 High Yield) · 5.0 Acres",
+      "date": "2026-08-28",
+      "badge": "VERIFIED TREATMENT · 4.46x ROBI",
+      "badgeColor": "emerald",
+      "metrics": [
+        {
+          "label": "Dosage",
+          "value": "250 ml / acre (Tractor Boom)"
+        },
+        {
+          "label": "Net Cash Gain",
+          "value": "+₹22,120",
+          "highlight": true
+        },
+        {
+          "label": "Pod Retention",
+          "value": "98% Preserved"
+        },
+        {
+          "label": "Weather Trigger",
+          "value": "24.8°C Night Heatwave"
+        }
+      ],
+      "notes": "Applied 36 hours before 38.5°C peak heat wave wavefront. Flower abortion halted, cellular osmolyte turgor sustained, preventing 1.24 q/ac loss.",
+      "costINR": 6400,
+      "returnINR": 28520,
+      "created_at": "2026-08-28T06:30:00Z"
+    },
+    {
+      "id": "j-002",
+      "category": "heat",
+      "title": "Nocturnal Heat Stress Warning (25.8°C Night Peak)",
+      "subtitle": "Open-Meteo Satellite Reanalysis Telemetry · Bhopal Station",
+      "date": "2026-08-26",
+      "badge": "HIGH THERMAL RISK",
+      "badgeColor": "rose",
+      "metrics": [
+        {
+          "label": "Peak Night Temp",
+          "value": "25.8°C (Limit: 24°C)"
+        },
+        {
+          "label": "Respiration Penalty",
+          "value": "-1.24 q/ac if untreated"
+        },
+        {
+          "label": "Blossom Abortion",
+          "value": "Up to 42% Risk"
+        },
+        {
+          "label": "Action Window",
+          "value": "Spraying recommended within 48h"
+        }
+      ],
+      "notes": "AASRA detected +4.8 nocturnal degree-hours above the 24°C respiration limit. Initiated biological countdown timer for foliar osmoprotectant application.",
+      "created_at": "2026-08-26T23:15:00Z"
+    },
+    {
+      "id": "j-003",
+      "category": "ai",
+      "title": "Google Gemini Multimodal Voice Consultation",
+      "subtitle": "Kisan Voice Advisory in Hindi (Google Chirp 3 HD Audio)",
+      "date": "2026-08-25",
+      "badge": "VOICE PRESCRIPTION",
+      "badgeColor": "indigo",
+      "metrics": [
+        {
+          "label": "Farmer Query",
+          "value": "\"गरमी में फूल गिरने से कैसे बचाएं?\""
+        },
+        {
+          "label": "AI Prescription",
+          "value": "Syngenta Quantis @ 250ml/ac"
+        },
+        {
+          "label": "Projected Profit",
+          "value": "+₹22,120 for 5 Acres",
+          "highlight": true
+        },
+        {
+          "label": "Confidence",
+          "value": "94.8% Agro-Agronomic"
+        }
+      ],
+      "notes": "AASRA combined real-time weather telemetry with phenology to recommend timely biostimulant spraying with exact break-even APMC Mandi economics.",
+      "created_at": "2026-08-25T11:20:00Z"
+    },
+    {
+      "id": "j-004",
+      "category": "planting",
+      "title": "R2 Full Flowering Stage Reached",
+      "subtitle": "Phenology Model (Growing Degree Days: 640 °C-Days)",
+      "date": "2026-08-15",
+      "badge": "CRITICAL PHENOLOGY WINDOW",
+      "badgeColor": "amber",
+      "metrics": [
+        {
+          "label": "Phenological Stage",
+          "value": "R2 Full Bloom"
+        },
+        {
+          "label": "Vegetative Index",
+          "value": "NDVI 0.76 (Dense Canopy)"
+        },
+        {
+          "label": "Flower Abundance",
+          "value": "18-24 blossoms / plant"
+        },
+        {
+          "label": "Vulnerability",
+          "value": "Extreme Heat Sensitivity"
+        }
+      ],
+      "notes": "Crop entered maximum reproductive flowering. Any heat spike >35°C daytime or >24°C nighttime causes acute flower drop without osmoprotection.",
+      "created_at": "2026-08-15T08:00:00Z"
+    },
+    {
+      "id": "j-005",
+      "category": "spray",
+      "title": "Syngenta Isabion Amino Acid Foliar Tonic",
+      "subtitle": "Vegetative V4 Stage Root Expansion · 5.0 Acres",
+      "date": "2026-08-04",
+      "badge": "NUTRIENT BIO-STIMULANT",
+      "badgeColor": "emerald",
+      "metrics": [
+        {
+          "label": "Dosage",
+          "value": "400 ml / acre"
+        },
+        {
+          "label": "Input Cost",
+          "value": "₹1,800 Total"
+        },
+        {
+          "label": "Root Proliferation",
+          "value": "+22% Root Volume"
+        },
+        {
+          "label": "Chlorophyll Gain",
+          "value": "+8.4 SPAD Index"
+        }
+      ],
+      "notes": "Applied natural free amino acids to accelerate root branching, soil nutrient uptake, and build vigor prior to reproductive phase.",
+      "costINR": 1800,
+      "created_at": "2026-08-04T07:45:00Z"
+    }
+  ],
+  "robi_audits": [
+    {
+      "id": "robi-aud-01",
+      "certificateNo": "AASRA-ROBI-2026-89421",
+      "farmerName": "Ishaan Sen",
+      "fieldAcres": 5,
+      "crop": "Soybean (JS-9560 High Yield)",
+      "savedHarvestQuintals": 6.2,
+      "inputCostINR": 6400,
+      "netProfitINR": 22120,
+      "robiMultiplier": 4.46,
+      "verificationHash": "8f9b4a1c720e3d51f962ab00c41d7e82",
+      "issueDate": "2026-08-28"
+    },
+    {
+      "id": "robi-aud-02",
+      "certificateNo": "AASRA-ROBI-2026-78310",
+      "farmerName": "Ramesh Patel",
+      "fieldAcres": 12.5,
+      "crop": "Soybean (JS-335)",
+      "savedHarvestQuintals": 15.5,
+      "inputCostINR": 16000,
+      "netProfitINR": 55300,
+      "robiMultiplier": 4.46,
+      "verificationHash": "3d7b9e2a114f6c88e001ac89de7721ab",
+      "issueDate": "2026-08-20"
+    }
+  ]
+}
