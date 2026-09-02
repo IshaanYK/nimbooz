@@ -105,8 +105,9 @@ export const Header: React.FC<HeaderProps> = ({
 
         {loggedIn && profile?.fullName ? (
           <Link
-            href="/onboarding"
+            href="/profile"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold hover:bg-emerald-100 transition-all"
+            title="Farmer Profile & WhatsApp Settings"
           >
             <User className="h-3.5 w-3.5 text-emerald-600" />
             <span className="truncate max-w-[100px]">{profile.fullName}</span>
