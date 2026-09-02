@@ -352,6 +352,12 @@ export async function POST(request: NextRequest) {
     costBreakdown: r.costBreakdown,
     expectedBenefit: r.expectedBenefit,
     sprayWindow: r.sprayWindow,
+    trialEfficacyPct: r.trialEfficacyPct,
+    trialCitation: r.trialCitation,
+    etlThreshold: r.etlThreshold,
+    cropwiseStandard: r.cropwiseStandard,
+    tankMixSafe: r.tankMixSafe,
+    tankMixDanger: r.tankMixDanger,
   }));
 
   // Build complete catalog from all 50 products
@@ -365,6 +371,8 @@ export async function POST(request: NextRequest) {
     target: p.targetPests.slice(0, 3).join(", "),
     dosage: p.dosagePerAcre,
     approved_crops: p.approvedCrops.slice(0, 5).join(", "),
+    trial_efficacy: `${p.trialEfficacyPct}% (${p.trialCitation.split(';')[0]})`,
+    etl_trigger: p.etlThreshold,
   }));
 
   // Economic ROI from recommendation engine

@@ -977,13 +977,65 @@ export default function PlantIntelligencePage() {
                                 )}
                               </div>
                             )}
-                            {/* Dosage */}
+                            {/* Dosage & MRP */}
                             {cand.dosage && (
                               <div className="text-[10px] text-slate-400">
                                 📋 Dosage: <strong className="text-slate-200">{cand.dosage}</strong>
                                 {cand.mrp && <span className="ml-2">| MRP: {cand.mrp}</span>}
                               </div>
                             )}
+
+                            {/* Scientific & ICAR Field Trial Validation */}
+                            {cand.trialCitation && (
+                              <div className="bg-emerald-950/50 border border-emerald-500/30 rounded-lg p-2 text-[10px] text-emerald-200 space-y-0.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-emerald-400 flex items-center gap-1">
+                                    <span>🔬</span> ICAR & Field Trial Validation:
+                                  </span>
+                                  {cand.trialEfficacyPct && (
+                                    <span className="font-mono font-black text-emerald-300 bg-emerald-900/60 px-1.5 py-0.2 rounded border border-emerald-600/40">
+                                      {cand.trialEfficacyPct}% Control Rate
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-slate-300 leading-tight">{cand.trialCitation}</p>
+                              </div>
+                            )}
+
+                            {/* Economic Threshold Level (ETL) Trigger */}
+                            {cand.etlThreshold && (
+                              <div className="text-[10px] text-amber-300/90 font-mono">
+                                🎯 <strong>KVK / ETL Trigger:</strong> {cand.etlThreshold}
+                              </div>
+                            )}
+
+                            {/* Syngenta Cropwise Standard Protocol */}
+                            {cand.cropwiseStandard && (
+                              <div className="text-[10px] text-blue-300/90 font-mono flex flex-wrap items-center gap-2 bg-blue-950/30 p-1.5 rounded border border-blue-500/20">
+                                <span>📱 <strong>Cropwise:</strong> Rainfastness: <strong>{cand.cropwiseStandard.rainfastnessHours}h</strong></span>
+                                <span>•</span>
+                                <span>Delta T: <strong>{cand.cropwiseStandard.optimalDeltaT}</strong></span>
+                                {cand.cropwiseStandard.droneApplicable && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-emerald-300 font-bold">🚁 Drone-Spray Ready</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Tank-Mix Compatibility Protocol */}
+                            {cand.tankMixSafe && cand.tankMixSafe.length > 0 && (
+                              <div className="text-[10px] text-slate-300 flex flex-wrap gap-1 items-center">
+                                <span className="text-emerald-400 font-semibold">✓ Tank-Mix Safe:</span>
+                                {cand.tankMixSafe.slice(0, 3).map((mix: string, mIdx: number) => (
+                                  <span key={mIdx} className="bg-slate-700/80 px-1.5 py-0.5 rounded text-[9px] text-slate-200">
+                                    {mix}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
                             {/* Farmer-Friendly Reasoning */}
                             {cand.reasoning && (
                               <p className="text-[10px] text-slate-300 bg-white/5 rounded-lg px-2.5 py-1.5 border border-white/10 leading-relaxed">
