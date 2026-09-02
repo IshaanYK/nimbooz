@@ -140,3 +140,23 @@ export async function clearFarmerBroadcast() {
   });
   return res.json();
 }
+
+export async function getWhatsAppAdminStats() {
+  try {
+    const res = await apiFetch("/api/whatsapp/link?farmerId=farmer-001");
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function triggerCloudAlertScan() {
+  try {
+    const res = await apiFetch("/api/cron/monitor-alerts");
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+

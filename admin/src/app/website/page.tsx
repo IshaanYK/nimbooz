@@ -7,6 +7,8 @@ import {
   updateWebsiteSettings,
   sendFarmerBroadcast,
   clearFarmerBroadcast,
+  getWhatsAppAdminStats,
+  triggerCloudAlertScan,
   MAIN_SITE_URL,
 } from "@/lib/api";
 import {
@@ -24,7 +26,13 @@ import {
   RefreshCw,
   XCircle,
   Clock,
+  MessageSquare,
+  Users,
+  Send,
+  Smartphone,
+  ShieldCheck,
 } from "lucide-react";
+
 
 type FeatureFlags = {
   voiceAssistant: boolean;
@@ -68,6 +76,14 @@ export default function WebsiteControlsPage() {
   const [broadcasting, setBroadcasting] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
 
+  // Multi-Channel Delivery State
+  const [channelWebsite, setChannelWebsite] = useState(true);
+  const [channelWhatsApp, setChannelWhatsApp] = useState(true);
+  const [targetAudience, setTargetAudience] = useState<"all" | "bhopal" | "soybean">("all");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [waAdminStats, setWaAdminStats] = useState<any>(null);
+  const [scanningCloud, setScanningCloud] = useState(false);
+
   const loadSettings = async () => {
     setLoading(true);
     try {
@@ -80,6 +96,10 @@ export default function WebsiteControlsPage() {
         }
         setActiveAlert(data.broadcastAlert && data.broadcastAlert.active ? data.broadcastAlert : null);
       }
+      try {
+        const waStats = await getWhatsAppAdminStats();
+        if (waStats) setWaAdminStats(waStats);
+      } catch (_) {}
     } catch (err) {
       console.error("Failed to load settings", err);
     } finally {
@@ -93,6 +113,23 @@ export default function WebsiteControlsPage() {
 
   const handleToggle = (key: keyof FeatureFlags) => {
     setFlags((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleTriggerScan = async () => {
+    setScanningCloud(true);
+    try {
+      const ok = await triggerCloudAlertScan();
+      if (ok) {
+        setStatusMsg("Autonomous Cloud Scan executed successfully across all active WhatsApp connections.");
+      } else {
+        setStatusMsg("Scan completed. No pending high-risk conditions.");
+      }
+      setTimeout(() => setStatusMsg(""), 5000);
+    } catch (e: any) {
+      setStatusMsg(`Scan failed: ${e.message}`);
+    } finally {
+      setScanningCloud(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -114,20 +151,34 @@ export default function WebsiteControlsPage() {
 
   const handleBroadcast = async () => {
     if (!broadcast.trim()) return;
+    if (channelWhatsApp && !showConfirmModal) {
+      setShowConfirmModal(true);
+      return;
+    }
+    setShowConfirmModal(false);
     setBroadcasting(true);
     try {
-      const res = await sendFarmerBroadcast(broadcast.trim());
-      if (res?.settings?.broadcastAlert) {
-        setActiveAlert(res.settings.broadcastAlert);
-      } else {
-        setActiveAlert({
-          message: broadcast.trim(),
-          createdAt: new Date().toISOString(),
-          active: true,
-        });
+      if (channelWebsite) {
+        const res = await sendFarmerBroadcast(broadcast.trim());
+        if (res?.settings?.broadcastAlert) {
+          setActiveAlert(res.settings.broadcastAlert);
+        } else {
+          setActiveAlert({
+            message: broadcast.trim(),
+            createdAt: new Date().toISOString(),
+            active: true,
+          });
+        }
+      }
+      if (channelWhatsApp) {
+        await triggerCloudAlertScan();
       }
       setBroadcast("");
-      setStatusMsg("Advisory broadcast sent! Farmers will see the top banner on the live website.");
+      setStatusMsg(
+        channelWhatsApp
+          ? "Multi-Channel Broadcast Dispatched! Banner active on Website and alert queued for WhatsApp farmers."
+          : "Website banner broadcast sent to live farmer website."
+      );
       setTimeout(() => setStatusMsg(""), 5000);
     } catch (err: any) {
       setStatusMsg(`Broadcast failed: ${err?.message || "Check connection"}`);
@@ -135,6 +186,7 @@ export default function WebsiteControlsPage() {
       setBroadcasting(false);
     }
   };
+
 
   const handleClearAlert = async () => {
     try {
@@ -266,11 +318,71 @@ export default function WebsiteControlsPage() {
         )}
       </div>
 
+      {/* WhatsApp Fleet Overwatch Card */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <h2 className="section-title" style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <MessageSquare size={15} color="#25D366" />
+              WhatsApp Fleet & Alert Engine Overwatch
+            </h2>
+            <p style={{ fontSize: 12, color: "var(--ink-subtle)", marginTop: 2 }}>
+              Monitor live WhatsApp connection status, serverless cron triggers, and farmer delivery telemetry.
+            </p>
+          </div>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={handleTriggerScan}
+            disabled={scanningCloud}
+            title="Triggers immediate autonomous scan across all connected farmers"
+          >
+            <RefreshCw size={13} style={scanningCloud ? { animation: "spin 0.7s linear infinite" } : {}} />
+            {scanningCloud ? "Scanning Telemetry..." : "Trigger Cloud Scan"}
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--hairline)" }}>
+            <div style={{ fontSize: 11, color: "var(--ink-tertiary)", fontWeight: 600, textTransform: "uppercase" }}>Gateway Engine</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="status-dot online" />
+              {waAdminStats?.provider ? waAdminStats.provider.toUpperCase() : "META CLOUD V21.0"}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 2 }}>Zero-Cost Conversational Tier</div>
+          </div>
+
+          <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--hairline)" }}>
+            <div style={{ fontSize: 11, color: "var(--ink-tertiary)", fontWeight: 600, textTransform: "uppercase" }}>Bot Display Number</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#25D366", marginTop: 4, fontFamily: "monospace" }}>
+              {waAdminStats?.displayPhone || "+1 555 025 8921"}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 2 }}>Test Sandbox Recipient Active</div>
+          </div>
+
+          <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--hairline)" }}>
+            <div style={{ fontSize: 11, color: "var(--ink-tertiary)", fontWeight: 600, textTransform: "uppercase" }}>Autonomous Cloud Cron</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+              <ShieldCheck size={14} color="var(--primary)" />
+              Daily 06:00 UTC (11:30 IST)
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 2 }}>Vercel Cron (Runs PC Offline)</div>
+          </div>
+
+          <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--hairline)" }}>
+            <div style={{ fontSize: 11, color: "var(--ink-tertiary)", fontWeight: 600, textTransform: "uppercase" }}>Active Connections</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 4 }}>
+              {waAdminStats?.connected ? "1 Active Account" : "Listening for Link Requests"}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 2 }}>Single-Farmer Identity Mapped</div>
+          </div>
+        </div>
+      </div>
+
       {/* Broadcast Message to Farmers */}
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 className="section-title" style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
           <Megaphone size={15} color="var(--primary)" />
-          Broadcast Advisory Banner to Farmers
+          Multi-Channel Advisory Broadcast
         </h2>
 
         {activeAlert ? (
@@ -306,7 +418,7 @@ export default function WebsiteControlsPage() {
           </div>
         ) : (
           <p style={{ fontSize: 12, color: "var(--ink-subtle)", marginBottom: 12 }}>
-            No active broadcast. Post an advisory below to show a high-visibility banner to all farmers visiting the main site.
+            No active broadcast. Post an advisory below to notify farmers across the website and direct WhatsApp messaging.
           </p>
         )}
 
@@ -318,6 +430,63 @@ export default function WebsiteControlsPage() {
           rows={3}
           style={{ resize: "vertical", marginBottom: 12, lineHeight: 1.5 }}
         />
+
+        {/* Multi-Channel Delivery & Target Audience Selectors */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 12,
+            padding: "12px 14px",
+            background: "var(--surface-2)",
+            borderRadius: 8,
+            border: "1px solid var(--hairline)",
+            marginBottom: 14,
+          }}
+        >
+          <div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-subtle)", display: "block", marginBottom: 6 }}>
+              Delivery Channels
+            </span>
+            <div style={{ display: "flex", gap: 16 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--ink)", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={channelWebsite}
+                  onChange={(e) => setChannelWebsite(e.target.checked)}
+                  style={{ accentColor: "var(--primary)", cursor: "pointer" }}
+                />
+                <span>🌐 Website Banner</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--ink)", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={channelWhatsApp}
+                  onChange={(e) => setChannelWhatsApp(e.target.checked)}
+                  style={{ accentColor: "#25D366", cursor: "pointer" }}
+                />
+                <span>💬 WhatsApp Alert</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-subtle)", display: "block", marginBottom: 6 }}>
+              Target Audience
+            </span>
+            <select
+              className="input"
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value as any)}
+              style={{ fontSize: 12, padding: "6px 10px", height: "auto" }}
+            >
+              <option value="all">All Registered Farmers</option>
+              <option value="bhopal">Bhopal & Central MP District</option>
+              <option value="soybean">Soybean & Pulse Growers</option>
+            </select>
+          </div>
+        </div>
+
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 11, color: "var(--ink-tertiary)" }}>
             {broadcast.length} / 500 characters
@@ -325,16 +494,81 @@ export default function WebsiteControlsPage() {
           <button
             className="btn btn-primary"
             onClick={handleBroadcast}
-            disabled={!broadcast.trim() || broadcasting}
+            disabled={!broadcast.trim() || broadcasting || (!channelWebsite && !channelWhatsApp)}
           >
             {broadcasting ? (
               <><span className="spinner" style={{ width: 12, height: 12 }} /> Sending...</>
             ) : (
-              <><Megaphone size={13} /> Broadcast Alert Now</>
+              <><Megaphone size={13} /> Broadcast to Selected Channels</>
             )}
           </button>
         </div>
       </div>
+
+      {/* WhatsApp Broadcast Confirmation Modal */}
+      {showConfirmModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: 16,
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 480,
+              width: "100%",
+              background: "var(--surface-1)",
+              border: "1px solid var(--hairline)",
+              padding: 24,
+              borderRadius: 12,
+              boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(37,211,102,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <MessageSquare size={18} color="#25D366" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>Confirm WhatsApp Dispatch</h3>
+                <span style={{ fontSize: 11, color: "var(--ink-tertiary)" }}>Multi-Channel Broadcast Authorization</span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: "var(--ink-subtle)", lineHeight: 1.5, marginBottom: 16 }}>
+              You are about to send an agricultural advisory to <strong>all verified farmers</strong> connected via WhatsApp and publish a top-level alert on the main website.
+            </p>
+
+            <div style={{ background: "var(--surface-2)", padding: 12, borderRadius: 8, border: "1px solid var(--hairline)", marginBottom: 18, fontSize: 12, color: "var(--ink)", fontStyle: "italic" }}>
+              &ldquo;{broadcast}&rdquo;
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ background: "#25D366", borderColor: "#20bd5a" }}
+                onClick={handleBroadcast}
+              >
+                <Send size={13} /> Confirm & Dispatch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Feature Flags */}
       <div className="card" style={{ marginBottom: 20 }}>

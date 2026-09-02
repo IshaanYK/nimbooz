@@ -3,5 +3,11 @@
   "framework": "nextjs",
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/.next",
-  "installCommand": "cd frontend && npm install"
+  "installCommand": "cd frontend && npm install",
+  "crons": [
+    {
+      "path": "/api/cron/monitor-alerts",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }
