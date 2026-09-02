@@ -58,17 +58,28 @@ export default function DatabaseAdminPage() {
   };
 
   const stats = dbData?.stats || {};
+  const counts = stats.counts || {};
   const data = dbData?.data || {};
 
+  const farmersCount = counts.farmers ?? data?.farmers?.length ?? 0;
+  const fieldsCount = counts.fields ?? data?.fields?.length ?? 0;
+  const journalCount = counts.journal ?? data?.journal?.length ?? 0;
+  const robiCount = counts.robi_audits ?? (data?.robiAudits || data?.robi_audits)?.length ?? 0;
+
   const TABS = [
-    { id: "farmers", label: "Farmers", icon: Users, count: stats.totalFarmers },
-    { id: "fields", label: "Fields", icon: MapPin, count: stats.totalFields },
-    { id: "journal", label: "Journal", icon: BookOpen, count: stats.totalJournalEntries },
-    { id: "robi", label: "ROBI Audits", icon: TrendingUp, count: stats.totalRobiAudits },
+    { id: "farmers", label: "Farmers", icon: Users, count: farmersCount },
+    { id: "fields", label: "Fields", icon: MapPin, count: fieldsCount },
+    { id: "journal", label: "Journal", icon: BookOpen, count: journalCount },
+    { id: "robi", label: "ROBI Audits", icon: TrendingUp, count: robiCount },
     { id: "raw", label: "Raw JSON", icon: Code, count: null },
   ];
 
-  const activeData = activeTab === "raw" ? dbData : data[activeTab === "robi" ? "robiAudits" : activeTab];
+  const activeData =
+    activeTab === "raw"
+      ? dbData
+      : activeTab === "robi"
+      ? data?.robiAudits || data?.robi_audits || []
+      : data?.[activeTab] || [];
 
   return (
     <AdminShell>
@@ -141,10 +152,10 @@ export default function DatabaseAdminPage() {
       {/* Stats row */}
       <div className="stat-grid" style={{ marginBottom: 20 }}>
         {[
-          { label: "Farmers", value: stats.totalFarmers, icon: Users },
-          { label: "Fields", value: stats.totalFields, icon: MapPin },
-          { label: "Journal Entries", value: stats.totalJournalEntries, icon: BookOpen },
-          { label: "ROBI Audits", value: stats.totalRobiAudits, icon: TrendingUp },
+          { label: "Farmers", value: farmersCount, icon: Users },
+          { label: "Fields", value: fieldsCount, icon: MapPin },
+          { label: "Journal Entries", value: journalCount, icon: BookOpen },
+          { label: "ROBI Audits", value: robiCount, icon: TrendingUp },
         ].map((s) => {
           const Icon = s.icon;
           return (

@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/aasraDb";
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
+
 export async function GET() {
   const stats = db.getStats();
   const farmers = db.getFarmers();

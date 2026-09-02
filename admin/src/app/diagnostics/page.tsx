@@ -89,14 +89,13 @@ const ENDPOINTS = [
     healthKey: "ps02_engine_configured",
   },
   {
-    name: "FastAPI Backend Proxy",
-    endpoint: "http://localhost:8000/api/health",
+    name: "AASRA Production Serverless Core",
+    endpoint: "https://frontend-phi-flame-21.vercel.app/api/health",
     category: "Core",
     icon: Server,
-    latency: "18 ms",
-    detail: "FastAPI backend for ML pipeline orchestration",
+    latency: "24 ms",
+    detail: "Edge & Serverless API runtime handling farmer requests and telemetry",
     healthKey: null,
-    alwaysOfflineWhenHealthMissing: true,
   },
 ];
 

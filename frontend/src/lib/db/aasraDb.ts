@@ -373,6 +373,16 @@ export class AasraDatabase {
     return updated;
   }
 
+  public deleteFarmer(id: string): boolean {
+    const initialLen = memoryCache.farmers.length;
+    memoryCache.farmers = memoryCache.farmers.filter((f) => f.id !== id);
+    if (memoryCache.farmers.length !== initialLen) {
+      this.persist();
+      return true;
+    }
+    return false;
+  }
+
   // ── Fields CRUD ──
   public getFields(): FieldDbRecord[] {
     return memoryCache.fields;

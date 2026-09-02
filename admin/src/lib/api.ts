@@ -1,12 +1,23 @@
-// API client for admin panel — calls the main AASRA frontend API
-const BASE = process.env.NEXT_PUBLIC_MAIN_API_URL || "http://localhost:3000";
+// API client for admin panel — connects to the live production AASRA frontend API
+export const MAIN_SITE_URL =
+  process.env.NEXT_PUBLIC_MAIN_API_URL && process.env.NEXT_PUBLIC_MAIN_API_URL.startsWith("http")
+    ? process.env.NEXT_PUBLIC_MAIN_API_URL
+    : "https://frontend-phi-flame-21.vercel.app";
 
 export async function apiFetch(path: string, options?: RequestInit) {
-  const url = `${BASE}${path}`;
+  const url = `${MAIN_SITE_URL}${path}`;
   try {
-    const res = await fetch(url, { ...options, cache: "no-store" });
+    const res = await fetch(url, {
+      ...options,
+      cache: "no-store",
+      headers: {
+        "Accept": "application/json",
+        ...(options?.headers || {}),
+      },
+    });
     return res;
   } catch (err) {
+    console.error(`Admin API call failed: ${url}`, err);
     throw new Error(`API call failed: ${url} — ${err}`);
   }
 }
@@ -18,26 +29,54 @@ export async function getDbStats() {
 }
 
 export async function getFarmers() {
-  const res = await apiFetch("/api/farmers");
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    const res = await apiFetch("/api/farmers");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : data?.farmers || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getFields() {
-  const res = await apiFetch("/api/fields");
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    const res = await apiFetch("/api/fields");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : data?.fields || [];
+  } catch {
+    return [];
+  }
 }
 
-export async function deleteFarmer(id: string) {
-  const res = await apiFetch(`/api/farmers?id=${id}`, { method: "DELETE" });
-  return res.ok;
+export async function deleteFarmer(id: string): Promise<boolean> {
+  try {
+    const res = await apiFetch(`/api/farmers?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    return res.ok;
+  } catch (e) {
+    console.error("Failed to delete farmer:", e);
+    return false;
+  }
+}
+
+export async function createFarmer(farmerData: any): Promise<any> {
+  const res = await apiFetch("/api/farmers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(farmerData),
+  });
+  return res.json();
 }
 
 export async function getHealthStatus() {
-  const res = await apiFetch("/api/health");
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await apiFetch("/api/health");
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function seedDatabase() {
