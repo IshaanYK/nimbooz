@@ -199,7 +199,7 @@ export async function fetchLiveAgronomicTelemetry(
  * Execute prompt on Google Gemini 2.5 Flash with multi-key rotation and JSON enforcement
  */
 export async function executeGoogleGeminiPrompt(prompt: string, systemInstruction?: string): Promise<any | null> {
-  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-flash-latest"];
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
   const uniqueKeys = Array.from(new Set(GOOGLE_AI_KEYS));
 
   for (const key of uniqueKeys) {
@@ -227,7 +227,7 @@ export async function executeGoogleGeminiPrompt(prompt: string, systemInstructio
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(reqBody),
-          signal: AbortSignal.timeout(9000),
+          signal: AbortSignal.timeout(25000),
         });
 
         if (res.ok) {

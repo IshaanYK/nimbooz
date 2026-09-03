@@ -231,6 +231,10 @@ export default function PlantIntelligencePage() {
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
   const [sprayScheduledToast, setSprayScheduledToast] = useState<string | null>(null);
 
+  // Dynamic AI & Web Grounded Pest Intelligence for Any Crop
+  const [dynamicPestData, setDynamicPestData] = useState<any>(null);
+  const [isPestAILoading, setIsPestAILoading] = useState<boolean>(false);
+
   // Sync profile & farm on mount
   useEffect(() => {
     const p = getStoredProfile();
@@ -571,6 +575,47 @@ export default function PlantIntelligencePage() {
           p.category.toLowerCase().includes(catalogCategory.toLowerCase())
         );
 
+  // Trigger Dynamic Google AI Grounded Pest Research for ANY Crop
+  useEffect(() => {
+    let isSubscribed = true;
+    async function fetchAIPestForecast() {
+      setIsPestAILoading(true);
+      try {
+        const res = await fetch("/api/plant-intelligence/pest-forecast", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            crop: selectedCrop,
+            district: currentDistrict,
+            state: currentState,
+            growthStage: growthStage || profile.growthStage || "Flowering & Pod Formation",
+            month: new Date().getMonth() + 1,
+            weather: {
+              temperature: weather.temperature || 32,
+              humidity: weather.humidity || 75,
+              maxDrySpell: 4,
+            },
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (isSubscribed && json?.data) {
+            setDynamicPestData(json.data);
+          }
+        }
+      } catch (err) {
+        console.warn("[Pest AI] Dynamic crop research warning:", err);
+      } finally {
+        if (isSubscribed) setIsPestAILoading(false);
+      }
+    }
+
+    fetchAIPestForecast();
+    return () => {
+      isSubscribed = false;
+    };
+  }, [selectedCrop, currentDistrict, currentState, growthStage, weather.temperature]);
+
   const diagnosticData = React.useMemo(() => {
     const ageDays = profile.sowingDate
       ? Math.max(0, Math.floor((new Date().getTime() - new Date(profile.sowingDate).getTime()) / (1000 * 60 * 60 * 24)))
@@ -598,9 +643,10 @@ export default function PlantIntelligencePage() {
       },
       pipelineData?.forecast || [],
       weather,
-      currentMandiPrice
+      currentMandiPrice,
+      dynamicPestData
     );
-  }, [selectedCrop, profile, growthStage, currentAcres, currentDistrict, currentState, customLocation, pipelineData, weather, currentMandiPrice]);
+  }, [selectedCrop, profile, growthStage, currentAcres, currentDistrict, currentState, customLocation, pipelineData, weather, currentMandiPrice, dynamicPestData]);
 
   const yieldData = React.useMemo(() => {
     return predictCropYield({
