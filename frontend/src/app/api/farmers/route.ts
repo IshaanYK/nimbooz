@@ -6,7 +6,7 @@ export async function OPTIONS() {
     status: 204,
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-KEY, x-api-key",
     },
   });
@@ -31,6 +31,23 @@ export async function POST(req: NextRequest) {
     }
     const saved = db.saveFarmer(body);
     return NextResponse.json({ status: "success", farmer: saved });
+  } catch (err: any) {
+    return NextResponse.json({ status: "error", message: err.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const id = body.id || new URL(req.url).searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ status: "error", message: "Farmer ID required for update" }, { status: 400 });
+    }
+    const updated = db.updateFarmer(id, body);
+    if (!updated) {
+      return NextResponse.json({ status: "not_found", message: `Farmer ${id} not found` }, { status: 404 });
+    }
+    return NextResponse.json({ status: "success", farmer: updated });
   } catch (err: any) {
     return NextResponse.json({ status: "error", message: err.message }, { status: 500 });
   }

@@ -414,6 +414,60 @@ export default function SignupPage() {
       healthScore: 94,
     });
 
+    // ── Persist to Live Production Database for Cross-Device Personalization & Admin Overwatch ──
+    try {
+      fetch("/api/farmers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: newProfile.id,
+          fullName: newProfile.fullName,
+          mobileNumber: newProfile.mobileNumber,
+          email: newProfile.email,
+          language: newProfile.language,
+          state: newProfile.state,
+          district: newProfile.district,
+          tehsil: newProfile.tehsil,
+          village: newProfile.village,
+          fieldName: newProfile.fieldName,
+          fieldAreaAcres: newProfile.fieldAreaAcres,
+          fieldAreaHa: newProfile.fieldAreaHa,
+          landOwnership: newProfile.landOwnership,
+          farmingExperience: newProfile.farmingExperience,
+          primaryCrop: newProfile.primaryCrop,
+          cropVariety: newProfile.cropVariety,
+          sowingDate: newProfile.sowingDate,
+          growthStage: newProfile.growthStage,
+          soilType: newProfile.soilType,
+          irrigationType: newProfile.irrigationType,
+          gpsLocation: newProfile.gpsLocation,
+          polygon: newProfile.polygon,
+          pestHistory: newProfile.pestHistory,
+          fertilizersUsed: newProfile.fertilizersUsed,
+          hasKisanCreditCard: newProfile.hasKisanCreditCard,
+          pmKisanBeneficiary: newProfile.pmKisanBeneficiary,
+          preferredCommunication: newProfile.preferredCommunication,
+        }),
+      }).catch((err) => console.warn("Background farmer DB sync warning:", err));
+
+      fetch("/api/fields", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${primaryCrop} Main Field`,
+          lat: mapCenter.lat,
+          lon: mapCenter.lon,
+          area_acres: acres,
+          crop: primaryCrop,
+          variety: cropVariety,
+          soil_type: soilType,
+          polygon: finalPolygon,
+        }),
+      }).catch((err) => console.warn("Background field DB sync warning:", err));
+    } catch (err) {
+      console.warn("Could not dispatch database sync:", err);
+    }
+
     setLanguage(selectedLanguage);
 
     setTimeout(() => {

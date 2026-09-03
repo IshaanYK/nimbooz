@@ -157,6 +157,15 @@ export function saveRegisteredUser(profile: FarmerProfile): void {
     
     // Also set as active current profile and login session
     saveProfile(userWithMeta);
+
+    // Asynchronously synchronize with backend database
+    try {
+      fetch("/api/farmers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userWithMeta),
+      }).catch(() => {});
+    } catch {}
   } catch (e) {
     console.error("Failed to save user to registry database", e);
   }

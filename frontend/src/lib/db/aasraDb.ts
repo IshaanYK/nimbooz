@@ -9,15 +9,26 @@ export interface FarmerDbRecord {
   language: string;
   state: string;
   district: string;
+  tehsil?: string;
   village: string;
+  fieldName?: string;
   fieldAreaAcres: number;
+  fieldAreaHa?: number;
+  landOwnership?: string;
+  farmingExperience?: string;
   primaryCrop: string;
   cropVariety: string;
   sowingDate: string;
+  growthStage?: string;
   soilType: string;
   irrigationType: string;
+  gpsLocation?: { lat: number; lon: number };
+  polygon?: Array<[number, number]>;
+  pestHistory?: string[];
+  fertilizersUsed?: string[];
   hasKisanCreditCard: boolean;
   pmKisanBeneficiary: boolean;
+  preferredCommunication?: string;
   updatedAt: string;
 }
 
@@ -377,26 +388,40 @@ export class AasraDatabase {
   }
 
   public saveFarmer(farmer: Partial<FarmerDbRecord> & { fullName: string; mobileNumber: string }): FarmerDbRecord {
+    const cleanNum = farmer.mobileNumber.replace(/\D/g, "");
     const existingIdx = memoryCache.farmers.findIndex(
-      (f) => f.mobileNumber.replace(/\D/g, "") === farmer.mobileNumber.replace(/\D/g, "")
+      (f) => f.id === farmer.id || f.mobileNumber.replace(/\D/g, "") === cleanNum
     );
+    const existing = existingIdx >= 0 ? memoryCache.farmers[existingIdx] : null;
+
     const updated: FarmerDbRecord = {
-      id: farmer.id || `farmer-${Date.now().toString().slice(-4)}`,
-      fullName: farmer.fullName,
-      mobileNumber: farmer.mobileNumber,
-      email: farmer.email || "",
-      language: farmer.language || "hi",
-      state: farmer.state || "Madhya Pradesh",
-      district: farmer.district || "Bhopal",
-      village: farmer.village || "Phanda Kalan",
-      fieldAreaAcres: farmer.fieldAreaAcres || 5.0,
-      primaryCrop: farmer.primaryCrop || "Soybean",
-      cropVariety: farmer.cropVariety || "JS-9560 High Yield",
-      sowingDate: farmer.sowingDate || new Date().toISOString().split("T")[0],
-      soilType: farmer.soilType || "Deep Black Clay Soil",
-      irrigationType: farmer.irrigationType || "Rainfed",
-      hasKisanCreditCard: farmer.hasKisanCreditCard ?? true,
-      pmKisanBeneficiary: farmer.pmKisanBeneficiary ?? true,
+      id: farmer.id || existing?.id || `farmer-${Date.now().toString().slice(-4)}`,
+      fullName: farmer.fullName || existing?.fullName || "Kisan Farmer",
+      mobileNumber: cleanNum || existing?.mobileNumber || "9876543210",
+      email: farmer.email !== undefined ? farmer.email : existing?.email || "",
+      language: farmer.language || existing?.language || "hi",
+      state: farmer.state || existing?.state || "Madhya Pradesh",
+      district: farmer.district || existing?.district || "Bhopal",
+      tehsil: farmer.tehsil !== undefined ? farmer.tehsil : existing?.tehsil,
+      village: farmer.village || existing?.village || "Phanda Kalan",
+      fieldName: farmer.fieldName !== undefined ? farmer.fieldName : existing?.fieldName,
+      fieldAreaAcres: farmer.fieldAreaAcres ?? existing?.fieldAreaAcres ?? 5.0,
+      fieldAreaHa: farmer.fieldAreaHa ?? existing?.fieldAreaHa ?? +((farmer.fieldAreaAcres ?? 5.0) * 0.4047).toFixed(2),
+      landOwnership: farmer.landOwnership !== undefined ? farmer.landOwnership : existing?.landOwnership,
+      farmingExperience: farmer.farmingExperience !== undefined ? farmer.farmingExperience : existing?.farmingExperience,
+      primaryCrop: farmer.primaryCrop || existing?.primaryCrop || "Soybean",
+      cropVariety: farmer.cropVariety || existing?.cropVariety || "JS-9560 High Yield",
+      sowingDate: farmer.sowingDate || existing?.sowingDate || new Date().toISOString().split("T")[0],
+      growthStage: farmer.growthStage !== undefined ? farmer.growthStage : existing?.growthStage,
+      soilType: farmer.soilType || existing?.soilType || "Deep Black Clay Soil",
+      irrigationType: farmer.irrigationType || existing?.irrigationType || "Rainfed",
+      gpsLocation: farmer.gpsLocation !== undefined ? farmer.gpsLocation : existing?.gpsLocation,
+      polygon: farmer.polygon !== undefined ? farmer.polygon : existing?.polygon,
+      pestHistory: farmer.pestHistory !== undefined ? farmer.pestHistory : existing?.pestHistory,
+      fertilizersUsed: farmer.fertilizersUsed !== undefined ? farmer.fertilizersUsed : existing?.fertilizersUsed,
+      hasKisanCreditCard: farmer.hasKisanCreditCard ?? existing?.hasKisanCreditCard ?? true,
+      pmKisanBeneficiary: farmer.pmKisanBeneficiary ?? existing?.pmKisanBeneficiary ?? true,
+      preferredCommunication: farmer.preferredCommunication !== undefined ? farmer.preferredCommunication : existing?.preferredCommunication,
       updatedAt: new Date().toISOString(),
     };
 
@@ -405,6 +430,21 @@ export class AasraDatabase {
     } else {
       memoryCache.farmers.unshift(updated);
     }
+    this.persist();
+    return updated;
+  }
+
+  public updateFarmer(id: string, updates: Partial<FarmerDbRecord>): FarmerDbRecord | null {
+    const idx = memoryCache.farmers.findIndex((f) => f.id === id);
+    if (idx === -1) return null;
+    const current = memoryCache.farmers[idx];
+    const updated: FarmerDbRecord = {
+      ...current,
+      ...updates,
+      id: current.id,
+      updatedAt: new Date().toISOString(),
+    };
+    memoryCache.farmers[idx] = updated;
     this.persist();
     return updated;
   }
@@ -446,6 +486,20 @@ export class AasraDatabase {
     return newField;
   }
 
+  public updateField(id: string, updates: Partial<FieldDbRecord>): FieldDbRecord | null {
+    const idx = memoryCache.fields.findIndex((f) => f.id === id);
+    if (idx === -1) return null;
+    const current = memoryCache.fields[idx];
+    const updated: FieldDbRecord = {
+      ...current,
+      ...updates,
+      id: current.id,
+    };
+    memoryCache.fields[idx] = updated;
+    this.persist();
+    return updated;
+  }
+
   public deleteField(id: string): boolean {
     const initialLen = memoryCache.fields.length;
     memoryCache.fields = memoryCache.fields.filter((f) => f.id !== id);
@@ -473,6 +527,30 @@ export class AasraDatabase {
     return newEntry;
   }
 
+  public updateJournalEntry(id: string, updates: Partial<JournalDbRecord>): JournalDbRecord | null {
+    const idx = memoryCache.journal.findIndex((j) => j.id === id);
+    if (idx === -1) return null;
+    const current = memoryCache.journal[idx];
+    const updated: JournalDbRecord = {
+      ...current,
+      ...updates,
+      id: current.id,
+    };
+    memoryCache.journal[idx] = updated;
+    this.persist();
+    return updated;
+  }
+
+  public deleteJournalEntry(id: string): boolean {
+    const initialLen = memoryCache.journal.length;
+    memoryCache.journal = memoryCache.journal.filter((j) => j.id !== id);
+    if (memoryCache.journal.length !== initialLen) {
+      this.persist();
+      return true;
+    }
+    return false;
+  }
+
   // ── ROBI Audits CRUD ──
   public getRobiAudits(): RobiAuditDbRecord[] {
     return memoryCache.robi_audits;
@@ -486,6 +564,30 @@ export class AasraDatabase {
     memoryCache.robi_audits.unshift(newAudit);
     this.persist();
     return newAudit;
+  }
+
+  public updateRobiAudit(id: string, updates: Partial<RobiAuditDbRecord>): RobiAuditDbRecord | null {
+    const idx = memoryCache.robi_audits.findIndex((r) => r.id === id);
+    if (idx === -1) return null;
+    const current = memoryCache.robi_audits[idx];
+    const updated: RobiAuditDbRecord = {
+      ...current,
+      ...updates,
+      id: current.id,
+    };
+    memoryCache.robi_audits[idx] = updated;
+    this.persist();
+    return updated;
+  }
+
+  public deleteRobiAudit(id: string): boolean {
+    const initialLen = memoryCache.robi_audits.length;
+    memoryCache.robi_audits = memoryCache.robi_audits.filter((r) => r.id !== id);
+    if (memoryCache.robi_audits.length !== initialLen) {
+      this.persist();
+      return true;
+    }
+    return false;
   }
 
   // ── System Stats ──
