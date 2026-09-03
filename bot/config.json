@@ -1,0 +1,12 @@
+{
+  "api_base_url": "https://frontend-phi-flame-21.vercel.app",
+  "database_api_key": "aasra-bot-access-2026",
+  "endpoints": {
+    "database": "/api/database",
+    "farmers": "/api/farmers",
+    "mandi": "/api/mandi/rates",
+    "weather": "/api/weather/current",
+    "chat": "/api/chat"
+  },
+  "local_seed_file": "frontend/data/aasra_mvp.json"
+}
