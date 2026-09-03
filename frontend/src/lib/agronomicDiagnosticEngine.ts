@@ -156,6 +156,44 @@ const CROP_SENSITIVITY: Record<string, {
       { name: "Mustard Aphid (Lipaphis erysimi)", nameHi: "सरसों का चेपा / मोयला", monthRange: [12, 1, 2], triggerCondition: "High humidity and overcast days during flowering" },
     ],
   },
+  rice: {
+    heatThresholdNight: 26.0,
+    heatThresholdDay: 36.0,
+    droughtVpdThreshold: 2.8,
+    baselineYieldQtlPerAcre: 24.0,
+    commonPests: [
+      { name: "Yellow Stem Borer (Scirpophaga incertulas)", nameHi: "धान का पीला तना छेदक", monthRange: [7, 8, 9, 10], triggerCondition: "Warm humid climate with continuous tillering" },
+      { name: "Brown Plant Hopper - BPH (Nilaparvata lugens)", nameHi: "भूरा माहू (BPH)", monthRange: [8, 9, 10], triggerCondition: "Dense plant population + stagnant water + high humidity > 85%" },
+      { name: "Sheath Blight (Rhizoctonia solani)", nameHi: "शीथ ब्लाइट (पर्ण झुलसा)", monthRange: [7, 8, 9], triggerCondition: "High rainfall + excessive nitrogen application" },
+    ],
+  },
+  maize: {
+    heatThresholdNight: 23.0,
+    heatThresholdDay: 35.0,
+    droughtVpdThreshold: 2.7,
+    baselineYieldQtlPerAcre: 22.0,
+    commonPests: [
+      { name: "Fall Armyworm (Spodoptera frugiperda)", nameHi: "फॉल आर्मीवर्म (सैनिक कीट)", monthRange: [6, 7, 8, 9], triggerCondition: "Young vegetative whorl stage during monsoon breaks" },
+    ],
+  },
+  chilli: {
+    heatThresholdNight: 22.0,
+    heatThresholdDay: 34.0,
+    droughtVpdThreshold: 2.9,
+    baselineYieldQtlPerAcre: 15.0,
+    commonPests: [
+      { name: "Chilli Black Thrips & Yellow Mites", nameHi: "काली थ्रिप्स व पीली माइट्स", monthRange: [8, 9, 10, 11], triggerCondition: "Warm sunny spells with low rainfall and upward leaf curling" },
+    ],
+  },
+  groundnut: {
+    heatThresholdNight: 24.0,
+    heatThresholdDay: 35.0,
+    droughtVpdThreshold: 2.8,
+    baselineYieldQtlPerAcre: 11.0,
+    commonPests: [
+      { name: "Tikka Leaf Spot (Cercospora)", nameHi: "टिक्का पर्ण चित्ती रोग", monthRange: [7, 8, 9], triggerCondition: "Continuous humid wet spells followed by hot sunshine" },
+    ],
+  },
 };
 
 /**
