@@ -1,6 +1,37 @@
 {
   "version": "1.0.0-mvp",
-  "lastUpdated": "2026-09-02T17:38:59.223Z",
+  "lastUpdated": "2026-09-02T21:37:04.725Z",
+  "settings": {
+    "maintenanceMode": false,
+    "maintenanceMessage": "AASRA is currently performing scheduled agricultural system updates. Farm telemetry remains active.",
+    "broadcastAlert": null,
+    "featureFlags": {
+      "voiceAssistant": true,
+      "mandiPrices": true,
+      "weatherTelemetry": true,
+      "journalFeature": true,
+      "fieldMapping": true,
+      "robiAudit": true,
+      "plantIntelligence": true
+    }
+  },
+  "whatsapp_connections": [
+    {
+      "id": "wa-conn-sameer",
+      "farmerId": "farmer-002",
+      "phoneNumber": "9720413710",
+      "phoneNumberNormalized": "+919720413710",
+      "provider": "meta_cloud",
+      "status": "active",
+      "verifiedAt": "2026-09-03T14:44:00.000Z",
+      "connectedAt": "2026-09-03T14:44:00.000Z",
+      "lastSeenAt": "2026-09-03T17:45:00.000Z"
+    }
+  ],
+  "activation_tokens": [],
+  "whatsapp_messages": [],
+  "alert_events": [],
+  "notification_preferences": [],
   "farmers": [
     {
       "id": "farmer-001",
@@ -19,7 +50,26 @@
       "irrigationType": "Rainfed + Borewell Drip",
       "hasKisanCreditCard": true,
       "pmKisanBeneficiary": true,
-      "updatedAt": "2026-09-02T17:38:20.797Z"
+      "updatedAt": "2026-09-02T21:37:04.723Z"
+    },
+    {
+      "id": "farmer-002",
+      "fullName": "Sameer Mishra",
+      "mobileNumber": "9720413710",
+      "email": "sameer@syngenta-aasra.in",
+      "language": "hi",
+      "state": "Uttar Pradesh",
+      "district": "Kasganj",
+      "village": "Bilram",
+      "fieldAreaAcres": 3.5,
+      "primaryCrop": "Potato",
+      "cropVariety": "Kufri Jyoti",
+      "sowingDate": "2026-07-15",
+      "soilType": "Alluvial Sandy Loam",
+      "irrigationType": "Tube Well Sprinkler",
+      "hasKisanCreditCard": true,
+      "pmKisanBeneficiary": true,
+      "updatedAt": "2026-09-03T17:45:00.000Z"
     }
   ],
   "fields": [
