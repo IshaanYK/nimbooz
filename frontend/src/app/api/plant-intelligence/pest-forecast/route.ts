@@ -12,9 +12,29 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const crop = searchParams.get("crop") || "Soybean";
+  const district = searchParams.get("district") || "Sehore";
+  const state = searchParams.get("state") || "Madhya Pradesh";
+  const month = parseInt(searchParams.get("month") || "", 10) || new Date().getMonth() + 1;
+  const growthStage = searchParams.get("stage") || "Flowering & Vegetative Growth";
+
+  return handlePestForecastRequest({ crop, district, state, month, growthStage, weather: {} });
+}
+
 export async function POST(req: NextRequest) {
+  let body: any = {};
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch {
+    body = {};
+  }
+  return handlePestForecastRequest(body);
+}
+
+async function handlePestForecastRequest(body: any) {
+  try {
     const crop = (body.crop || "Soybean").trim();
     const district = (body.district || "Sehore").trim();
     const state = (body.state || "Madhya Pradesh").trim();
