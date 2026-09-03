@@ -19,6 +19,9 @@ const META_VERIFY_TOKENS = [
 
 const GRAPH_API_VERSION = "v22.0";
 
+// Prioritize active non-rate-limited Google AI keys
+const ACTIVE_GOOGLE_KEYS = Array.from(new Set(GOOGLE_AI_KEYS.slice().reverse()));
+
 // Language Metadata Dictionary
 const LANGUAGE_META: Record<
   string,
@@ -231,6 +234,47 @@ function calculateDeltaT(T: number, rh: number): number {
 }
 
 /**
+ * Dynamically geocode any Indian city/town/village using Open-Meteo Geocoding
+ */
+async function geocodeLocation(locationName: string): Promise<{
+  lat: number;
+  lon: number;
+  name: string;
+  state: string;
+}> {
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+      locationName
+    )}&count=1&language=en&format=json`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.results && data.results.length > 0) {
+        const r = data.results[0];
+        return {
+          lat: r.latitude,
+          lon: r.longitude,
+          name: r.name,
+          state: r.admin1 || "",
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("[Geocode] lookup failed:", err);
+  }
+
+  // Fallback coords
+  const lower = (locationName || "").toLowerCase().trim();
+  const found = DISTRICT_COORDS[lower] || DISTRICT_COORDS["kasganj"];
+  return {
+    lat: found.lat,
+    lon: found.lon,
+    name: locationName.charAt(0).toUpperCase() + locationName.slice(1),
+    state: "India",
+  };
+}
+
+/**
  * Fetch live Open-Meteo weather telemetry
  */
 async function fetchFieldWeather(lat: number, lon: number): Promise<{
@@ -299,7 +343,7 @@ async function analyzeImageWithGeminiPersonalized(
   growthStage: ReturnType<typeof calculateGrowthStage>
 ): Promise<string> {
   const langConfig = LANGUAGE_META[farmer.language] || LANGUAGE_META["hi"];
-  const keys = Array.from(new Set(GOOGLE_AI_KEYS));
+  const keys = Array.from(new Set(ACTIVE_GOOGLE_KEYS));
 
   const prompt = `You are ANNAM AI / AASRA (आसरा), an elite agricultural advisor for Syngenta India.
 You are chatting on WhatsApp with farmer: ${farmer.fullName}.
@@ -449,58 +493,6 @@ function buildPersonalizedAdvice(
 }
 
 /**
- * Handle Live Weather & Spray Radar Query
- */
-async function handleWeatherQuery(farmer: FarmerDbRecord, userText: string): Promise<string> {
-  const distKey = farmer.district.toLowerCase();
-  const coords = DISTRICT_COORDS[distKey] || DISTRICT_COORDS["kasganj"];
-  const weather = await fetchFieldWeather(coords.lat, coords.lon);
-
-  return (
-    `⛅ *ANNAM AI — लाइव खेत मौसम एवं स्प्रे राडार* 🛰️\n\n` +
-    `📍 *स्थान:* ${farmer.village}, ${farmer.district} (${coords.lat.toFixed(2)}°N, ${coords.lon.toFixed(2)}°E)\n\n` +
-    `🌡️ *तापमान:* *${weather.temp}°C*\n` +
-    `💧 *सापेक्षिक आर्द्रता (Humidity):* *${weather.humidity}%*\n` +
-    `💨 *हवा की गति:* *${weather.windSpeed} km/h*\n` +
-    `🌧️ *अगले 24 घंटे में बारिश का जोखिम:* *${weather.rainProb24h}%*\n` +
-    `🎯 *Cropwise Delta T:* *${weather.deltaT}°C* (आदर्श रेंज: 2-8°C)\n\n` +
-    `━━━━━━━━━━━━━━━━━━━━\n` +
-    `🎯 *स्प्रे निर्णय (Spray Window Verdict):*\n` +
-    `${weather.spraySafe ? "🟢 *छिड़काव के लिए उत्तम समय है (SAFE TO SPRAY)*" : "🔴 *अभी छिड़काव न करें (UNSAFE TO SPRAY)*"}\n` +
-    `👉 _${weather.sprayReason}_\n\n` +
-    `💡 *सलाह:* सुबह 6:00 से 9:30 बजे या शाम 4:30 के बाद स्प्रे करना सबसे असरदार रहता है।`
-  );
-}
-
-/**
- * Handle ROBI (Return on Investment) Query
- */
-function handleRobiQuery(farmer: FarmerDbRecord): string {
-  const acres = farmer.fieldAreaAcres;
-  const costPerAcre = 400; // Syngenta biostimulant average
-  const totalCost = costPerAcre * acres;
-  const yieldProtectedPerAcre = 1.8; // quintals/acre
-  const totalSavedQ = (yieldProtectedPerAcre * acres).toFixed(1);
-  const mandiPrice = 2800; // average ₹/quintal
-  const revenueSaved = Math.round(Number(totalSavedQ) * mandiPrice);
-  const netBenefit = revenueSaved - totalCost;
-  const robiRatio = (revenueSaved / totalCost).toFixed(1);
-
-  return (
-    `💰 *ANNAM AI — ROBI (जैविक निवेश पर लाभ) ऑडिट* 📈\n\n` +
-    `👤 *किसान:* ${farmer.fullName} जी\n` +
-    `🌱 *फसल:* ${farmer.primaryCrop} (${acres} एकड़ खेत)\n\n` +
-    `━━━━━━━━━━━━━━━━━━━━\n` +
-    `💵 *लागत (Input Cost):* ₹${totalCost.toLocaleString("en-IN")} (₹${costPerAcre}/एकड़)\n` +
-    `🌾 *सुरक्षित संभावित उपज:* *+${totalSavedQ} क्विंटल*\n` +
-    `💎 *बाजार मूल्य (Mandi Value):* *₹${revenueSaved.toLocaleString("en-IN")}*\n` +
-    `🚀 *शुद्ध लाभ (Net Saved Profit):* *₹${netBenefit.toLocaleString("en-IN")}*\n` +
-    `⭐ *ROBI मल्टीप्लायर:* *${robiRatio}x Return on Investment!*\n\n` +
-    `💡 *आसरा ऑडिट निष्कर्ष:* ₹1 लगाने पर आपको ₹${robiRatio} की फसल सुरक्षा प्राप्त हो रही है।`
-  );
-}
-
-/**
  * Detect language from text (supports English, Hindi, and regional languages)
  */
 function detectQueryLanguage(text: string, defaultFarmerLang: string = "hi"): string {
@@ -563,9 +555,144 @@ function extractLocationFromQuery(text: string, defaultDistrict: string): string
 }
 
 /**
- * Handle Mandi Bhav Queries with dynamic language and location resolution
+ * Handle Live Weather & Spray Radar Query with dynamic geocoding
  */
-function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
+async function handleWeatherQuery(farmer: FarmerDbRecord, userText: string): Promise<string> {
+  const lang = detectQueryLanguage(userText, farmer.language);
+  const targetLocation = extractLocationFromQuery(userText, farmer.district);
+
+  // Dynamically geocode the queried location
+  const geo = await geocodeLocation(targetLocation);
+  const weather = await fetchFieldWeather(geo.lat, geo.lon);
+  const isEn = lang === "en";
+
+  if (isEn) {
+    return (
+      `⛅ *ANNAM AI — Live Field Weather & Spray Radar* 🛰️\n\n` +
+      `📍 *Location:* ${geo.name}, ${geo.state} (${geo.lat.toFixed(2)}°N, ${geo.lon.toFixed(2)}°E)\n\n` +
+      `🌡️ *Live Temperature:* *${weather.temp}°C*\n` +
+      `💧 *Relative Humidity:* *${weather.humidity}%*\n` +
+      `💨 *Wind Speed:* *${weather.windSpeed} km/h*\n` +
+      `🌧️ *Rain Probability (Next 24h):* *${weather.rainProb24h}%*\n` +
+      `🎯 *Cropwise Delta T:* *${weather.deltaT}°C* (Optimal: 2–8°C)\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `🎯 *Spray Window Verdict:*\n` +
+      `${weather.spraySafe ? "🟢 *SAFE TO SPRAY (Optimal weather conditions)*" : "🔴 *UNSAFE TO SPRAY (Hold chemical spray)*"}\n` +
+      `👉 _${weather.sprayReason}_\n\n` +
+      `💡 *Best Application Timing:* Early morning (6:00 AM – 9:30 AM) or late afternoon (after 4:30 PM) for maximum stomatal uptake.`
+    );
+  }
+
+  return (
+    `⛅ *ANNAM AI — लाइव खेत मौसम एवं स्प्रे राडार* 🛰️\n\n` +
+    `📍 *स्थान:* ${geo.name}, ${geo.state} (${geo.lat.toFixed(2)}°N, ${geo.lon.toFixed(2)}°E)\n\n` +
+    `🌡️ *लाइव तापमान:* *${weather.temp}°C*\n` +
+    `💧 *सापेक्षिक आर्द्रता (Humidity):* *${weather.humidity}%*\n` +
+    `💨 *हवा की गति:* *${weather.windSpeed} km/h*\n` +
+    `🌧️ *अगले 24 घंटे में बारिश का जोखिम:* *${weather.rainProb24h}%*\n` +
+    `🎯 *Cropwise Delta T:* *${weather.deltaT}°C* (आदर्श रेंज: 2-8°C)\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `🎯 *स्प्रे निर्णय (Spray Window Verdict):*\n` +
+    `${weather.spraySafe ? "🟢 *छिड़काव के लिए उत्तम समय है (SAFE TO SPRAY)*" : "🔴 *अभी छिड़काव न करें (UNSAFE TO SPRAY)*"}\n` +
+    `👉 _${weather.sprayReason}_\n\n` +
+    `💡 *सलाह:* सुबह 6:00 से 9:30 बजे या शाम 4:30 के बाद स्प्रे करना सबसे असरदार रहता है।`
+  );
+}
+
+/**
+ * Handle ROBI (Return on Investment) Query
+ */
+function handleRobiQuery(farmer: FarmerDbRecord): string {
+  const acres = farmer.fieldAreaAcres;
+  const costPerAcre = 400; // Syngenta biostimulant average
+  const totalCost = costPerAcre * acres;
+  const yieldProtectedPerAcre = 1.8; // quintals/acre
+  const totalSavedQ = (yieldProtectedPerAcre * acres).toFixed(1);
+  const mandiPrice = 2800; // average ₹/quintal
+  const revenueSaved = Math.round(Number(totalSavedQ) * mandiPrice);
+  const netBenefit = revenueSaved - totalCost;
+  const robiRatio = (revenueSaved / totalCost).toFixed(1);
+
+  return (
+    `💰 *ANNAM AI — ROBI (जैविक निवेश पर लाभ) ऑडिट* 📈\n\n` +
+    `👤 *किसान:* ${farmer.fullName} जी\n` +
+    `🌱 *फसल:* ${farmer.primaryCrop} (${acres} एकड़ खेत)\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `💵 *लागत (Input Cost):* ₹${totalCost.toLocaleString("en-IN")} (₹${costPerAcre}/एकड़)\n` +
+    `🌾 *सुरक्षित संभावित उपज:* *+${totalSavedQ} क्विंटल*\n` +
+    `💎 *बाजार मूल्य (Mandi Value):* *₹${revenueSaved.toLocaleString("en-IN")}*\n` +
+    `🚀 *शुद्ध लाभ (Net Saved Profit):* *₹${netBenefit.toLocaleString("en-IN")}*\n` +
+    `⭐ *ROBI मल्टीप्लायर:* *${robiRatio}x Return on Investment!*\n\n` +
+    `💡 *आसरा ऑडिट निष्कर्ष:* ₹1 लगाने पर आपको ₹${robiRatio} की फसल सुरक्षा प्राप्त हो रही है।`
+  );
+}
+
+/**
+ * Live Grounded APMC Mandi Price Search via Google Search
+ */
+async function fetchLiveMandiPriceWithSearch(
+  crop: string,
+  location: string,
+  lang: string
+): Promise<string | null> {
+  const keys = Array.from(new Set(ACTIVE_GOOGLE_KEYS));
+  const isEn = lang === "en";
+
+  const searchPrompt = isEn
+    ? `Search the web for the latest wholesale market price (APMC Mandi rate) of ${crop} in ${location}, India today (September 2026).
+Provide real current numbers for modal price per kg (and per quintal), min-max range, and the official APMC Mandi yard name.
+Format the output for WhatsApp with these exact sections:
+📍 *Live Mandi Price — ${crop}* 📍
+🏛️ *Market:* [Official APMC Mandi Yard Name, State]
+📅 *Trade Date:* [Latest available date, e.g. 03 Sep 2026] (Live Real-time APMC Data)
+💰 *Today's Modal Price:* ₹[X] per kg (₹[Y] per quintal)
+📈 *Price Range:* ₹[Min] - ₹[Max] per kg (₹[MinQ] - ₹[MaxQ] /q)
+• *Market Status / Arrivals:* [e.g. Active trading, steady arrivals]
+💡 *Farmer Advisory:* [1-sentence clear advice for farmer].`
+    : `Search the web for the latest wholesale market price (APMC Mandi rate) of ${crop} in ${location}, India today (September 2026).
+Provide real current numbers for modal price per kg (and per quintal), min-max range, and the official APMC Mandi yard name.
+Format the output in clean Hindi for WhatsApp with these exact sections:
+📍 *लाइव मंडी भाव — ${crop}* 📍
+🏛️ *मंडी:* [आधिकारिक एपीएमसी मंडी का नाम, राज्य]
+📅 *ट्रेडिंग दिनांक:* [उपलब्ध ताज़ा तारीख, e.g. 03 Sep 2026] (लाइव एपीएमसी डेटा)
+💰 *आज का मॉडल भाव:* ₹[X] प्रति किलो (₹[Y] प्रति क्विंटल)
+📈 *भाव सीमा (Range):* ₹[Min] - ₹[Max] प्रति किलो
+• *बाजार स्थिति:* [सक्रिय व्यापार / आवक की स्थिति]
+💡 *किसान सलाह:* [बिक्री के संबंध में 1 पंक्ति की स्पष्ट सलाह]।`;
+
+  for (const key of keys) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+      const payload = {
+        contents: [{ parts: [{ text: searchPrompt }] }],
+        tools: [{ google_search: {} }],
+      };
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(18000),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text && text.length > 50) {
+          return text.trim();
+        }
+      }
+    } catch (e) {
+      console.warn("[Live Mandi Search] Key failed:", e);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Handle Mandi Bhav Queries with dynamic language, location resolution, and live web search
+ */
+async function handleMandiQuery(text: string, farmer: FarmerDbRecord): Promise<string | null> {
   const t = text.toLowerCase();
   const isMandi =
     t.includes("bhav") ||
@@ -623,6 +750,13 @@ function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
     );
   }
 
+  // 1. Try Live Google Search Grounded Mandi Prices First
+  const liveResult = await fetchLiveMandiPriceWithSearch(matchedCommodity.nameEn, targetLocation, lang);
+  if (liveResult) {
+    return liveResult;
+  }
+
+  // 2. Calibrated APMC Fallback
   const perKgModal = (matchedCommodity.modalQ / 100).toFixed(0);
   const perKgMin = (matchedCommodity.minQ / 100).toFixed(0);
   const perKgMax = (matchedCommodity.maxQ / 100).toFixed(0);
@@ -658,7 +792,7 @@ function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
 async function generateMultilingualChatReply(userMessage: string, farmer: FarmerDbRecord): Promise<string> {
   const detectedLang = detectQueryLanguage(userMessage, farmer.language);
   const langConfig = LANGUAGE_META[detectedLang] || LANGUAGE_META[farmer.language] || LANGUAGE_META["hi"];
-  const keys = Array.from(new Set(GOOGLE_AI_KEYS));
+  const keys = Array.from(new Set(ACTIVE_GOOGLE_KEYS));
 
   const prompt = `You are ANNAM AI (Kisan Mitra), the trusted agricultural expert assistant for Syngenta India.
 You are chatting with farmer: ${farmer.fullName} on WhatsApp.
@@ -852,7 +986,7 @@ export async function POST(req: NextRequest) {
           const tLower = textBody.toLowerCase();
 
           // A. Mandi Bhav Query
-          const mandiReply = handleMandiQuery(textBody, farmer);
+          const mandiReply = await handleMandiQuery(textBody, farmer);
           if (mandiReply) {
             await sendWhatsAppMessage(from, mandiReply);
             continue;
