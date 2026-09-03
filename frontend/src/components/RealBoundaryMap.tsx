@@ -19,6 +19,8 @@ import {
   Tractor,
   Home,
   Navigation,
+  X,
+  Undo2,
 } from "lucide-react";
 
 interface RealBoundaryMapProps {
@@ -205,6 +207,42 @@ export function RealBoundaryMap({
     }
   }, [center]);
 
+  // Navigation helpers for farmers sitting at home
+  const panMapByOffset = (dLat: number, dLon: number) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const cur = map.getCenter();
+    const target: [number, number] = [cur.lat + dLat, cur.lng + dLon];
+    map.flyTo(target, map.getZoom(), { duration: 0.8 });
+  };
+
+  const handleFlyToFarmlandOutskirts = () => {
+    panMapByOffset(0.018, 0.018);
+  };
+
+  // ── Individual Pointers Removal & Management ────────
+  const handleRemovePoint = (indexToRemove: number) => {
+    setPoints((prev) => {
+      const next = prev.filter((_, i) => i !== indexToRemove);
+      const acres = calculatePolygonAreaAcres(next);
+      onBoundaryChangeRef.current(next, acres);
+      return next;
+    });
+  };
+
+  const handleUndoLastPoint = () => {
+    setPoints((prev) => {
+      if (prev.length === 0) return prev;
+      const next = prev.slice(0, prev.length - 1);
+      const acres = calculatePolygonAreaAcres(next);
+      onBoundaryChangeRef.current(next, acres);
+      return next;
+    });
+  };
+
+  const handleRemovePointRef = useRef(handleRemovePoint);
+  handleRemovePointRef.current = handleRemovePoint;
+
   // 5. Update Polygon & Vertex Markers
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -230,7 +268,7 @@ export function RealBoundaryMap({
       polygonLayerRef.current = polygon;
     }
 
-    // Add vertex markers
+    // Add vertex markers with interactive delete capability
     points.forEach((pt, idx) => {
       const customIcon = L.divIcon({
         className: "custom-field-pin",
@@ -238,26 +276,34 @@ export function RealBoundaryMap({
           <div style="
             background: #533afd;
             color: #ffffff;
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             border: 2.5px solid #ffffff;
-            box-shadow: 0 4px 12px rgba(83, 58, 253, 0.4);
+            box-shadow: 0 4px 14px rgba(83, 58, 253, 0.45);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 11px;
             font-weight: 900;
             font-family: monospace;
-          ">
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.15s ease;
+          " title="Corner P${idx + 1} - Tap to delete or drag to adjust">
             P${idx + 1}
           </div>
         `,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
       });
 
-      const marker = L.marker(pt, { icon: customIcon, draggable: true });
+      const marker = L.marker(pt, {
+        icon: customIcon,
+        draggable: true,
+        title: `Corner P${idx + 1} (Tap to remove or drag to adjust)`,
+      });
+
       marker.on("dragend", (e: any) => {
         const newPos = e.target.getLatLng();
         setPoints((prev) => {
@@ -269,24 +315,65 @@ export function RealBoundaryMap({
         });
       });
 
+      // Interactive popup with Delete button for mobile phones & desktop
+      const popupDiv = document.createElement("div");
+      popupDiv.style.textAlign = "center";
+      popupDiv.style.fontFamily = "system-ui, -apple-system, sans-serif";
+      popupDiv.style.padding = "4px 2px";
+      popupDiv.style.minWidth = "140px";
+      popupDiv.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 3px;">
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #533afd;"></span>
+          <span style="font-weight: 800; font-size: 13px; color: #0d253d;">Corner P${idx + 1}</span>
+        </div>
+        <div style="font-size: 10px; color: #64748b; margin-bottom: 8px; font-family: monospace;">
+          ${pt[0].toFixed(5)}°N, ${pt[1].toFixed(5)}°E
+        </div>
+        <button id="del-corner-btn-${idx}" style="
+          width: 100%;
+          background: #ef4444;
+          color: #ffffff;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 800;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+        ">
+          🗑️ Delete Corner P${idx + 1}
+        </button>
+        <div style="font-size: 9px; color: #94a3b8; margin-top: 4px;">
+          (गलती से लगा कोना हटाएं)
+        </div>
+      `;
+
+      popupDiv.querySelector(`#del-corner-btn-${idx}`)?.addEventListener("click", () => {
+        map.closePopup();
+        handleRemovePointRef.current(idx);
+      });
+
+      marker.bindPopup(popupDiv, { offset: [0, -14], closeButton: true });
+
+      // Right-click directly removes the point on desktop
+      marker.on("contextmenu", (e: any) => {
+        if (e.originalEvent) {
+          e.originalEvent.preventDefault();
+          e.originalEvent.stopPropagation();
+        }
+        map.closePopup();
+        handleRemovePointRef.current(idx);
+      });
+
       markersGroup.addLayer(marker);
     });
   }, [points]);
 
   const calculatedAcres = calculatePolygonAreaAcres(points);
-
-  // Navigation helpers for farmers sitting at home
-  const panMapByOffset = (dLat: number, dLon: number) => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-    const cur = map.getCenter();
-    const target: [number, number] = [cur.lat + dLat, cur.lng + dLon];
-    map.flyTo(target, map.getZoom(), { duration: 0.8 });
-  };
-
-  const handleFlyToFarmlandOutskirts = () => {
-    panMapByOffset(0.018, 0.018);
-  };
 
   const handleResetPointsToCurrentView = () => {
     const map = mapInstanceRef.current;
@@ -420,13 +507,25 @@ export function RealBoundaryMap({
             </button>
           </div>
 
+          {/* Undo Point Button */}
+          <button
+            type="button"
+            disabled={points.length === 0}
+            onClick={handleUndoLastPoint}
+            className="text-xs text-slate-700 hover:text-[#533afd] font-bold flex items-center gap-1 cursor-pointer bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-xl border border-slate-200 transition-colors disabled:opacity-40"
+            title="Undo the last placed corner pin (पिछला कोना हटाएं)"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+            <span>Undo (हटाएं)</span>
+          </button>
+
           <button
             type="button"
             onClick={handleClearPoints}
             className="text-xs text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer bg-rose-50 px-2.5 py-1.5 rounded-xl border border-rose-200 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            <span>Clear Boundary</span>
+            <span>Clear All</span>
           </button>
         </div>
       </div>
@@ -443,7 +542,7 @@ export function RealBoundaryMap({
               {points.length} Corners Locked
             </span>
             <span className="text-slate-400 hidden sm:inline">
-              | Click on land to add/drag corners
+              | Tap pin or [✕] below to delete accidental point
             </span>
           </div>
 
@@ -457,6 +556,52 @@ export function RealBoundaryMap({
           📍 {currentCenter[0].toFixed(4)}°N, {currentCenter[1].toFixed(4)}°E
         </div>
       </div>
+
+      {/* ── Interactive Corner Management Bar (Individual Point Removal) ──── */}
+      {points.length > 0 && (
+        <div className="p-3 bg-white border border-[#e3e8ee] rounded-2xl shadow-2xs flex flex-wrap items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-extrabold text-[#0d253d] flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[#533afd]" />
+              Active Corners ({points.length}):
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {points.map((pt, idx) => (
+                <div
+                  key={`corner-chip-${idx}-${pt[0]}-${pt[1]}`}
+                  className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-xl bg-indigo-50/90 border border-indigo-200/80 text-indigo-950 font-mono text-xs font-bold transition-all hover:bg-rose-50 hover:border-rose-300"
+                >
+                  <span>P{idx + 1}</span>
+                  <button
+                    type="button"
+                    title={`Delete Corner P${idx + 1} (गलती से लगा कोना P${idx + 1} हटाएं)`}
+                    onClick={() => handleRemovePoint(idx)}
+                    className="p-1 hover:bg-rose-500 hover:text-white rounded-md text-slate-500 transition-colors cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-slate-500 hidden sm:inline">
+              💡 Tap any pin on map or click [✕] to remove
+            </span>
+            <button
+              type="button"
+              disabled={points.length === 0}
+              onClick={handleUndoLastPoint}
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              title="Remove the last added point"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              <span>Undo Last</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
