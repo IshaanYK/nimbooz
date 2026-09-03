@@ -12,6 +12,10 @@ import { FarmerProfile, getStoredProfile, saveProfile } from "@/lib/userStore";
 import { getRegionalCrops } from "@/lib/cropRegistry";
 import { findCropMandiRate } from "@/lib/mandiEngine";
 import { getNearbySyngentaDealers } from "@/lib/syngentaDealers";
+import { AgronomicPillarsView } from "@/components/AgronomicPillarsView";
+import { diagnoseAgronomicConditions } from "@/lib/agronomicDiagnosticEngine";
+import { predictCropYield } from "@/lib/yieldPredictionEngine";
+import { optimizeMandiLogistics } from "@/lib/mandiLogisticsEngine";
 import {
   fetchPlantIntelligenceRegions,
   runPlantIntelligencePipeline,
@@ -567,6 +571,61 @@ export default function PlantIntelligencePage() {
           p.category.toLowerCase().includes(catalogCategory.toLowerCase())
         );
 
+  const diagnosticData = React.useMemo(() => {
+    const ageDays = profile.sowingDate
+      ? Math.max(0, Math.floor((new Date().getTime() - new Date(profile.sowingDate).getTime()) / (1000 * 60 * 60 * 24)))
+      : 55;
+
+    const lat = customLocation?.lat || profile.gpsLocation?.lat || 23.2030;
+    const lon = customLocation?.lon || profile.gpsLocation?.lon || 77.0840;
+
+    return diagnoseAgronomicConditions(
+      {
+        crop: selectedCrop,
+        variety: profile.cropVariety || "JS-335",
+        sowingDate: profile.sowingDate || "2026-06-25",
+        cropAgeDays: ageDays,
+        growthStage: growthStage || profile.growthStage || "Flowering & Pod Formation",
+        acreage: currentAcres,
+        soilType: profile.soilType || "Black Cotton Soil",
+        irrigationType: profile.irrigationType || "Borewell",
+        waterSource: (profile as any).waterSource,
+        previousCrop: (profile as any).previousCrop,
+        district: currentDistrict,
+        state: currentState,
+        lat,
+        lon,
+      },
+      pipelineData?.forecast || [],
+      weather,
+      currentMandiPrice
+    );
+  }, [selectedCrop, profile, growthStage, currentAcres, currentDistrict, currentState, customLocation, pipelineData, weather, currentMandiPrice]);
+
+  const yieldData = React.useMemo(() => {
+    return predictCropYield({
+      crop: selectedCrop,
+      variety: profile.cropVariety,
+      acreage: currentAcres,
+      sowingDate: profile.sowingDate || "2026-06-25",
+      soilType: profile.soilType || "Black Cotton Soil",
+      irrigationType: profile.irrigationType || "Borewell",
+      stressPenaltyPct: diagnosticData.primaryStress?.potentialYieldLossPct || 22,
+      interventionsApplied: ["Syngenta Quantis"],
+      mandiPricePerQtl: currentMandiPrice,
+    });
+  }, [selectedCrop, profile, currentAcres, diagnosticData, currentMandiPrice]);
+
+  const mandiLogisticsData = React.useMemo(() => {
+    return optimizeMandiLogistics(
+      selectedCrop,
+      yieldData.predictedYieldWithInterventionsTotalQtl,
+      currentDistrict,
+      currentState,
+      currentMandiPrice
+    );
+  }, [selectedCrop, yieldData, currentDistrict, currentState, currentMandiPrice]);
+
   return (
     <AppShell>
       <div className="max-w-[1240px] w-full mx-auto px-4 sm:px-6 py-8 space-y-8 font-sans">
@@ -1008,6 +1067,18 @@ export default function PlantIntelligencePage() {
                 </div>
               </div>
             )}
+
+            {/* ── NEW 4 PILLARS & 9 FEATURES AGRONOMIC INTELLIGENCE VIEW ──── */}
+            <AgronomicPillarsView
+              diagnostic={diagnosticData}
+              yieldData={yieldData}
+              mandiData={mandiLogisticsData}
+              isHindi={isHindi}
+              onLockInPlan={(presc) => {
+                setSprayScheduledToast(`Scheduled ${presc.productName} for your ${currentAcres} acres!`);
+                setTimeout(() => setSprayScheduledToast(null), 5000);
+              }}
+            />
 
             {/* Feature: Hourly Microclimate Spray Radar */}
             <div className="p-5 bg-white border border-[#e3e8ee] rounded-2xl shadow-sm space-y-3">

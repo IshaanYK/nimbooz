@@ -38,6 +38,9 @@ export interface FarmerProfile {
   growthStage?: string;
   soilType: string;
   irrigationType: string;
+  sowingMethod?: string;
+  previousCrop?: string;
+  waterSource?: string;
   hasSoilHealthCard?: boolean;
 
   // Pest & Input History

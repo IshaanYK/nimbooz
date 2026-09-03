@@ -14,6 +14,7 @@ import {
 } from "@/lib/userStore";
 import { saveFarmerField } from "@/lib/fieldStore";
 import { useLanguage } from "@/context/LanguageContext";
+import { getDistrictCoordinates } from "@/lib/districtCoords";
 
 const RealBoundaryMap = dynamic(
   () => import("@/components/RealBoundaryMap").then((mod) => mod.RealBoundaryMap),
@@ -173,6 +174,10 @@ export default function SignupPage() {
   const [hasKcc, setHasKcc] = useState<boolean>(true);
   const [preferredCommunication, setPreferredCommunication] = useState<string>("Voice + WhatsApp");
 
+  const [sowingMethod, setSowingMethod] = useState<string>("Line Sowing / Seed Drill (कतार बुवाई)");
+  const [previousCrop, setPreviousCrop] = useState<string>("Wheat (गेहूं)");
+  const [waterSource, setWaterSource] = useState<string>("Tube Well / Borewell (नलकूप / बोरवेल)");
+
   // OTP Countdown
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -184,11 +189,20 @@ export default function SignupPage() {
     return () => clearInterval(interval);
   }, [otpTimer]);
 
-  // Handle District update when State changes
+  // Handle District update when State changes -> automatically centers map on that district!
   const handleStateChange = (st: string) => {
     setSelectedState(st);
     const districts = INDIAN_STATES_DISTRICTS[st] || ["Sehore"];
-    setSelectedDistrict(districts[0]);
+    const firstDist = districts[0];
+    setSelectedDistrict(firstDist);
+    const coords = getDistrictCoordinates(firstDist, st);
+    setMapCenter(coords);
+  };
+
+  const handleDistrictChange = (dst: string) => {
+    setSelectedDistrict(dst);
+    const coords = getDistrictCoordinates(dst, selectedState);
+    setMapCenter(coords);
   };
 
   // Trigger Real SMS OTP Verification
@@ -387,6 +401,9 @@ export default function SignupPage() {
       fertilizersUsed,
       hasKisanCreditCard: hasKcc,
       preferredCommunication,
+      sowingMethod,
+      previousCrop,
+      waterSource,
       voiceResponsesEnabled: true,
       dataConsent: true,
       isRegistered: true,
@@ -447,6 +464,9 @@ export default function SignupPage() {
           hasKisanCreditCard: newProfile.hasKisanCreditCard,
           pmKisanBeneficiary: newProfile.pmKisanBeneficiary,
           preferredCommunication: newProfile.preferredCommunication,
+          sowingMethod,
+          previousCrop,
+          waterSource,
         }),
       }).catch((err) => console.warn("Background farmer DB sync warning:", err));
 
@@ -752,7 +772,7 @@ export default function SignupPage() {
                   <label className="text-xs font-bold text-slate-700">District (जिला) *</label>
                   <select
                     value={selectedDistrict}
-                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
                     className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] notranslate"
                     translate="no"
                   >
@@ -765,14 +785,14 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Village Search & Location Controls */}
+              {/* Village Search & Non-Intrusive Location Controls */}
               <div className="space-y-2">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <form onSubmit={handleSearchLocation} className="flex-1 relative">
                     <Search className="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder={isHindi ? "गांव, कस्बा या तहसील का नाम खोजें (उदा: Bilkisganj, Sehore)" : "Search Village, Town or Tehsil (e.g. Bilkisganj, Sehore)"}
+                      placeholder={isHindi ? "गांव, कस्बा या तहसील का नाम खोजें (उदा: Bilkisganj, Sehore, Phanda)" : "Search Village, Town or Tehsil (e.g. Bilkisganj, Sehore, Phanda)"}
                       value={searchLocationQuery}
                       onChange={(e) => setSearchLocationQuery(e.target.value)}
                       className="w-full pl-10 pr-24 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-medium text-[#0d253d] focus:outline-none focus:border-[#533afd]"
@@ -782,20 +802,28 @@ export default function SignupPage() {
                       disabled={isSearchingLocation}
                       className="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-lg bg-[#0d253d] text-white text-[11px] font-bold cursor-pointer hover:bg-slate-800 transition-colors"
                     >
-                      <span>{isSearchingLocation ? "Searching..." : "Search"}</span>
+                      <span>{isSearchingLocation ? "Searching..." : "Search Village"}</span>
                     </button>
                   </form>
 
-                  {/* Location Pin Button */}
+                  {/* Optional Device GPS Button - Explicitly Labeled to Avoid Home Confusion */}
                   <button
                     type="button"
                     onClick={handleLocateOnMap}
                     disabled={isLocatingUser}
-                    className="px-4 py-3 rounded-xl bg-white border border-[#e3e8ee] hover:border-[#533afd] text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer shrink-0 transition-all hover:bg-indigo-50/50"
+                    title="Only click this if you are physically standing on your crop field right now."
+                    className="px-3.5 py-3 rounded-xl bg-white border border-[#e3e8ee] hover:border-[#533afd] text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer shrink-0 transition-all hover:bg-indigo-50/50"
                   >
                     <Crosshair className={`h-4 w-4 text-[#533afd] ${isLocatingUser ? "animate-spin" : ""}`} />
-                    <span>{isHindi ? "मेरी स्थिति खोजें" : "Locate My Field"}</span>
+                    <span>{isHindi ? "डिवाइस GPS (यदि खेत पर हों)" : "Device GPS (If at field)"}</span>
                   </button>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                  <span>💡 <strong>Tip:</strong> If sitting at home, search your village name or drag the map directly to your farm.</span>
+                  <span className="font-mono text-[10px] text-indigo-600">
+                    Map Center: {mapCenter.lat.toFixed(4)}°N, {mapCenter.lon.toFixed(4)}°E
+                  </span>
                 </div>
 
                 {locationPermissionStatus && (
@@ -810,6 +838,7 @@ export default function SignupPage() {
                 <RealBoundaryMap
                   center={[mapCenter.lat, mapCenter.lon]}
                   zoom={16}
+                  onCenterChange={(newC) => setMapCenter({ lat: newC[0], lon: newC[1] })}
                   onBoundaryChange={(pts, calculatedAcres) => {
                     setDrawnPolygon(pts);
                     setAcres(calculatedAcres);
@@ -984,7 +1013,7 @@ export default function SignupPage() {
                     <label className="text-xs font-bold text-slate-700">Crop Variety (फसल की किस्म)</label>
                     <input
                       type="text"
-                      placeholder="e.g. JS-335 / PBW-824"
+                      placeholder="e.g. JS-335 / JS-9560 / PBW-824"
                       value={cropVariety}
                       onChange={(e) => setCropVariety(e.target.value)}
                       className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] notranslate"
@@ -993,17 +1022,98 @@ export default function SignupPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Sowing Date (बुवाई की तारीख)</label>
+                    <label className="text-xs font-bold text-slate-700">
+                      Sowing Date (बुवाई की तारीख - पिछली या आगामी)
+                    </label>
                     <input
                       type="date"
                       value={sowingDate}
-                      onChange={(e) => setSowingDate(e.target.value)}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        setSowingDate(newDate);
+                        if (newDate) {
+                          const diff = Math.floor((new Date().getTime() - new Date(newDate).getTime()) / (1000 * 60 * 60 * 24));
+                          if (diff >= 0 && diff < 20) setGrowthStage("Germination & Seedling");
+                          else if (diff >= 20 && diff < 45) setGrowthStage("Vegetative Canopy Growth");
+                          else if (diff >= 45 && diff < 75) setGrowthStage("Flowering & Pod Formation");
+                          else if (diff >= 75) setGrowthStage("Maturity & Pre-Harvest");
+                        }
+                      }}
                       className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d]"
                     />
                   </div>
                 </div>
 
-                {/* Growth Stage */}
+                {/* Dynamic DAS & Phenology Indicator */}
+                {sowingDate && (
+                  <div className="p-3 rounded-xl bg-indigo-50/80 border border-indigo-200/70 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-[#533afd]" />
+                      <span className="font-bold text-[#0d253d]">
+                        {(() => {
+                          const diff = Math.floor((new Date().getTime() - new Date(sowingDate).getTime()) / (1000 * 60 * 60 * 24));
+                          if (diff >= 0) {
+                            return `Crop Age: ${diff} Days After Sowing (DAS)`;
+                          }
+                          return `Scheduled Sowing in ${Math.abs(diff)} Days`;
+                        })()}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] font-bold text-[#533afd] bg-white px-2 py-0.5 rounded-md border border-indigo-100 shadow-2xs">
+                      Phase: {growthStage}
+                    </span>
+                  </div>
+                )}
+
+                {/* Sowing Method & Previous Crop Rotation */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">Sowing Method (बुवाई विधि)</label>
+                    <select
+                      value={sowingMethod}
+                      onChange={(e) => setSowingMethod(e.target.value)}
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d]"
+                    >
+                      <option value="Line Sowing / Seed Drill (कतार बुवाई / सीड ड्रिल)">Line Sowing / Seed Drill (कतार बुवाई)</option>
+                      <option value="Broadcasting (छिटकवां विधि)">Broadcasting (छिटकवां विधि)</option>
+                      <option value="Broad Bed Furrow (मेड़-नाली विधि)">Broad Bed Furrow (मेड़-नाली BBF)</option>
+                      <option value="Zero Till (जीरो टिलेज)">Zero Till (बिना जुताई बुवाई)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">Previous Crop (पिछली फसल)</label>
+                    <select
+                      value={previousCrop}
+                      onChange={(e) => setPreviousCrop(e.target.value)}
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d]"
+                    >
+                      <option value="Wheat (गेहूं)">Wheat (गेहूं)</option>
+                      <option value="Chickpea / Gram (चना)">Chickpea / Gram (चना)</option>
+                      <option value="Mustard (सरसों)">Mustard (सरसों)</option>
+                      <option value="Soybean (सोयाबीन)">Soybean (सोयाबीन)</option>
+                      <option value="Cotton (कपास)">Cotton (कपास)</option>
+                      <option value="Maize (मक्का)">Maize (मक्का)</option>
+                      <option value="Fallow Land (परती / खाली)">Fallow Land (परती / खाली)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">Water Source (जल स्रोत)</label>
+                    <select
+                      value={waterSource}
+                      onChange={(e) => setWaterSource(e.target.value)}
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d]"
+                    >
+                      <option value="Tube Well / Borewell (नलकूप / बोरवेल)">Tube Well / Borewell (नलकूप)</option>
+                      <option value="Canal Network (नहर)">Canal Network (नहर)</option>
+                      <option value="Farm Pond / Well (खेत तालाब / कुआं)">Farm Pond / Well (तालाब / कुआं)</option>
+                      <option value="Rainfed Only (केवल वर्षा आधारित)">Rainfed Only (केवल वर्षा)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Growth Stage Override */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700">Current Growth Stage (वर्तमान विकास अवस्था)</label>
                   <select
@@ -1013,7 +1123,7 @@ export default function SignupPage() {
                   >
                     <option value="Germination & Seedling">Germination & Seedling (अंकुरण व शुरुआती बढ़वार)</option>
                     <option value="Vegetative Canopy Growth">Vegetative Canopy Growth (शाखाएं व पत्तियां फैलना)</option>
-                    <option value="Flowering & Pod Formation">Flowering & Pod Formation (फूल व फली/दाने बनना)</option>
+                    <option value="Flowering & Pod Formation">Flowering & Pod Formation (फूल व फली/दाने बनना - उच्च संवेदनशीलता)</option>
                     <option value="Maturity & Pre-Harvest">Maturity & Pre-Harvest (पकाव व कटाई की तैयारी)</option>
                   </select>
                 </div>

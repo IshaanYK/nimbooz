@@ -75,9 +75,9 @@ export async function getFarmWeather(
   }
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,soil_moisture_0_to_1cm&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=3`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,shortwave_radiation_sum,et0_fao_evapotranspiration,weather_code&timezone=Asia%2FKolkata&forecast_days=16`;
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) {
       throw new Error(`Open-Meteo responded with status ${res.status}`);
     }
@@ -99,6 +99,8 @@ export async function getFarmWeather(
     const hourlyTemps: number[] = hourly.temperature_2m || [];
     const hourlyRainProb: number[] = hourly.precipitation_probability || [];
     const hourlySoil: number[] = hourly.soil_moisture_0_to_1cm || [];
+    const hourlySoilMid: number[] = hourly.soil_moisture_1_to_3cm || [];
+    const hourlySoilDeep: number[] = hourly.soil_moisture_3_to_9cm || [];
 
     const nightTemps: number[] = [];
     for (let i = 0; i < Math.min(hourlyTimes.length, 36); i++) {
@@ -115,28 +117,50 @@ export async function getFarmWeather(
       ? Math.round((nightTemps.reduce((a, b) => a + b, 0) / nightTemps.length) * 10) / 10
       : temp;
 
-    // Soil moisture estimation from top layer (0-1cm)
+    // Soil moisture estimation from top layer (0-1cm) and deeper root zone (3-9cm)
     const soilMoistureEst = hourlySoil.length > 0 && typeof hourlySoil[0] === "number"
       ? Math.round(hourlySoil[0] * 100)
       : Math.max(20, Math.min(85, Math.round(humidity * 0.6)));
 
     // Heat stress calculation: thermal excess over 25°C baseline
     const heatStressVal = Math.min(100, Math.max(0, Math.round(((temp - 22) / 18) * 100)));
-    const isNightHeatStress = nightAvg > 25.0;
+    const isNightHeatStress = nightAvg > 24.5;
 
-    const hourlyForecast = hourlyTimes.slice(0, 12).map((time, idx) => ({
+    const hourlyForecast = hourlyTimes.slice(0, 24).map((time, idx) => ({
       time,
       temp: hourlyTemps[idx] ?? temp,
       rainProb: hourlyRainProb[idx] ?? 0,
       soilMoisture: hourlySoil[idx] ? Math.round(hourlySoil[idx] * 100) : undefined,
     }));
 
-    const dailyForecast = (daily.time || []).map((date: string, idx: number) => ({
-      date,
-      maxTemp: Math.round((daily.temperature_2m_max?.[idx] ?? temp) * 10) / 10,
-      minTemp: Math.round((daily.temperature_2m_min?.[idx] ?? nightAvg) * 10) / 10,
-      precipitationProbability: daily.precipitation_probability_max?.[idx] ?? 0,
-    }));
+    const dailyForecast = (daily.time || []).map((date: string, idx: number) => {
+      const dMax = Math.round((daily.temperature_2m_max?.[idx] ?? temp) * 10) / 10;
+      const dMin = Math.round((daily.temperature_2m_min?.[idx] ?? nightAvg) * 10) / 10;
+      const dPrecip = Math.round((daily.precipitation_sum?.[idx] ?? 0) * 10) / 10;
+      const dWind = Math.round((daily.wind_speed_10m_max?.[idx] ?? 10) * 10) / 10;
+      const dSolar = daily.shortwave_radiation_sum?.[idx] ? Math.round(daily.shortwave_radiation_sum[idx] * 10) / 10 : undefined;
+      const dEt0 = daily.et0_fao_evapotranspiration?.[idx] ? Math.round(daily.et0_fao_evapotranspiration[idx] * 10) / 10 : undefined;
+      const dCode = daily.weather_code?.[idx] ?? 0;
+      const dInfo = getWeatherDescription(dCode);
+      const isThermalStress = dMax > 34.0 || dMin > 24.0;
+      const safeSpray = dWind < 15.0 && dPrecip < 2.0 && dMax < 35.0;
+
+      return {
+        date,
+        maxTemp: dMax,
+        minTemp: dMin,
+        precipitationSum: dPrecip,
+        precipitationProbability: daily.precipitation_probability_max?.[idx] ?? 0,
+        windSpeedMax: dWind,
+        solarRadiationMJ: dSolar,
+        et0Evapotranspiration: dEt0,
+        weatherCode: dCode,
+        weatherDescription: dInfo.desc,
+        weatherEmoji: dInfo.emoji,
+        isHeatStress: isThermalStress,
+        safeToSpray: safeSpray,
+      };
+    });
 
     const currentPrecipProb = hourlyRainProb.length > 0 ? hourlyRainProb[0] : 0;
 
@@ -160,7 +184,7 @@ export async function getFarmWeather(
       dailyForecast,
       status: "FRESH",
       updatedAt: new Date().toISOString(),
-      provenance: `Open-Meteo High-Resolution Telemetry (${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E)`,
+      provenance: `Open-Meteo High-Resolution Telemetry (${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E) · 16-Day Horizon`,
     };
 
     // Save to cache
