@@ -39,7 +39,6 @@ import {
   CheckCircle2,
   Database,
   AlertTriangle,
-  MessageSquare,
 } from "lucide-react";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/how-it-works", "/product", "/impact-story", "/architecture"];
@@ -314,18 +313,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   <span>{t.navAdvisory || "Ask AI"}</span>
                 </Link>
 
-                <Link
-                  href="/profile"
-                  className={`flex items-center gap-2 py-2 px-3.5 rounded-xl whitespace-nowrap shrink-0 transition-all text-xs font-bold ${
-                    pathname === "/profile" || pathname === "/settings"
-                      ? "bg-indigo-50 text-[#533afd] border border-indigo-200 shadow-2xs font-extrabold"
-                      : "text-slate-600 font-semibold hover:text-[#533afd] hover:bg-slate-100"
-                  }`}
-                >
-                  <User className="h-4 w-4 text-purple-600" />
-                  <span>{language === "hi" ? "प्रोफ़ाइल" : "Profile"}</span>
-                </Link>
-
                 {/* Clean Dropdown for Secondary Tools */}
                 <div className="relative shrink-0" ref={moreDropdownRef}>
                   <button
@@ -507,23 +494,12 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                       <span className="text-[10px] text-slate-500 block">{profile.primaryCrop} ({profile.fieldAreaAcres || 5} Acres)</span>
                     </div>
                     <Link
-                      href="/profile"
+                      href="/onboarding"
                       onClick={() => setProfileDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 text-slate-700 font-medium"
                     >
-                      <User className="h-3.5 w-3.5 text-purple-600" />
-                      <span>{language === "hi" ? "किसान प्रोफ़ाइल व सेटिंग्स" : "Profile & Settings"}</span>
-                    </Link>
-                    <Link
-                      href="/profile?tab=whatsapp"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center justify-between px-4 py-2 hover:bg-emerald-50 text-emerald-800 font-bold"
-                    >
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
-                        <span>{language === "hi" ? "व्हाट्सएप कनेक्ट" : "Connect WhatsApp"}</span>
-                      </div>
-                      <span className="text-[9px] px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded-full font-black">NEW</span>
+                      <Settings className="h-3.5 w-3.5 text-slate-500" />
+                      <span>Edit Farm Profile</span>
                     </Link>
                     <button
                       onClick={handleLogout}
@@ -571,8 +547,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             {loggedIn ? (
               [
                 { href: "/dashboard", icon: <LayoutDashboard className="h-4 w-4 text-emerald-600" />, label: language === "hi" ? "मेरा खेत" : "Dashboard" },
-                { href: "/profile", icon: <User className="h-4 w-4 text-purple-600" />, label: language === "hi" ? "किसान प्रोफ़ाइल व सेटिंग्स" : "Profile & Settings" },
-                { href: "/profile?tab=whatsapp", icon: <MessageSquare className="h-4 w-4 text-emerald-600" />, label: language === "hi" ? "💬 व्हाट्सएप कनेक्ट करें" : "💬 Connect WhatsApp" },
                 { href: "/plant-intelligence", icon: <Sprout className="h-4 w-4 text-blue-600" />, label: language === "hi" ? "पौधा स्वास्थ्य AI" : "Plant Health AI" },
                 { href: "/fields", icon: <Layers className="h-4 w-4 text-purple-600" />, label: language === "hi" ? "मेरे खेत" : "Fields" },
                 { href: "/assistant", icon: <Mic className="h-4 w-4 text-amber-500" />, label: language === "hi" ? "AI सलाह" : "Voice AI" },

@@ -10,9 +10,7 @@
     "dev:ps02": "cd ps02-engine && python app.py",
     "build": "cd frontend && npm run build",
     "start": "cd frontend && npm start",
-    "install:all": "npm install && cd frontend && npm install",
-    "bot:personal": "node whatsapp-bot/bot.js",
-    "bot:pair": "node whatsapp-bot/bot.js --pair"
+    "install:all": "npm install && cd frontend && npm install"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

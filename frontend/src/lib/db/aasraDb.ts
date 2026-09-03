@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { normalizePhoneNumber, generateActivationToken, sha256 } from "@/lib/whatsapp/whatsappSecurity";
 
 export interface FarmerDbRecord {
   id: string;
@@ -83,78 +82,6 @@ export interface SystemSettings {
   };
 }
 
-export interface WhatsAppConnectionRecord {
-  id: string;
-  farmerId: string;
-  phoneNumber: string;
-  phoneNumberNormalized: string;
-  provider: "meta_cloud" | "mock" | "personal";
-  status: "active" | "pending" | "disconnected";
-  verifiedAt: string;
-  connectedAt: string;
-  lastSeenAt: string;
-  metadata?: Record<string, any>;
-}
-
-export interface ActivationTokenRecord {
-  id: string;
-  farmerId: string;
-  tokenDisplay: string;
-  tokenHash: string;
-  expiresAt: string;
-  usedAt: string | null;
-  createdAt: string;
-}
-
-export interface WhatsAppMessageRecord {
-  id: string;
-  farmerId: string;
-  connectionId: string;
-  direction: "inbound" | "outbound";
-  messageType: "text" | "image" | "audio" | "location" | "interactive" | "template";
-  providerMessageId?: string;
-  content: string;
-  mediaReference?: string;
-  status: "pending" | "sent" | "delivered" | "read" | "failed";
-  error?: string;
-  createdAt: string;
-}
-
-export interface AlertEventRecord {
-  id: string;
-  fingerprint: string;
-  alertType: "rain" | "heat" | "spray_window" | "crop_stress" | "admin_broadcast";
-  farmerId: string;
-  fieldId?: string;
-  title: string;
-  message: string;
-  severity: "low" | "medium" | "high" | "critical";
-  status: "queued" | "sent" | "suppressed" | "failed";
-  attempts: number;
-  createdAt: string;
-  sentAt?: string;
-}
-
-export interface NotificationPreferencesRecord {
-  farmerId: string;
-  weatherAlerts: boolean;
-  rainAlerts: boolean;
-  heatAlerts: boolean;
-  windAlerts: boolean;
-  stressAlerts: boolean;
-  sprayAlerts: boolean;
-  marketAlerts: boolean;
-  adminAlerts: boolean;
-  language: string;
-  quietHours: {
-    enabled: boolean;
-    start: string;
-    end: string;
-  };
-  enabled: boolean;
-  updatedAt: string;
-}
-
 export interface DatabaseSchema {
   version: string;
   lastUpdated: string;
@@ -163,11 +90,6 @@ export interface DatabaseSchema {
   journal: JournalDbRecord[];
   robi_audits: RobiAuditDbRecord[];
   settings?: SystemSettings;
-  whatsapp_connections?: WhatsAppConnectionRecord[];
-  activation_tokens?: ActivationTokenRecord[];
-  whatsapp_messages?: WhatsAppMessageRecord[];
-  alert_events?: AlertEventRecord[];
-  notification_preferences?: NotificationPreferencesRecord[];
 }
 
 const DEFAULT_SETTINGS: SystemSettings = {
@@ -189,11 +111,6 @@ const DEFAULT_DB_DATA: DatabaseSchema = {
   version: "1.0.0-mvp",
   lastUpdated: new Date().toISOString(),
   settings: DEFAULT_SETTINGS,
-  whatsapp_connections: [],
-  activation_tokens: [],
-  whatsapp_messages: [],
-  alert_events: [],
-  notification_preferences: [],
   farmers: [
     {
       id: "farmer-001",
@@ -571,238 +488,6 @@ export class AasraDatabase {
     return newAudit;
   }
 
-  // ── WhatsApp Connections & Activation ──
-  public getWhatsAppConnections(): WhatsAppConnectionRecord[] {
-    return memoryCache.whatsapp_connections || [];
-  }
-
-  public getWhatsAppConnection(farmerId: string): WhatsAppConnectionRecord | undefined {
-    return (memoryCache.whatsapp_connections || []).find(
-      (c) => c.farmerId === farmerId && c.status === "active"
-    );
-  }
-
-  public getWhatsAppConnectionByPhone(rawPhone: string): WhatsAppConnectionRecord | undefined {
-    const normalized = normalizePhoneNumber(rawPhone);
-    const cleanDigits = rawPhone.replace(/\D/g, "");
-    return (memoryCache.whatsapp_connections || []).find((c) => {
-      if (c.status !== "active") return false;
-      return (
-        c.phoneNumberNormalized === normalized ||
-        c.phoneNumber.replace(/\D/g, "") === cleanDigits ||
-        c.phoneNumberNormalized.replace(/\D/g, "").endsWith(cleanDigits.slice(-10))
-      );
-    });
-  }
-
-  public saveWhatsAppConnection(record: WhatsAppConnectionRecord): WhatsAppConnectionRecord {
-    if (!memoryCache.whatsapp_connections) memoryCache.whatsapp_connections = [];
-    const idx = memoryCache.whatsapp_connections.findIndex(
-      (c) => c.farmerId === record.farmerId
-    );
-    if (idx >= 0) {
-      memoryCache.whatsapp_connections[idx] = record;
-    } else {
-      memoryCache.whatsapp_connections.unshift(record);
-    }
-    this.persist();
-    return record;
-  }
-
-  public disconnectWhatsApp(farmerId: string): boolean {
-    if (!memoryCache.whatsapp_connections) return false;
-    const conn = memoryCache.whatsapp_connections.find((c) => c.farmerId === farmerId);
-    if (conn) {
-      conn.status = "disconnected";
-      this.persist();
-      return true;
-    }
-    return false;
-  }
-
-  public createActivationToken(farmerId: string): ActivationTokenRecord {
-    if (!memoryCache.activation_tokens) memoryCache.activation_tokens = [];
-    
-    // Invalidate any previous unexpired token for this farmer
-    const now = new Date();
-    for (const t of memoryCache.activation_tokens) {
-      if (t.farmerId === farmerId && !t.usedAt) {
-        t.usedAt = now.toISOString();
-      }
-    }
-
-    const tokenDisplay = generateActivationToken();
-    const tokenHash = sha256(tokenDisplay);
-    const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString(); // 15 minutes TTL
-
-    const record: ActivationTokenRecord = {
-      id: `tok-${Date.now().toString().slice(-6)}`,
-      farmerId,
-      tokenDisplay,
-      tokenHash,
-      expiresAt,
-      usedAt: null,
-      createdAt: now.toISOString(),
-    };
-
-    memoryCache.activation_tokens.unshift(record);
-    this.persist();
-    return record;
-  }
-
-  public validateActivationToken(
-    tokenDisplay: string,
-    senderPhone: string
-  ): { success: boolean; farmer?: FarmerDbRecord; connection?: WhatsAppConnectionRecord; error?: string } {
-    if (!memoryCache.activation_tokens) memoryCache.activation_tokens = [];
-    const cleanedToken = tokenDisplay.trim().toUpperCase();
-    const tokenHash = sha256(cleanedToken);
-
-    const tokenRecord = memoryCache.activation_tokens.find(
-      (t) => t.tokenHash === tokenHash || t.tokenDisplay.toUpperCase() === cleanedToken
-    );
-
-    if (!tokenRecord) {
-      return { success: false, error: "Invalid activation code. Please check the code on the AASRA website." };
-    }
-
-    if (tokenRecord.usedAt) {
-      return { success: false, error: "This activation code has already been used. Please generate a fresh code on the website." };
-    }
-
-    const now = new Date();
-    if (new Date(tokenRecord.expiresAt) < now) {
-      return { success: false, error: "This activation code has expired (15-minute limit). Please generate a fresh code on the website." };
-    }
-
-    const farmer = this.getFarmer(tokenRecord.farmerId);
-    if (!farmer) {
-      return { success: false, error: "Farmer account not found for this activation token." };
-    }
-
-    // Mark token as used
-    tokenRecord.usedAt = now.toISOString();
-
-    // Create or activate WhatsApp connection
-    const normalizedPhone = normalizePhoneNumber(senderPhone);
-    const connection: WhatsAppConnectionRecord = {
-      id: `wa-conn-${Date.now().toString().slice(-6)}`,
-      farmerId: farmer.id,
-      phoneNumber: senderPhone,
-      phoneNumberNormalized: normalizedPhone,
-      provider: "meta_cloud",
-      status: "active",
-      verifiedAt: now.toISOString(),
-      connectedAt: now.toISOString(),
-      lastSeenAt: now.toISOString(),
-    };
-
-    this.saveWhatsAppConnection(connection);
-
-    // Initialize default notification preferences if not present
-    this.getNotificationPreferences(farmer.id);
-
-    return { success: true, farmer, connection };
-  }
-
-  // ── WhatsApp Messages Log ──
-  public recordWhatsAppMessage(msg: Omit<WhatsAppMessageRecord, "id" | "createdAt">): WhatsAppMessageRecord {
-    if (!memoryCache.whatsapp_messages) memoryCache.whatsapp_messages = [];
-    const record: WhatsAppMessageRecord = {
-      id: `wamsg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      ...msg,
-      createdAt: new Date().toISOString(),
-    };
-    memoryCache.whatsapp_messages.unshift(record);
-    if (memoryCache.whatsapp_messages.length > 500) {
-      memoryCache.whatsapp_messages = memoryCache.whatsapp_messages.slice(0, 500);
-    }
-    this.persist();
-    return record;
-  }
-
-  public getWhatsAppMessages(farmerId?: string, limit = 50): WhatsAppMessageRecord[] {
-    const list = memoryCache.whatsapp_messages || [];
-    if (!farmerId) return list.slice(0, limit);
-    return list.filter((m) => m.farmerId === farmerId).slice(0, limit);
-  }
-
-  // ── Notification Preferences ──
-  public getNotificationPreferences(farmerId: string): NotificationPreferencesRecord {
-    if (!memoryCache.notification_preferences) memoryCache.notification_preferences = [];
-    let prefs = memoryCache.notification_preferences.find((p) => p.farmerId === farmerId);
-    if (!prefs) {
-      prefs = {
-        farmerId,
-        weatherAlerts: true,
-        rainAlerts: true,
-        heatAlerts: true,
-        windAlerts: true,
-        stressAlerts: true,
-        sprayAlerts: true,
-        marketAlerts: true,
-        adminAlerts: true,
-        language: "hi",
-        quietHours: {
-          enabled: true,
-          start: "22:00",
-          end: "06:00",
-        },
-        enabled: true,
-        updatedAt: new Date().toISOString(),
-      };
-      memoryCache.notification_preferences.push(prefs);
-      this.persist();
-    }
-    return prefs;
-  }
-
-  public updateNotificationPreferences(
-    farmerId: string,
-    update: Partial<NotificationPreferencesRecord>
-  ): NotificationPreferencesRecord {
-    const current = this.getNotificationPreferences(farmerId);
-    const updated: NotificationPreferencesRecord = {
-      ...current,
-      ...update,
-      quietHours: {
-        ...current.quietHours,
-        ...(update.quietHours || {}),
-      },
-      updatedAt: new Date().toISOString(),
-    };
-    const idx = memoryCache.notification_preferences!.findIndex((p) => p.farmerId === farmerId);
-    if (idx >= 0) {
-      memoryCache.notification_preferences![idx] = updated;
-    }
-    this.persist();
-    return updated;
-  }
-
-  // ── Alert Deduplication & Queue ──
-  public isAlertDuplicate(fingerprint: string, maxAgeHours = 24): boolean {
-    if (!memoryCache.alert_events) return false;
-    const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
-    return memoryCache.alert_events.some(
-      (a) => a.fingerprint === fingerprint && (a.status === "sent" || a.status === "queued") && new Date(a.createdAt) > cutoff
-    );
-  }
-
-  public recordAlertEvent(event: Omit<AlertEventRecord, "id" | "createdAt">): AlertEventRecord {
-    if (!memoryCache.alert_events) memoryCache.alert_events = [];
-    const record: AlertEventRecord = {
-      id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      ...event,
-      createdAt: new Date().toISOString(),
-    };
-    memoryCache.alert_events.unshift(record);
-    if (memoryCache.alert_events.length > 500) {
-      memoryCache.alert_events = memoryCache.alert_events.slice(0, 500);
-    }
-    this.persist();
-    return record;
-  }
-
   // ── System Stats ──
   public getStats() {
     return {
@@ -815,9 +500,6 @@ export class AasraDatabase {
         fields: memoryCache.fields.length,
         journal: memoryCache.journal.length,
         robi_audits: memoryCache.robi_audits.length,
-        whatsapp_connections: (memoryCache.whatsapp_connections || []).filter((c) => c.status === "active").length,
-        whatsapp_messages: (memoryCache.whatsapp_messages || []).length,
-        alert_events: (memoryCache.alert_events || []).length,
       },
       storageLocation: getDbFilePath(),
     };

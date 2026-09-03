@@ -1,25 +1,6 @@
 {
   "version": "1.0.0-mvp",
-  "lastUpdated": "2026-09-02T21:37:04.725Z",
-  "settings": {
-    "maintenanceMode": false,
-    "maintenanceMessage": "AASRA is currently performing scheduled agricultural system updates. Farm telemetry remains active.",
-    "broadcastAlert": null,
-    "featureFlags": {
-      "voiceAssistant": true,
-      "mandiPrices": true,
-      "weatherTelemetry": true,
-      "journalFeature": true,
-      "fieldMapping": true,
-      "robiAudit": true,
-      "plantIntelligence": true
-    }
-  },
-  "whatsapp_connections": [],
-  "activation_tokens": [],
-  "whatsapp_messages": [],
-  "alert_events": [],
-  "notification_preferences": [],
+  "lastUpdated": "2026-09-02T17:38:59.223Z",
   "farmers": [
     {
       "id": "farmer-001",
@@ -38,7 +19,7 @@
       "irrigationType": "Rainfed + Borewell Drip",
       "hasKisanCreditCard": true,
       "pmKisanBeneficiary": true,
-      "updatedAt": "2026-09-02T21:37:04.723Z"
+      "updatedAt": "2026-09-02T17:38:20.797Z"
     }
   ],
   "fields": [
