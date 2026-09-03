@@ -501,7 +501,69 @@ function handleRobiQuery(farmer: FarmerDbRecord): string {
 }
 
 /**
- * Handle Mandi Bhav Queries
+ * Detect language from text (supports English, Hindi, and regional languages)
+ */
+function detectQueryLanguage(text: string, defaultFarmerLang: string = "hi"): string {
+  const t = text.toLowerCase();
+
+  const englishTokens = [
+    "what", "how", "which", "when", "why", "who", "rate", "price", "cost", "today",
+    "tomorrow", "yesterday", "tomato", "potato", "onion", "wheat", "crop", "spray",
+    "weather", "safe", "can", "in", "at", "of", "is", "the", "fungus", "disease",
+    "treat", "should", "help", "hello", "hi", "good", "morning", "profit", "benefit"
+  ];
+
+  const hindiTokens = [
+    "kya", "kaise", "kitna", "bhav", "bhaav", "aaj", "kal", "khet", "fasal", "pani",
+    "paani", "dawa", "dawai", "me", "mein", "hai", "ho", "hain", "patte", "sukha",
+    "sookh", "keeda", "kida", "rog", "namaste", "pranam", "bhai", "salah", "kharch"
+  ];
+
+  let engCount = 0;
+  let hinCount = 0;
+
+  const words = t.split(/[\s,?.!]+/);
+  for (const w of words) {
+    if (englishTokens.includes(w)) engCount++;
+    if (hindiTokens.includes(w)) hinCount++;
+  }
+
+  if (engCount > hinCount && engCount >= 1) return "en";
+  if (hinCount > engCount && hinCount >= 1) return "hi";
+  return defaultFarmerLang;
+}
+
+/**
+ * Extract target location / mandi name from user query
+ */
+function extractLocationFromQuery(text: string, defaultDistrict: string): string {
+  const t = text.toLowerCase();
+
+  // 1. Matches: "in ajmer", "at bhopal", "near indore", "ajmer me", "agra mandi"
+  const prepMatch = t.match(/\b(?:in|at|near|around|me|mein|se|ki)\s+([a-zA-Z\u0900-\u097F]+)/i);
+  if (prepMatch && prepMatch[1]) {
+    const cand = prepMatch[1].trim();
+    const stopwords = ["mandi", "rate", "price", "bhav", "bhaav", "the", "aaj", "today", "crop", "khet", "field", "kilo", "kg"];
+    if (!MANDI_BENCHMARKS[cand] && cand.length > 2 && !stopwords.includes(cand)) {
+      return cand.charAt(0).toUpperCase() + cand.slice(1);
+    }
+  }
+
+  // 2. Matches: "ajmer mandi", "agra market", "bhopal yard"
+  const suffixMatch = t.match(/([a-zA-Z\u0900-\u097F]+)\s+(?:mandi|market|yard|apmc)/i);
+  if (suffixMatch && suffixMatch[1]) {
+    const cand = suffixMatch[1].trim();
+    const stopwords = ["mandi", "rate", "price", "bhav", "bhaav", "the", "aaj", "today", "crop", "khet", "field", "kilo", "kg"];
+    if (!MANDI_BENCHMARKS[cand] && cand.length > 2 && !stopwords.includes(cand)) {
+      return cand.charAt(0).toUpperCase() + cand.slice(1);
+    }
+  }
+
+  return defaultDistrict;
+}
+
+/**
+ * Handle Mandi Bhav Queries with dynamic language and location resolution
  */
 function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
   const t = text.toLowerCase();
@@ -513,9 +575,13 @@ function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
     t.includes("mandi") ||
     t.includes("kilo") ||
     t.includes("dam") ||
-    t.includes("daam");
+    t.includes("daam") ||
+    t.includes("cost");
 
   if (!isMandi) return null;
+
+  const lang = detectQueryLanguage(text, farmer.language);
+  const targetLocation = extractLocationFromQuery(text, farmer.district);
 
   let matchedCommodity: (typeof MANDI_BENCHMARKS)[string] | null = null;
   for (const [key, item] of Object.entries(MANDI_BENCHMARKS)) {
@@ -525,8 +591,8 @@ function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
     }
   }
 
-  // If farmer asked "aaj meri mandi ka bhav", default to their registered crop
-  if (!matchedCommodity && (t.includes("meri mandi") || t.includes("aaj ka bhav"))) {
+  // Default to farmer's primary crop if asking general mandi rates
+  if (!matchedCommodity && (t.includes("meri mandi") || t.includes("aaj ka bhav") || t.includes("mandi rate") || t.includes("crop price"))) {
     const cropKey = farmer.primaryCrop.toLowerCase();
     for (const [key, item] of Object.entries(MANDI_BENCHMARKS)) {
       if (cropKey.includes(key)) {
@@ -537,11 +603,21 @@ function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
   }
 
   if (!matchedCommodity) {
+    if (lang === "en") {
+      return (
+        `📊 *ANNAM AI — Live Mandi Price Service* 📍\n\n` +
+        `Hello ${farmer.fullName}! Which crop's mandi price would you like to check? For example:\n` +
+        `👉 *"Rate of tomato in Ajmer"*\n` +
+        `👉 *"Potato price in Agra"*\n` +
+        `👉 *"Wheat mandi rate today"*\n` +
+        `👉 *"Soybean price"*`
+      );
+    }
     return (
       `📊 *ANNAM AI — लाइव मंडी भाव सेवा* 📍\n\n` +
       `नमस्ते ${farmer.fullName} जी! आप किस फसल का मंडी भाव जानना चाहते हैं?\n` +
-      `👉 *"टमाटर का भाव"*\n` +
-      `👉 *"आलू का रेट"*\n` +
+      `👉 *"अजमेर में टमाटर का भाव"*\n` +
+      `👉 *"आगरा में आलू का रेट"*\n` +
       `👉 *"गेहूं मंडी भाव"*\n` +
       `👉 *"सोयाबीन का रेट"*`
     );
@@ -551,9 +627,22 @@ function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
   const perKgMin = (matchedCommodity.minQ / 100).toFixed(0);
   const perKgMax = (matchedCommodity.maxQ / 100).toFixed(0);
 
+  if (lang === "en") {
+    return (
+      `📍 *Mandi Price Today — ${matchedCommodity.nameEn}* 📍\n` +
+      `🏛️ *Market:* ${targetLocation} APMC Yard\n\n` +
+      `💰 *Today's Modal Price:* *₹${perKgModal} per kg* (₹${matchedCommodity.modalQ.toLocaleString("en-IN")}/quintal)\n\n` +
+      `📈 *Price Range:*\n` +
+      `• Minimum (Min): ₹${perKgMin}/kg (₹${matchedCommodity.minQ.toLocaleString("en-IN")}/q)\n` +
+      `• Maximum (Max): ₹${perKgMax}/kg (₹${matchedCommodity.maxQ.toLocaleString("en-IN")}/q)\n` +
+      `• Market Trend: *${matchedCommodity.trend}*\n\n` +
+      `💡 *Farmer Advisory:* Do not sell to intermediaries below ₹${perKgMin}/kg. Prices are expected to remain steady based on current APMC arrivals.`
+    );
+  }
+
   return (
     `📍 *Mandi Bhav Today — ${matchedCommodity.nameHi}* 📍\n` +
-    `🏛️ *मंडी:* ${farmer.district} APMC Yard\n\n` +
+    `🏛️ *मंडी:* ${targetLocation} APMC Yard\n\n` +
     `💰 *आज का मॉडल भाव:* *₹${perKgModal} प्रति किलो* (₹${matchedCommodity.modalQ.toLocaleString("en-IN")}/क्विंटल)\n\n` +
     `📈 *भाव सीमा (Range):*\n` +
     `• न्यूनतम (Min): ₹${perKgMin}/kg (₹${matchedCommodity.minQ.toLocaleString("en-IN")}/q)\n` +
@@ -567,7 +656,8 @@ function handleMandiQuery(text: string, farmer: FarmerDbRecord): string | null {
  * Handle General Multilingual AI Chat via Gemini Flash
  */
 async function generateMultilingualChatReply(userMessage: string, farmer: FarmerDbRecord): Promise<string> {
-  const langConfig = LANGUAGE_META[farmer.language] || LANGUAGE_META["hi"];
+  const detectedLang = detectQueryLanguage(userMessage, farmer.language);
+  const langConfig = LANGUAGE_META[detectedLang] || LANGUAGE_META[farmer.language] || LANGUAGE_META["hi"];
   const keys = Array.from(new Set(GOOGLE_AI_KEYS));
 
   const prompt = `You are ANNAM AI (Kisan Mitra), the trusted agricultural expert assistant for Syngenta India.
@@ -577,13 +667,13 @@ FARMER PROFILE CONTEXT:
 - Crop: ${farmer.primaryCrop} (${farmer.cropVariety || "Standard"})
 - Land Area: ${farmer.fieldAreaAcres} Acres
 - Sowing Date: ${farmer.sowingDate}
-- Language: ${langConfig.promptLang}
+- User's Question Language: ${langConfig.promptLang}
 
 Farmer's Message: "${userMessage}"
 
 RULES:
-1. Answer directly and concisely in ${langConfig.promptLang}.
-2. Address the farmer respectfully as "${farmer.fullName} ji".
+1. Answer directly and concisely in ${langConfig.promptLang}. If the user asked in English, answer in English. If in Hindi, answer in Hindi.
+2. Address the farmer respectfully as "${farmer.fullName} ji" (or "Sameer" if English).
 3. Always integrate their crop (${farmer.primaryCrop}) context whenever relevant.
 4. Keep the reply friendly, practical, structured in 3-4 bullet points, with emojis.`;
 
