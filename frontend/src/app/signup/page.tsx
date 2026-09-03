@@ -189,6 +189,23 @@ export default function SignupPage() {
     return () => clearInterval(interval);
   }, [otpTimer]);
 
+  // Restore saved boundary if farmer already drew their field
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("aasra_signup_field_boundary");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.points) && parsed.points.length >= 3) {
+          setDrawnPolygon(parsed.points);
+          if (parsed.acres) setAcres(Number(parsed.acres));
+          if (parsed.center?.lat && parsed.center?.lon) {
+            setMapCenter({ lat: parsed.center.lat, lon: parsed.center.lon });
+          }
+        }
+      }
+    } catch {}
+  }, []);
+
   // Handle District update when State changes -> automatically centers map on that district!
   const handleStateChange = (st: string) => {
     setSelectedState(st);
@@ -362,7 +379,7 @@ export default function SignupPage() {
   };
 
   // Final Registration Save to Database
-  const handleCompleteRegistration = () => {
+  const handleCompleteRegistration = async () => {
     setLoading(true);
 
     const cleanNum = mobileNumber.replace(/\D/g, "");
@@ -395,7 +412,7 @@ export default function SignupPage() {
       growthStage,
       soilType,
       irrigationType,
-      gpsLocation: mapCenter,
+      gpsLocation: { lat: mapCenter.lat, lon: mapCenter.lon },
       polygon: finalPolygon,
       pestHistory,
       fertilizersUsed,
@@ -433,67 +450,65 @@ export default function SignupPage() {
 
     // ── Persist to Live Production Database for Cross-Device Personalization & Admin Overwatch ──
     try {
-      fetch("/api/farmers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: newProfile.id,
-          fullName: newProfile.fullName,
-          mobileNumber: newProfile.mobileNumber,
-          email: newProfile.email,
-          language: newProfile.language,
-          state: newProfile.state,
-          district: newProfile.district,
-          tehsil: newProfile.tehsil,
-          village: newProfile.village,
-          fieldName: newProfile.fieldName,
-          fieldAreaAcres: newProfile.fieldAreaAcres,
-          fieldAreaHa: newProfile.fieldAreaHa,
-          landOwnership: newProfile.landOwnership,
-          farmingExperience: newProfile.farmingExperience,
-          primaryCrop: newProfile.primaryCrop,
-          cropVariety: newProfile.cropVariety,
-          sowingDate: newProfile.sowingDate,
-          growthStage: newProfile.growthStage,
-          soilType: newProfile.soilType,
-          irrigationType: newProfile.irrigationType,
-          gpsLocation: newProfile.gpsLocation,
-          polygon: newProfile.polygon,
-          pestHistory: newProfile.pestHistory,
-          fertilizersUsed: newProfile.fertilizersUsed,
-          hasKisanCreditCard: newProfile.hasKisanCreditCard,
-          pmKisanBeneficiary: newProfile.pmKisanBeneficiary,
-          preferredCommunication: newProfile.preferredCommunication,
-          sowingMethod,
-          previousCrop,
-          waterSource,
+      await Promise.allSettled([
+        fetch("/api/farmers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: newProfile.id,
+            fullName: newProfile.fullName,
+            mobileNumber: newProfile.mobileNumber,
+            email: newProfile.email,
+            language: newProfile.language,
+            state: newProfile.state,
+            district: newProfile.district,
+            tehsil: newProfile.tehsil,
+            village: newProfile.village,
+            fieldName: newProfile.fieldName,
+            fieldAreaAcres: newProfile.fieldAreaAcres,
+            fieldAreaHa: newProfile.fieldAreaHa,
+            landOwnership: newProfile.landOwnership,
+            farmingExperience: newProfile.farmingExperience,
+            primaryCrop: newProfile.primaryCrop,
+            cropVariety: newProfile.cropVariety,
+            sowingDate: newProfile.sowingDate,
+            growthStage: newProfile.growthStage,
+            soilType: newProfile.soilType,
+            irrigationType: newProfile.irrigationType,
+            gpsLocation: { lat: mapCenter.lat, lon: mapCenter.lon },
+            polygon: finalPolygon,
+            pestHistory: newProfile.pestHistory,
+            fertilizersUsed: newProfile.fertilizersUsed,
+            hasKisanCreditCard: newProfile.hasKisanCreditCard,
+            pmKisanBeneficiary: newProfile.pmKisanBeneficiary,
+            preferredCommunication: newProfile.preferredCommunication,
+            sowingMethod,
+            previousCrop,
+            waterSource,
+          }),
         }),
-      }).catch((err) => console.warn("Background farmer DB sync warning:", err));
-
-      fetch("/api/fields", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `${primaryCrop} Main Field`,
-          lat: mapCenter.lat,
-          lon: mapCenter.lon,
-          area_acres: acres,
-          crop: primaryCrop,
-          variety: cropVariety,
-          soil_type: soilType,
-          polygon: finalPolygon,
+        fetch("/api/fields", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: `${primaryCrop} Main Field`,
+            lat: mapCenter.lat,
+            lon: mapCenter.lon,
+            area_acres: acres,
+            crop: primaryCrop,
+            variety: cropVariety,
+            soil_type: soilType,
+            polygon: finalPolygon,
+          }),
         }),
-      }).catch((err) => console.warn("Background field DB sync warning:", err));
+      ]);
     } catch (err) {
       console.warn("Could not dispatch database sync:", err);
     }
 
     setLanguage(selectedLanguage);
-
-    setTimeout(() => {
-      setLoading(false);
-      setStep(4);
-    }, 800);
+    setLoading(false);
+    setStep(4);
   };
 
   // Convert points to SVG Polygon string
@@ -591,260 +606,287 @@ export default function SignupPage() {
           )}
 
           {/* ── STAGE 1: Farmer Identity & Phone Verification ────────── */}
-          {step === 1 && (
-            <div key="step-1" className="space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-2xl sm:text-3xl font-black text-[#0d253d] font-display">
-                  <span>{isHindi ? "किसान की जानकारी व फोन सत्यापन" : "Farmer Identity & Phone Verification"}</span>
-                </h2>
-                <p className="text-xs text-[#64748d]">
-                  <span>{isHindi ? "सत्यापित मोबाइल नंबर से जुड़ें ताकि बाद में आप सुरक्षित लॉगिन कर सकें।" : "Register with a verified mobile number so you can securely log in anytime."}</span>
-                </p>
+          <div key="step-1" className={step === 1 ? "space-y-6" : "hidden"}>
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#0d253d] font-display">
+                <span>{isHindi ? "किसान की जानकारी व फोन सत्यापन" : "Farmer Identity & Phone Verification"}</span>
+              </h2>
+              <p className="text-xs text-[#64748d]">
+                <span>{isHindi ? "सत्यापित मोबाइल नंबर से जुड़ें ताकि बाद में आप सुरक्षित लॉगिन कर सकें।" : "Register with a verified mobile number so you can securely log in anytime."}</span>
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  <span>{isHindi ? "किसान का पूरा नाम *" : "Full Farmer Name *"}</span>
+                </label>
+                <div className="relative">
+                  <User className="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Ramesh Patel"
+                    value={fullName}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      setErrorMessage(null);
+                    }}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-medium text-[#0d253d] focus:outline-none focus:border-[#533afd]"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-4">
-                {/* Full Name */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    <span>{isHindi ? "किसान का पूरा नाम *" : "Full Farmer Name *"}</span>
-                  </label>
-                  <div className="relative">
-                    <User className="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              {/* Mobile Number & OTP Trigger */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  <span>{isHindi ? "मोबाइल नंबर (लॉगिन ID) *" : "Mobile Number (Login ID) *"}</span>
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Smartphone className="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
-                      type="text"
-                      placeholder="e.g. Ramesh Patel"
-                      value={fullName}
+                      type="tel"
+                      maxLength={10}
+                      placeholder="e.g. 9876543210"
+                      value={mobileNumber}
+                      disabled={isMobileVerified}
                       onChange={(e) => {
-                        setFullName(e.target.value);
+                        setMobileNumber(e.target.value.replace(/\D/g, ""));
                         setErrorMessage(null);
                       }}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-sm font-bold text-[#0d253d] focus:outline-none focus:border-[#533afd]"
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border text-xs font-mono font-bold tracking-wider ${
+                        isMobileVerified
+                          ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                          : "bg-[#f6f9fc] border-[#e3e8ee] text-[#0d253d] focus:outline-none focus:border-[#533afd]"
+                      }`}
                     />
                   </div>
-                </div>
 
-                {/* Mobile Number & Real SMS Verification */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700">
-                    <span>{isHindi ? "मोबाइल नंबर (सत्यापन आवश्यक) *" : "Mobile Number (Verification Required) *"}</span>
-                  </label>
-
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
-                        +91
+                  {!isMobileVerified && (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={loading || otpTimer > 0}
+                      className="px-4 py-3 rounded-xl bg-[#0d253d] hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                    >
+                      <span>
+                        {loading
+                          ? "Sending..."
+                          : otpTimer > 0
+                          ? `Resend (${otpTimer}s)`
+                          : isOtpSent
+                          ? "Resend OTP"
+                          : "Verify Phone"}
                       </span>
-                      <input
-                        type="tel"
-                        maxLength={10}
-                        disabled={isMobileVerified}
-                        placeholder="e.g. 98260 14890"
-                        value={mobileNumber}
-                        onChange={(e) => {
-                          setMobileNumber(e.target.value.replace(/\D/g, ""));
-                          setErrorMessage(null);
-                          setIsMobileVerified(false);
-                          setIsOtpSent(false);
-                        }}
-                        className={`w-full pl-12 pr-4 py-3 rounded-xl border text-sm font-bold text-[#0d253d] focus:outline-none focus:border-[#533afd] ${
-                          isMobileVerified
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-950"
-                            : "bg-[#f6f9fc] border-[#e3e8ee]"
-                        }`}
-                      />
-                    </div>
+                    </button>
+                  )}
 
-                    {!isMobileVerified ? (
-                      <button
-                        type="button"
-                        onClick={handleSendOtp}
-                        disabled={loading || !mobileNumber}
-                        className="px-4 py-3 rounded-xl bg-[#0d253d] hover:bg-slate-800 text-white text-xs font-bold font-mono transition-all cursor-pointer shrink-0"
-                      >
-                        <span>{loading ? "Sending..." : isOtpSent ? "Resend" : "Send SMS Code"}</span>
-                      </button>
-                    ) : (
-                      <div className="px-4 py-3 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold font-mono flex items-center gap-1 shrink-0 border border-emerald-300">
-                        <Check className="h-4 w-4 text-emerald-700" />
-                        <span>VERIFIED</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* OTP Code Box */}
-                  {isOtpSent && !isMobileVerified && (
-                    <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-indigo-950 flex items-center gap-1.5">
-                          <Smartphone className="h-3.5 w-3.5 text-[#533afd]" />
-                          <span>SMS Verification Code:</span>
-                        </span>
-                        <span className="font-mono font-bold text-[#533afd] bg-white px-2 py-0.5 rounded-md border border-indigo-200">
-                          {generatedOtp}
-                        </span>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          maxLength={4}
-                          placeholder="Enter 4-digit code"
-                          value={enteredOtp}
-                          onChange={(e) => {
-                            setEnteredOtp(e.target.value.replace(/\D/g, ""));
-                            setErrorMessage(null);
-                          }}
-                          className="flex-1 text-center font-mono font-black tracking-widest text-lg py-2 rounded-xl bg-white border border-indigo-200 text-[#0d253d] focus:outline-none focus:border-[#533afd]"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleVerifyOtp}
-                          className="px-5 py-2 rounded-xl bg-[#533afd] text-white text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
-                        >
-                          <span>Verify</span>
-                        </button>
-                      </div>
+                  {isMobileVerified && (
+                    <div className="px-3.5 py-3 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-1.5 shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>Verified</span>
                     </div>
                   )}
                 </div>
-
-                {/* Farming Experience */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    <span>{isHindi ? "खेती का अनुभव (Farming Experience)" : "Farming Experience"}</span>
-                  </label>
-                  <select
-                    value={farmingExperience}
-                    onChange={(e) => setFarmingExperience(e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] focus:outline-none focus:border-[#533afd]"
-                  >
-                    <option value="1-3 Years">1-3 Years (नया किसान)</option>
-                    <option value="3-5 Years">3-5 Years (मध्यम अनुभव)</option>
-                    <option value="5-10 Years">5-10 Years (अनुभवी किसान)</option>
-                    <option value="10+ Years">10+ Years (पारंपरिक विशेषज्ञ)</option>
-                  </select>
-                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleStep1Next}
-                className="w-full py-4 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-                style={{ background: "linear-gradient(135deg, #533afd 0%, #4434d4 100%)" }}
-              >
-                <span>{isHindi ? "अगला: खेत स्थान व नक्शे पर मेढ़ बनाएं" : "Next: Map Your Field Boundary"}</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          )}
+              {/* OTP Input Form (Revealed when OTP is sent & not yet verified) */}
+              {isOtpSent && !isMobileVerified && (
+                <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-3 animate-in fade-in duration-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                      <Lock className="h-3.5 w-3.5 text-[#533afd]" />
+                      <span>{isHindi ? "4-अंकों का SMS OTP दर्ज करें" : "Enter 4-digit SMS OTP"}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-indigo-600 font-bold bg-white px-2 py-0.5 rounded-full border border-indigo-200">
+                      Mock OTP: {generatedOtp}
+                    </span>
+                  </div>
 
-          {/* ── STAGE 2: Interactive Field Boundary Map & Soil GIS ───── */}
-          {step === 2 && (
-            <div key="step-2" className="space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-2xl sm:text-3xl font-black text-[#0d253d] font-display">
-                  <span>{isHindi ? "खेत का स्थान व नक्शे पर मेढ़ (Boundary)" : "Field Location & Satellite Boundary"}</span>
-                </h2>
-                <p className="text-xs text-[#64748d]">
-                  <span>{isHindi ? "नक्शे पर अपने खेत को खोजें और कोनों पर क्लिक करके मेढ़ (Boundary) बनाएं।" : "Search your village or locate your field, then click on the map to draw your parcel boundaries."}</span>
-                </p>
-              </div>
-
-              {/* State & District Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">State (राज्य) *</label>
-                  <select
-                    value={selectedState}
-                    onChange={(e) => handleStateChange(e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] notranslate"
-                    translate="no"
-                  >
-                    {Object.keys(INDIAN_STATES_DISTRICTS).map((st) => (
-                      <option key={st} value={st} className="notranslate" translate="no">
-                        {st}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">District (जिला) *</label>
-                  <select
-                    value={selectedDistrict}
-                    onChange={(e) => handleDistrictChange(e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] notranslate"
-                    translate="no"
-                  >
-                    {(INDIAN_STATES_DISTRICTS[selectedState] || ["Sehore"]).map((dst) => (
-                      <option key={dst} value={dst} className="notranslate" translate="no">
-                        {dst}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Village Search & Non-Intrusive Location Controls */}
-              <div className="space-y-2">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <form onSubmit={handleSearchLocation} className="flex-1 relative">
-                    <Search className="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder={isHindi ? "गांव, कस्बा या तहसील का नाम खोजें (उदा: Bilkisganj, Sehore, Phanda)" : "Search Village, Town or Tehsil (e.g. Bilkisganj, Sehore, Phanda)"}
-                      value={searchLocationQuery}
-                      onChange={(e) => setSearchLocationQuery(e.target.value)}
-                      className="w-full pl-10 pr-24 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-medium text-[#0d253d] focus:outline-none focus:border-[#533afd]"
+                      maxLength={4}
+                      placeholder="• • • •"
+                      value={enteredOtp}
+                      onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ""))}
+                      className="w-32 text-center text-lg font-mono font-black tracking-widest py-2 rounded-xl bg-white border border-indigo-300 text-[#0d253d] focus:outline-none focus:border-[#533afd]"
                     />
                     <button
-                      type="submit"
-                      disabled={isSearchingLocation}
-                      className="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-lg bg-[#0d253d] text-white text-[11px] font-bold cursor-pointer hover:bg-slate-800 transition-colors"
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      className="flex-1 py-2 rounded-xl bg-[#533afd] hover:bg-[#4434d4] text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
                     >
-                      <span>{isSearchingLocation ? "Searching..." : "Search Village"}</span>
+                      <span>{isHindi ? "OTP सत्यापित करें" : "Confirm OTP"}</span>
                     </button>
-                  </form>
+                  </div>
+                </div>
+              )}
 
-                  {/* Optional Device GPS Button - Explicitly Labeled to Avoid Home Confusion */}
+              {/* Farming Experience */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  <span>{isHindi ? "खेती का अनुभव (वर्ष)" : "Farming Experience (Years)"}</span>
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {["1-3 Yrs", "3-5 Yrs", "5-10 Years", "10-20 Years", "20+ Years"].map((exp) => (
+                    <button
+                      key={exp}
+                      type="button"
+                      onClick={() => setFarmingExperience(exp)}
+                      className={`py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                        farmingExperience === exp
+                          ? "bg-white border-[#533afd] text-[#533afd] shadow-sm ring-1 ring-[#533afd]"
+                          : "bg-[#f6f9fc] border-[#e3e8ee] text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      <span>{exp}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!fullName.trim()) {
+                  setErrorMessage(isHindi ? "कृपया किसान का पूरा नाम दर्ज करें。" : "Please enter your full name.");
+                  return;
+                }
+                if (mobileNumber.length !== 10) {
+                  setErrorMessage(isHindi ? "कृपया 10-अंकों का वैध मोबाइल नंबर दर्ज करें。" : "Please enter a valid 10-digit mobile number.");
+                  return;
+                }
+                setErrorMessage(null);
+                setStep(2);
+              }}
+              className="w-full py-4 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+              style={{ background: "linear-gradient(135deg, #533afd 0%, #4434d4 100%)" }}
+            >
+              <span>{isHindi ? "अगला: खेत स्थान व नक्शे पर मेढ़ बनाएं" : "Next: Map Your Field Boundary"}</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* ── STAGE 2: Interactive Field Boundary Map & Soil GIS ───── */}
+          <div key="step-2" className={step === 2 ? "space-y-6" : "hidden"}>
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#0d253d] font-display">
+                <span>{isHindi ? "खेत का स्थान व नक्शे पर मेढ़ (Boundary)" : "Field Location & Satellite Boundary"}</span>
+              </h2>
+              <p className="text-xs text-[#64748d]">
+                <span>{isHindi ? "नक्शे पर अपने खेत को खोजें और कोनों पर क्लिक करके मेढ़ (Boundary) बनाएं।" : "Search your village or locate your field, then click on the map to draw your parcel boundaries."}</span>
+              </p>
+            </div>
+
+            {/* State & District Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">State (राज्य) *</label>
+                <select
+                  value={selectedState}
+                  onChange={(e) => handleStateChange(e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] notranslate"
+                  translate="no"
+                >
+                  {Object.keys(INDIAN_STATES_DISTRICTS).map((st) => (
+                    <option key={st} value={st} className="notranslate" translate="no">
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">District (जिला) *</label>
+                <select
+                  value={selectedDistrict}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] notranslate"
+                  translate="no"
+                >
+                  {(INDIAN_STATES_DISTRICTS[selectedState] || ["Sehore"]).map((dst) => (
+                    <option key={dst} value={dst} className="notranslate" translate="no">
+                      {dst}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Village Search & Non-Intrusive Location Controls */}
+            <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <form onSubmit={handleSearchLocation} className="flex-1 relative">
+                  <Search className="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder={isHindi ? "गांव, कस्बा या तहसील का नाम खोजें (उदा: Bilkisganj, Sehore, Phanda)" : "Search Village, Town or Tehsil (e.g. Bilkisganj, Sehore, Phanda)"}
+                    value={searchLocationQuery}
+                    onChange={(e) => setSearchLocationQuery(e.target.value)}
+                    className="w-full pl-10 pr-24 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-medium text-[#0d253d] focus:outline-none focus:border-[#533afd]"
+                  />
                   <button
-                    type="button"
-                    onClick={handleLocateOnMap}
-                    disabled={isLocatingUser}
-                    title="Only click this if you are physically standing on your crop field right now."
-                    className="px-3.5 py-3 rounded-xl bg-white border border-[#e3e8ee] hover:border-[#533afd] text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer shrink-0 transition-all hover:bg-indigo-50/50"
+                    type="submit"
+                    disabled={isSearchingLocation}
+                    className="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-lg bg-[#0d253d] text-white text-[11px] font-bold cursor-pointer hover:bg-slate-800 transition-colors"
                   >
-                    <Crosshair className={`h-4 w-4 text-[#533afd] ${isLocatingUser ? "animate-spin" : ""}`} />
-                    <span>{isHindi ? "डिवाइस GPS (यदि खेत पर हों)" : "Device GPS (If at field)"}</span>
+                    <span>{isSearchingLocation ? "Searching..." : "Search Village"}</span>
                   </button>
-                </div>
+                </form>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
-                  <span>💡 <strong>Tip:</strong> If sitting at home, search your village name or drag the map directly to your farm.</span>
-                  <span className="font-mono text-[10px] text-indigo-600">
-                    Map Center: {mapCenter.lat.toFixed(4)}°N, {mapCenter.lon.toFixed(4)}°E
-                  </span>
-                </div>
-
-                {locationPermissionStatus && (
-                  <p className="text-[11px] font-mono text-[#533afd] bg-indigo-50/60 p-2 rounded-lg border border-indigo-100">
-                    ℹ️ {locationPermissionStatus}
-                  </p>
-                )}
+                {/* Optional Device GPS Button */}
+                <button
+                  type="button"
+                  onClick={handleLocateOnMap}
+                  disabled={isLocatingUser}
+                  title="Only click this if you are physically standing on your crop field right now."
+                  className="px-3.5 py-3 rounded-xl bg-white border border-[#e3e8ee] hover:border-[#533afd] text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer shrink-0 transition-all hover:bg-indigo-50/50"
+                >
+                  <Crosshair className={`h-4 w-4 text-[#533afd] ${isLocatingUser ? "animate-spin" : ""}`} />
+                  <span>{isHindi ? "डिवाइस GPS (यदि खेत पर हों)" : "Device GPS (If at field)"}</span>
+                </button>
               </div>
 
-              {/* ── REAL GOOGLE SATELLITE FIELD BOUNDARY MAP ──────── */}
-              <div className="space-y-2">
-                <RealBoundaryMap
-                  center={[mapCenter.lat, mapCenter.lon]}
-                  zoom={16}
-                  onCenterChange={(newC) => setMapCenter({ lat: newC[0], lon: newC[1] })}
-                  onBoundaryChange={(pts, calculatedAcres) => {
-                    setDrawnPolygon(pts);
-                    setAcres(calculatedAcres);
-                  }}
-                />
+              <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                <span>💡 <strong>Tip:</strong> If sitting at home, search your village name or drag the map directly to your farm.</span>
+                <span className="font-mono text-[10px] text-indigo-600">
+                  Map Center: {mapCenter.lat.toFixed(4)}°N, {mapCenter.lon.toFixed(4)}°E
+                </span>
               </div>
+
+              {locationPermissionStatus && (
+                <p className="text-[11px] font-mono text-[#533afd] bg-indigo-50/60 p-2 rounded-lg border border-indigo-100">
+                  ℹ️ {locationPermissionStatus}
+                </p>
+              )}
+            </div>
+
+            {/* ── REAL GOOGLE SATELLITE FIELD BOUNDARY MAP ──────── */}
+            <div className="space-y-2">
+              <RealBoundaryMap
+                center={[mapCenter.lat, mapCenter.lon]}
+                zoom={16}
+                initialPoints={drawnPolygon.length >= 3 ? drawnPolygon : undefined}
+                onCenterChange={(newC) => setMapCenter({ lat: newC[0], lon: newC[1] })}
+                onBoundaryChange={(pts, calculatedAcres) => {
+                  setDrawnPolygon(pts);
+                  setAcres(calculatedAcres);
+                  try {
+                    localStorage.setItem(
+                      "aasra_signup_field_boundary",
+                      JSON.stringify({
+                        points: pts,
+                        acres: calculatedAcres,
+                        center: mapCenter,
+                      })
+                    );
+                  } catch {}
+                }}
+              />
+            </div>
 
               {/* Farm Size Acreage Controller (Synchronized with Map) */}
               <div className="p-5 rounded-2xl bg-[#f6f9fc] border border-[#e3e8ee] space-y-3">
@@ -942,15 +984,13 @@ export default function SignupPage() {
                 </button>
               </div>
             </div>
-          )}
 
           {/* ── STAGE 3: Crop Intelligence & Agronomic Profile ───────── */}
-          {step === 3 && (
-            <div key="step-3" className="space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-2xl sm:text-3xl font-black text-[#0d253d] font-display">
-                  <span>{isHindi ? "फसल व कृषि इतिहास" : "Agronomic & Crop Intelligence"}</span>
-                </h2>
+          <div key="step-3" className={step === 3 ? "space-y-6" : "hidden"}>
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#0d253d] font-display">
+                <span>{isHindi ? "फसल व कृषि इतिहास" : "Agronomic & Crop Intelligence"}</span>
+              </h2>
                 <p className="text-xs text-[#64748d]">
                   <span>{isHindi ? "फसल की किस्म व बुवाई की तारीख से AI आपके खेत के विकास चरण को स्वतः सेट करेगा।" : "Calibrates 14-day heat stress predictions and precise Syngenta product dosages."}</span>
                 </p>
@@ -1173,80 +1213,77 @@ export default function SignupPage() {
                 </button>
               </div>
             </div>
-          )}
 
           {/* ── STAGE 4: Digital Smart Card Passport ─────────────────── */}
-          {step === 4 && (
-            <div key="step-4" className="space-y-6 text-center">
-              <div className="h-14 w-14 rounded-3xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-md">
-                <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+          <div key="step-4" className={step === 4 ? "space-y-6 text-center" : "hidden"}>
+            <div className="h-14 w-14 rounded-3xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-md">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#0d253d] font-display">
+                <span>{isHindi ? "बधाई हो! आपका किसान खाता सक्रिय है" : "Registration Successful & Verified!"}</span>
+              </h2>
+              <p className="text-xs text-[#64748d]">
+                <span>{isHindi ? "आपका डिजिटल किसान स्मार्ट पासपोर्ट जारी कर दिया गया है।" : "Your digital farm passport is active and stored in the secure registry database."}</span>
+              </p>
+            </div>
+
+            {/* Digital Holographic AASRA Smart Card */}
+            <div className="max-w-md mx-auto p-6 rounded-3xl bg-gradient-to-br from-[#0d253d] via-[#1a237e] to-[#0d253d] text-white text-left space-y-4 shadow-2xl border border-indigo-400/40 relative overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/15 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-mono font-bold tracking-widest text-indigo-200 uppercase">
+                    AASRA KISAN SMART CARD
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-emerald-300 font-bold bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                  ACTIVE ✓
+                </span>
               </div>
 
               <div className="space-y-1">
-                <h2 className="text-2xl sm:text-3xl font-black text-[#0d253d] font-display">
-                  <span>{isHindi ? "बधाई हो! आपका किसान खाता सक्रिय है" : "Registration Successful & Verified!"}</span>
-                </h2>
-                <p className="text-xs text-[#64748d]">
-                  <span>{isHindi ? "आपका डिजिटल किसान स्मार्ट पासपोर्ट जारी कर दिया गया है।" : "Your digital farm passport is active and stored in the secure registry database."}</span>
+                <span className="text-[10px] font-mono text-slate-400 uppercase">Farmer Name</span>
+                <h3 className="text-xl font-bold font-display text-white">{fullName}</h3>
+                <p className="text-xs font-mono text-indigo-300 notranslate" translate="no">
+                  +91 {mobileNumber} • {selectedDistrict}, {selectedState}
                 </p>
               </div>
 
-              {/* Digital Holographic AASRA Smart Card */}
-              <div className="max-w-md mx-auto p-6 rounded-3xl bg-gradient-to-br from-[#0d253d] via-[#1a237e] to-[#0d253d] text-white text-left space-y-4 shadow-2xl border border-indigo-400/40 relative overflow-hidden">
-                <div className="flex items-center justify-between border-b border-white/15 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[10px] font-mono font-bold tracking-widest text-indigo-200 uppercase">
-                      AASRA KISAN SMART CARD
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-emerald-300 font-bold bg-emerald-500/20 px-2 py-0.5 rounded-full">
-                    ACTIVE ✓
-                  </span>
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs font-mono">
+                <div className="p-2 rounded-xl bg-white/5">
+                  <span className="text-slate-400 text-[10px] block">Primary Crop:</span>
+                  <span className="font-bold text-white notranslate" translate="no">{primaryCrop} ({cropVariety})</span>
                 </div>
-
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase">Farmer Name</span>
-                  <h3 className="text-xl font-bold font-display text-white">{fullName}</h3>
-                  <p className="text-xs font-mono text-indigo-300 notranslate" translate="no">
-                    +91 {mobileNumber} • {selectedDistrict}, {selectedState}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs font-mono">
-                  <div className="p-2 rounded-xl bg-white/5">
-                    <span className="text-slate-400 text-[10px] block">Primary Crop:</span>
-                    <span className="font-bold text-white notranslate" translate="no">{primaryCrop} ({cropVariety})</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-white/5">
-                    <span className="text-slate-400 text-[10px] block">Acreage Mapped:</span>
-                    <span className="font-bold text-emerald-300">{acres} Acres ({(acres * 0.4047).toFixed(1)} Ha)</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex items-center justify-between text-[9px] font-mono text-slate-400 border-t border-white/10">
-                  <span>Vault ID: AASRA-{mobileNumber.slice(-4)}-{Date.now().toString().slice(-4)}</span>
-                  <span className="text-emerald-400">AES-256 SECURED</span>
+                <div className="p-2 rounded-xl bg-white/5">
+                  <span className="text-slate-400 text-[10px] block">Acreage Mapped:</span>
+                  <span className="font-bold text-emerald-300">{acres} Acres ({(acres * 0.4047).toFixed(1)} Ha)</span>
                 </div>
               </div>
 
-              {/* Go to Dashboard CTA */}
-              <div className="pt-4">
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard")}
-                  className="w-full py-4 rounded-2xl text-white font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                  style={{
-                    background: "linear-gradient(135deg, #533afd 0%, #4434d4 100%)",
-                    boxShadow: "0 10px 30px rgba(83, 58, 253, 0.4)",
-                  }}
-                >
-                  <span>{isHindi ? "मेरा खेत डैशबोर्ड खोलें" : "Open My Farm Dashboard"}</span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+              <div className="pt-2 flex items-center justify-between text-[9px] font-mono text-slate-400 border-t border-white/10">
+                <span>Vault ID: AASRA-{mobileNumber.slice(-4)}-{Date.now().toString().slice(-4)}</span>
+                <span className="text-emerald-400">AES-256 SECURED</span>
               </div>
             </div>
-          )}
+
+            {/* Go to Dashboard CTA */}
+            <div className="pt-4">
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="w-full py-4 rounded-2xl text-white font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #533afd 0%, #4434d4 100%)",
+                  boxShadow: "0 10px 30px rgba(83, 58, 253, 0.4)",
+                }}
+              >
+                <span>{isHindi ? "मेरा खेत डैशबोर्ड खोलें" : "Open My Farm Dashboard"}</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
 
         </div>
       </main>

@@ -90,17 +90,27 @@ export function RealBoundaryMap({
   // Sync when initialPoints changes from outside
   useEffect(() => {
     if (initialPoints && initialPoints.length >= 3) {
-      setPoints(initialPoints);
-      const acres = calculatePolygonAreaAcres(initialPoints);
-      onBoundaryChangeRef.current(initialPoints, acres);
-      
-      const map = mapInstanceRef.current;
-      if (map) {
-        try {
-          const bounds = L.latLngBounds(initialPoints);
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
-        } catch (e) {
-          // ignore
+      const isIdentical =
+        points.length === initialPoints.length &&
+        points.every(
+          (pt, i) =>
+            Math.abs(pt[0] - initialPoints[i][0]) < 0.00001 &&
+            Math.abs(pt[1] - initialPoints[i][1]) < 0.00001
+        );
+
+      if (!isIdentical) {
+        setPoints(initialPoints);
+        const acres = calculatePolygonAreaAcres(initialPoints);
+        onBoundaryChangeRef.current(initialPoints, acres);
+
+        const map = mapInstanceRef.current;
+        if (map) {
+          try {
+            const bounds = L.latLngBounds(initialPoints);
+            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
+          } catch (e) {
+            // ignore
+          }
         }
       }
     }
@@ -108,8 +118,9 @@ export function RealBoundaryMap({
 
   // 1. Initial Mount: Trigger area sync immediately
   useEffect(() => {
-    const acres = calculatePolygonAreaAcres(points);
-    onBoundaryChangeRef.current(points, acres);
+    const activePts = initialPoints && initialPoints.length >= 3 ? initialPoints : points;
+    const acres = calculatePolygonAreaAcres(activePts);
+    onBoundaryChangeRef.current(activePts, acres);
   }, []);
 
   // 2. Initialize Leaflet Map
@@ -163,11 +174,20 @@ export function RealBoundaryMap({
       });
     });
 
-    // Invalidate size on mount
+    // Invalidate size on mount and container visibility changes
     setTimeout(() => map.invalidateSize({ animate: false }), 100);
     setTimeout(() => map.invalidateSize({ animate: false }), 400);
 
+    let resizeObs: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+      resizeObs = new ResizeObserver(() => {
+        map.invalidateSize({ animate: false });
+      });
+      resizeObs.observe(containerRef.current);
+    }
+
     return () => {
+      if (resizeObs) resizeObs.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };
