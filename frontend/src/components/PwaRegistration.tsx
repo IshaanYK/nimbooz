@@ -43,7 +43,7 @@ export function PwaRegistration() {
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:max-w-sm z-50 bg-[#0d253d] text-white p-4 rounded-2xl shadow-2xl border border-indigo-500/30 flex items-center justify-between gap-3 animate-bounce-subtle">
+    <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-6 md:right-auto md:max-w-sm z-50 bg-[#0d253d] text-white p-4 rounded-2xl shadow-2xl border border-indigo-500/30 flex items-center justify-between gap-3 animate-bounce-subtle">
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-xl bg-[#533afd] flex items-center justify-between shrink-0 p-2">
           <Download className="h-full w-full text-white" />

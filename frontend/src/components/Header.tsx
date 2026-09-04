@@ -54,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3 shrink-0">
         <Link href="/" className="flex items-center gap-2">
           <div className="relative h-8 w-28 bg-slate-50 p-1 rounded-xl border border-slate-200 shadow-xs">
-            <Image src="/images/aasra_logo.png" alt="AASRA" fill priority className="object-contain p-0.5" />
+            <Image src="/images/aasra_logo.png" alt="AASRA" fill priority sizes="112px" className="object-contain p-0.5" />
           </div>
         </Link>
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[10px] font-mono font-bold text-emerald-800">

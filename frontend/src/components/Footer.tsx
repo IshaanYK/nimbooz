@@ -20,7 +20,7 @@ export const Footer: React.FC = () => {
           <div className="space-y-4 md:col-span-1">
             <Link href="/" className="inline-block">
               <div className="relative h-9 w-9 rounded-xl overflow-hidden border border-indigo-500/30 bg-white/10">
-                <Image src="/images/aasra_logo.png" alt="AASRA Logo" fill className="object-contain p-1" />
+                <Image src="/images/aasra_logo.png" alt="AASRA Logo" fill sizes="36px" className="object-contain p-1" />
               </div>
             </Link>
             <div>
@@ -71,7 +71,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono text-slate-500">
-          <p>{t.footerRights || "© 2025 AASRA · All Rights Reserved · Team-2 Hackathon"}</p>
+          <p>{t.footerRights || "© 2026 AASRA · All Rights Reserved · Team-2 Hackathon"}</p>
           <p className="text-indigo-400 font-bold">{t.heroBadge || "Google Gemini · Open-Meteo · APMC Data"}</p>
         </div>
       </div>

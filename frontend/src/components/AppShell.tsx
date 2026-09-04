@@ -185,7 +185,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           <div className="flex items-center gap-2.5 shrink-0">
             <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
               <div className="relative h-9 w-9 rounded-xl overflow-hidden border border-purple-200/60 shadow-sm">
-                <Image src="/images/aasra_logo.png" alt="AASRA Logo" fill className="object-contain" priority />
+                <Image src="/images/aasra_logo.png" alt="AASRA Logo" fill sizes="36px" className="object-contain" priority />
               </div>
               <div className="hidden sm:block">
                 <p className="text-sm font-black text-slate-900 leading-tight">AASRA</p>
@@ -941,7 +941,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-full shadow-2xl hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all font-extrabold text-sm group"
-        title="Chat with ANNAM AI on WhatsApp (+1 555-669-4548)"
+        title="Chat with AASRA AI on WhatsApp (+1 555-669-4548)"
       >
         <div className="relative">
           <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">

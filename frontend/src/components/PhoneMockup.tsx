@@ -56,6 +56,11 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
   const [isScanning, setIsScanning] = useState<boolean>(true);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [userInteracted, setUserInteracted] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ── 1. Automatic Working Phone Cycle (4.5s per scene) ─────────────────
   useEffect(() => {
@@ -141,8 +146,8 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
   };
 
   const currentMandi = mandiDataMap[selectedCrop] || mandiDataMap.wheat;
-  const defaultLocation = isHindi ? "सीहोर (भोपाल), मध्य प्रदेश" : "Sehore (Bhopal), Madhya Pradesh";
-  const displayLocation = location || defaultLocation;
+  const defaultLocation = isHindi ? "सीहोर, मध्य प्रदेश" : "Sehore, Madhya Pradesh";
+  const displayLocation = mounted ? (location || defaultLocation) : defaultLocation;
 
   return (
     <div className="relative mx-auto select-none flex items-center justify-center">
@@ -308,9 +313,9 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
                       </div>
                     </div>
 
-                    <div className="mt-2.5 inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm rounded-full px-2.5 py-0.5 text-[9px] font-medium border border-white/10">
+                    <div className="mt-2.5 inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm rounded-full px-2.5 py-0.5 text-[9px] font-medium border border-white/10" suppressHydrationWarning>
                       <MapPin className="h-2.5 w-2.5 text-emerald-400" />
-                      <span className="truncate max-w-[190px]">{displayLocation}</span>
+                      <span className="truncate max-w-[190px]" suppressHydrationWarning>{displayLocation}</span>
                     </div>
                   </div>
 

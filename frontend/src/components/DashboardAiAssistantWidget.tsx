@@ -53,6 +53,14 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
 
   const voiceServiceRef = useRef<VoiceRecognitionService | null>(null);
 
+  // Re-sync voice service when language changes
+  React.useEffect(() => {
+    if (voiceServiceRef.current) {
+      voiceServiceRef.current.stopListening();
+      voiceServiceRef.current = null;
+    }
+  }, [language]);
+
   const effectiveCrop = crop || activeFarm.primaryCrop || "Soybean";
   const effectiveAcres = acres || activeFarm.areaAcres || 5.0;
   const effectiveDistrict = district || weather.district || "Bhopal";

@@ -114,12 +114,16 @@ export const DynamicHeroHeadline: React.FC = () => {
     >
       {/* Atmospheric Stripe-style gradient mesh */}
       <div
-        className="absolute top-[-100px] left-[10%] w-[520px] h-[520px] rounded-full opacity-20 pointer-events-none blur-3xl"
-        style={{ background: "radial-gradient(circle, #533afd 0%, #665efd 40%, transparent 70%)" }}
+        className="absolute top-[-140px] left-[5%] w-[640px] h-[640px] rounded-full opacity-25 pointer-events-none blur-3xl"
+        style={{ background: "radial-gradient(circle, #533afd 0%, #665efd 35%, #b9b9f9 70%, transparent 85%)" }}
       />
       <div
-        className="absolute top-[15%] right-[5%] w-[580px] h-[580px] rounded-full opacity-15 pointer-events-none blur-3xl"
-        style={{ background: "radial-gradient(circle, #4434d4 0%, #10b981 50%, transparent 70%)" }}
+        className="absolute top-[-60px] right-[10%] w-[520px] h-[520px] rounded-full opacity-20 pointer-events-none blur-3xl"
+        style={{ background: "radial-gradient(circle, #f5e9d4 0%, #f96bee 40%, #533afd 75%, transparent 90%)" }}
+      />
+      <div
+        className="absolute top-[28%] left-[30%] w-[480px] h-[480px] rounded-full opacity-10 pointer-events-none blur-3xl"
+        style={{ background: "radial-gradient(circle, #0ea5e9 0%, #10b981 50%, transparent 80%)" }}
       />
 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -244,7 +248,7 @@ export const DynamicHeroHeadline: React.FC = () => {
 
               {/* Dynamic location pill + trust note */}
               <div className="flex items-center gap-2.5 text-xs text-slate-500 pt-1">
-                {activeFarm?.district ? (
+                {mounted && activeFarm?.district ? (
                   <span className="inline-flex items-center gap-1 bg-white border border-[#e3e8ee] rounded-full px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-2xs">
                     <MapPin className="h-3 w-3 text-[#533afd]" />
                     <span>{activeFarm.district}{activeFarm.state ? `, ${activeFarm.state}` : ""}</span>
@@ -266,7 +270,7 @@ export const DynamicHeroHeadline: React.FC = () => {
             }}
           >
             <PhoneMockup
-              location={activeFarm?.district ? `${activeFarm.district}, ${activeFarm.state || "MP"}` : "सीहोर (भोपाल), मध्य प्रदेश"}
+              location={mounted && activeFarm?.district ? `${activeFarm.district}, ${activeFarm.state || "Madhya Pradesh"}` : undefined}
               temperature={28}
               crop="गेहूं (Wheat)"
               mandiPrice={2420}
