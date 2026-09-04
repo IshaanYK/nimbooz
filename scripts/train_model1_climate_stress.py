@@ -281,8 +281,11 @@ def train_and_evaluate_model1_7class():
     print(confusion_matrix(y_test, y_pred))
     
     # 4. Export Artifacts
-    output_dir = os.path.dirname(os.path.abspath(__file__))
-    artifacts_dir = os.path.abspath(os.path.join(output_dir, "..", "ps02-engine", "data"))
+    if os.path.exists("/content"):
+        artifacts_dir = "/content"
+    else:
+        output_dir = os.path.dirname(os.path.abspath(__file__))
+        artifacts_dir = os.path.abspath(os.path.join(output_dir, "..", "ps02-engine", "data"))
     os.makedirs(artifacts_dir, exist_ok=True)
     
     joblib_path = os.path.join(artifacts_dir, "model1_climate_stress.joblib")
