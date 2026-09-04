@@ -58,6 +58,8 @@ export interface Message {
   mandiRecord?: any;
   detectedLanguage?: string;
   rawTranscript?: string;
+  matchedField?: any;
+  allRegisteredFields?: any[];
 }
 
 interface AdvisoryChatProps {
@@ -113,14 +115,55 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   const [cropSearchQuery, setCropSearchQuery] = useState<string>("");
   const [showCropPicker, setShowCropPicker] = useState<boolean>(false);
 
+  // Database Ground-Truth & Farm State
+  const [dbFields, setDbFields] = useState<Array<{ id: string; name: string; crop: string; area_acres: number; variety?: string; soil_type?: string }>>([]);
+  const [activePlotId, setActivePlotId] = useState<string>("");
+  const [showDossier, setShowDossier] = useState<boolean>(false);
+  const [farmerDbRecord, setFarmerDbRecord] = useState<any>(null);
+  const [journalRecords, setJournalRecords] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/database")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        if (payload?.data) {
+          if (Array.isArray(payload.data.fields) && payload.data.fields.length > 0) {
+            setDbFields(payload.data.fields);
+            setActivePlotId(payload.data.fields[0].id);
+          }
+          if (Array.isArray(payload.data.farmers) && payload.data.farmers.length > 0) {
+            setFarmerDbRecord(payload.data.farmers[0]);
+          }
+          if (Array.isArray(payload.data.journal)) {
+            setJournalRecords(payload.data.journal);
+          }
+        }
+      })
+      .catch((err) => console.warn("Database fetch in AdvisoryChat:", err));
+  }, []);
+
+  const selectedDbField = dbFields.find((f) => f.id === activePlotId) || (dbFields.length > 0 ? dbFields[0] : null);
+
+  const handleSelectField = (fieldId: string) => {
+    setActivePlotId(fieldId);
+    const field = dbFields.find((f) => f.id === fieldId);
+    if (field) {
+      const normalizedCrop = field.crop.toLowerCase().split("/")[0].trim();
+      setSelectedCropId(normalizedCrop);
+      if (onCropChange) onCropChange(normalizedCrop);
+    }
+  };
+
   // Effective location and parameters
-  const effectiveDistrict = initialDistrict || weather.district || profile.district || "Bhopal";
-  const effectiveVillage = village || profile.village || "";
-  const effectiveAcres = acres || profile.acres || 5.0;
-  const effectiveVariety = variety || profile.cropVariety || "";
+  const effectiveDistrict = initialDistrict || farmerDbRecord?.district || weather.district || profile.district || "Bhopal";
+  const effectiveVillage = village || farmerDbRecord?.village || profile.village || "Phanda Kalan";
+  const effectiveAcres = selectedDbField?.area_acres || acres || farmerDbRecord?.fieldAreaAcres || profile.acres || 5.0;
+  const effectiveVariety = selectedDbField?.variety || variety || farmerDbRecord?.cropVariety || profile.cropVariety || "";
+  const effectiveFieldName = selectedDbField?.name || currentField || "Main Acreage";
+  const effectiveSoilType = selectedDbField?.soil_type || farmerDbRecord?.soilType || profile.soilType || "Deep Black Clay Soil";
   const effectiveLocation = effectiveVillage
-    ? `${effectiveVillage}, ${effectiveDistrict}, ${weather.state || "India"}`
-    : `${effectiveDistrict}, ${weather.state || "India"}`;
+    ? `${effectiveVillage}, ${effectiveDistrict}, ${weather.state || "Madhya Pradesh"}`
+    : `${effectiveDistrict}, ${weather.state || "Madhya Pradesh"}`;
 
   const currentCropInfo: CropInfo = resolveCropThresholds(selectedCropId);
   const currentCropProfile = getCropAdvisoryProfile(selectedCropId);
@@ -128,7 +171,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
   // Safe spray calculation
   const isSpraySafe = weather.windSpeed < 15 && weather.precipitation === 0 && weather.temperature < 33;
 
-  const effectiveFarmerName = profile?.fullName?.trim() || farmerName || "";
+  const effectiveFarmerName = profile?.fullName?.trim() || farmerDbRecord?.fullName || farmerName || "";
   const displayFarmerGreeting = effectiveFarmerName
     ? (language === "hi" ? `${effectiveFarmerName} जी` : effectiveFarmerName)
     : (language === "hi" ? "किसान मित्र" : "Farmer Friend");
@@ -141,22 +184,22 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       id: "welcome",
       sender: "bot",
       text: isHi
-        ? `नमस्ते ${displayFarmerGreeting}! मैं आपका AASRA (आसरा) AI बहु-फसली कृषि सलाहकार हूँ। वर्तमान में सक्रिय फसल: ${cropDisplay}। आप किसी भी भाषा में बोलकर या लिखकर फसल सुरक्षा, मौसम, स्प्रे समय, कृषि सांख्यिकी अथवा मंडी भाव के बारे में पूछ सकते हैं।`
-        : `Namaste ${displayFarmerGreeting}! I am your AASRA Precision Multi-Crop AI Advisor. Active crop: ${cropDisplay}. Speak or type in any language about disease protection, weather, safe spray window, crop statistics, or APMC mandi rates.`,
+        ? `नमस्ते ${displayFarmerGreeting}! मैं आपका AASRA (आसरा) AI कृषि साथी हूँ। सक्रिय खेत: ${effectiveFieldName} (${effectiveAcres} एकड़ · ${cropDisplay} - ${effectiveSoilType})। आप बोलकर या लिखकर अपनी फसल, स्प्रे खुराक, मौसम, पूर्व छिड़काव डायरी अथवा मंडी भाव के बारे में पूछ सकते हैं।`
+        : `Namaste ${displayFarmerGreeting}! I am your AASRA Precision Farm AI Companion. Active field: ${effectiveFieldName} (${effectiveAcres} acres · ${cropDisplay} - ${effectiveSoilType}). Ask by voice or text about crop protection, dosage, weather, past journal logs, or APMC mandi rates.`,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       provider: "Google Gemini 2.5 Flash",
       whyRecommendation: isHi
-        ? `लाइव Open-Meteo टेलीमेट्री (${effectiveDistrict}) और सरकारी APMC मंडी आंकड़ों पर आधारित वास्तविक सलाहकार प्रणाली।`
-        : `Grounded with live Open-Meteo telemetry for ${effectiveDistrict} and verified APMC Agmarknet price records.`,
+        ? `AASRA फार्म डेटाबेस, लाइव Open-Meteo टेलीमेट्री (${effectiveDistrict}) और APMC मंडी आंकड़ों से व्यक्तिगत रूप से सत्यापित।`
+        : `Personalized via AASRA Database, live Open-Meteo telemetry (${effectiveDistrict}) and APMC Agmarknet price records.`,
       confidenceScore: 99,
       followUpQuestions: [
         isHi ? `${cropDisplay} का आज मंडी भाव क्या है?` : `What is today's ${currentCropInfo.name} mandi rate?`,
-        isHi ? `क्या आज मेरी फसल में स्प्रे करना सुरक्षित है?` : `Is it safe to spray on ${currentCropInfo.name} today?`,
-        isHi ? `कीट व फफूंद रोग की रोकथाम के उपाय बताएं` : `How to prevent major pests and diseases?`,
+        isHi ? `मेरे खेत में स्प्रे करने के लिए क्या मौसम सुरक्षित है?` : `Is weather safe to spray on ${currentCropInfo.name} today?`,
+        isHi ? `मेरे पंजीकृत खेतों और मिट्टी का विवरण बताएं` : `Show all my registered fields & soil details`,
       ],
       locationUsed: effectiveLocation,
     };
-  }, [currentCropInfo, effectiveDistrict, effectiveLocation, farmerName, language]);
+  }, [currentCropInfo, effectiveDistrict, effectiveLocation, effectiveFarmerName, effectiveFieldName, effectiveAcres, effectiveSoilType, displayFarmerGreeting, language]);
 
   const [messages, setMessages] = useState<Message[]>([buildWelcome()]);
   const [input, setInput] = useState("");
@@ -361,6 +404,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
     let dosageSummary: string | undefined = undefined;
     let mandiRecord: any = undefined;
     let rawTrans: string | undefined = undefined;
+    let matchedFieldFromRes: any = undefined;
+    let allRegisteredFieldsFromRes: any[] = [];
 
     try {
       if (currentImg) {
@@ -385,7 +430,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           effectiveFarmerName,
           effectiveAcres,
           effectiveVariety,
-          profile.soilType || "Deep Black Loam",
+          effectiveSoilType,
           effectiveDistrict,
           effectiveVillage,
           audioBase64,
@@ -398,6 +443,9 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             wind_speed: weather.windSpeed,
             soil_moisture: weather.soilMoistureEst,
             state: weather.state || "Madhya Pradesh",
+            field_id: activePlotId || undefined,
+            field_name: effectiveFieldName,
+            farmer_id: farmerDbRecord?.id || undefined,
           }
         );
 
@@ -407,6 +455,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
           confScore = res.confidence_score || 98;
           mandiRecord = res.mandi_record;
           rawTrans = res.raw_transcript;
+          matchedFieldFromRes = res.matched_field;
+          allRegisteredFieldsFromRes = res.all_registered_fields || [];
           if (res.follow_up_questions && res.follow_up_questions.length > 0) {
             followUps = res.follow_up_questions;
           }
@@ -439,6 +489,8 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
       followUpQuestions: followUps,
       dosageSummary,
       mandiRecord,
+      matchedField: matchedFieldFromRes,
+      allRegisteredFields: allRegisteredFieldsFromRes,
       locationUsed: effectiveDistrict,
       telemetryUsed: {
         location: effectiveDistrict,
@@ -613,6 +665,131 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
             <span className="font-bold text-[#0d253d]">{weather.windSpeed} km/h</span>
           </div>
         </div>
+
+        {/* ── AASRA Verified Database Link & Plot Switcher Bar (Stripe Standard) ── */}
+        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-mono font-bold text-slate-500 uppercase flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>AASRA DB:</span>
+            </span>
+
+            {dbFields.length > 0 ? (
+              <div className="relative inline-block">
+                <select
+                  value={activePlotId}
+                  onChange={(e) => handleSelectField(e.target.value)}
+                  className="pl-2.5 pr-7 py-1 rounded-xl bg-[#f6f9fc] hover:bg-indigo-50 border border-[#e3e8ee] hover:border-indigo-300 text-xs font-bold text-[#0d253d] focus:outline-none focus:border-[#533afd] cursor-pointer shadow-2xs transition-all appearance-none"
+                >
+                  {dbFields.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} ({f.area_acres} ac · {f.crop})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-2 h-3 w-3 text-slate-400 pointer-events-none" />
+              </div>
+            ) : (
+              <span className="text-xs font-bold text-[#0d253d]">
+                {effectiveFieldName} ({effectiveAcres} ac)
+              </span>
+            )}
+
+            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+              {effectiveSoilType}
+            </span>
+
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-indigo-50 text-[#533afd] border border-indigo-200">
+              {effectiveFarmerName}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowDossier(!showDossier)}
+            className="text-[11px] font-semibold text-[#533afd] hover:text-[#4434d4] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+          >
+            <Sparkles className="h-3 w-3 text-[#533afd]" />
+            <span>{showDossier ? "Hide Farm Dossier" : "View Database Dossier"}</span>
+            <ChevronDown className={`h-3 w-3 transition-transform ${showDossier ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+
+        {/* Expandable Farm Database Dossier Panel */}
+        {showDossier && (
+          <div className="p-4 bg-gradient-to-br from-[#f6f9fc] to-indigo-50/40 border border-[#e3e8ee] rounded-2xl space-y-3 animate-in fade-in duration-200 shadow-inner">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-[#533afd]" />
+                <span className="text-xs font-bold text-[#0d253d] font-display">
+                  Verified Farmer Holdings Dossier (AASRA Ground Truth)
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                DB ID: {farmerDbRecord?.id || "farmer-001"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                  Registered Farmer
+                </span>
+                <p className="font-bold text-[#0d253d] text-sm">{effectiveFarmerName}</p>
+                <p className="text-[11px] text-slate-500">
+                  {effectiveVillage}, {effectiveDistrict}, {weather.state || "Madhya Pradesh"}
+                </p>
+                <div className="flex gap-1 pt-1">
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    KCC Active
+                  </span>
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-[#533afd] border border-indigo-200">
+                    PM-Kisan
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-1.5">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                  Registered Plots ({dbFields.length})
+                </span>
+                <div className="space-y-1">
+                  {dbFields.map((f) => (
+                    <div
+                      key={f.id}
+                      onClick={() => handleSelectField(f.id)}
+                      className={`p-1.5 rounded-lg border text-[11px] flex items-center justify-between cursor-pointer transition-all ${
+                        activePlotId === f.id
+                          ? "bg-indigo-50/70 border-[#533afd] text-[#533afd] font-bold"
+                          : "bg-[#f6f9fc] border-slate-200 text-slate-600 hover:border-indigo-200"
+                      }`}
+                    >
+                      <span className="truncate max-w-[120px]">{f.name}</span>
+                      <span className="font-mono text-[10px]">{f.area_acres} ac · {f.crop}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                  Recent Farm Journal Logs
+                </span>
+                <div className="space-y-1 text-[11px]">
+                  {journalRecords.slice(0, 2).map((j, idx) => (
+                    <div key={idx} className="p-1.5 rounded-lg bg-[#f6f9fc] border border-slate-200">
+                      <div className="flex items-center justify-between font-bold text-[10px] text-slate-700">
+                        <span>{j.title}</span>
+                        <span className="text-slate-400 font-mono">{j.date}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 truncate">{j.notes}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
@@ -666,6 +843,7 @@ export const AdvisoryChat: React.FC<AdvisoryChatProps> = ({
                   onToggleSpeech={() => speakResponse(msg.id, msg.text)}
                   telemetryUsed={msg.telemetryUsed}
                   mandiRecord={msg.mandiRecord}
+                  matchedField={msg.matchedField}
                   confidenceScore={msg.confidenceScore}
                   provider={msg.provider}
                   whyRecommendation={msg.whyRecommendation}

@@ -54,68 +54,149 @@ import {
   Crosshair,
   Maximize2,
   Trash2,
+  Plus,
+  X,
+  Filter,
 } from "lucide-react";
 
-// Clean, Authentic Indian States & Districts (Protected from auto-translate)
+// Regional Intelligence Data Contracts
+export interface RegionalCropOption {
+  id: string;
+  nameEn: string;
+  nameHi: string;
+  category: "cereal" | "pulse" | "oilseed" | "cash_crop" | "vegetable" | "spice" | "horticulture" | "plantation";
+  icon: string;
+  image: string;
+  varieties: string[];
+  season?: string;
+  isMajorCrop?: boolean;
+}
+
+export interface RegionalSoilInfo {
+  detectedSoilType: string;
+  texture: string;
+  typicalPh: string;
+  organicCarbon: string;
+  drainage?: string;
+  soilOptions: string[];
+  confidence: string;
+  scientificOrder?: string;
+}
+
+// Clean, Authentic Pan-India States & Districts (Protected from auto-translate)
 const INDIAN_STATES_DISTRICTS: Record<string, string[]> = {
   "Madhya Pradesh": [
     "Sehore", "Bhopal", "Indore", "Ujjain", "Vidisha", "Hoshangabad", "Dewas", "Harda",
     "Raisen", "Rajgarh", "Shajapur", "Agar Malwa", "Mandsaur", "Neemuch", "Ratlam", "Dhar",
-    "Khargone", "Barwani", "Khandwa", "Burhanpur", "Jabalpur", "Narsinghpur", "Chhindwara"
+    "Khargone", "Barwani", "Khandwa", "Burhanpur", "Jabalpur", "Narsinghpur", "Chhindwara", "Gwalior", "Rewa", "Sagar"
   ],
   "Maharashtra": [
     "Nashik", "Pune", "Nagpur", "Ahmednagar", "Jalgaon", "Satara", "Kolhapur", "Solapur",
-    "Aurangabad", "Amravati", "Akola", "Yavatmal", "Buldhana", "Wardha", "Latur", "Nanded"
+    "Aurangabad", "Amravati", "Akola", "Yavatmal", "Buldhana", "Wardha", "Latur", "Nanded", "Sangli", "Beed", "Osmanabad"
   ],
   "Punjab": [
     "Ludhiana", "Patiala", "Jalandhar", "Bathinda", "Amritsar", "Sangrur", "Firozpur",
-    "Moga", "Faridkot", "Muktsar", "Barnala", "Mansa", "Hoshiarpur", "Gurdaspur", "Kapurthala"
+    "Moga", "Faridkot", "Muktsar", "Barnala", "Mansa", "Hoshiarpur", "Gurdaspur", "Kapurthala", "Fatehgarh Sahib", "Rupnagar"
   ],
   "Haryana": [
     "Karnal", "Hisar", "Ambala", "Kurukshetra", "Sirsa", "Rohtak", "Sonipat",
-    "Fatehabad", "Jind", "Kaithal", "Panipat", "Yamunanagar", "Bhiwani", "Rewari"
+    "Fatehabad", "Jind", "Kaithal", "Panipat", "Yamunanagar", "Bhiwani", "Rewari", "Jhajjar", "Mahendragarh"
   ],
   "Rajasthan": [
     "Kota", "Bharatpur", "Jaipur", "Alwar", "Sri Ganganagar", "Barmer", "Bikaner",
-    "Jodhpur", "Udaipur", "Bhilwara", "Tonk", "Bundi", "Baran", "Jhalawar", "Hanumangarh"
+    "Jodhpur", "Udaipur", "Bhilwara", "Tonk", "Bundi", "Baran", "Jhalawar", "Hanumangarh", "Nagaur", "Chittorgarh", "Sikar"
   ],
   "Gujarat": [
     "Rajkot", "Surat", "Ahmedabad", "Junagadh", "Vadodara", "Bhavnagar", "Amreli",
-    "Jamnagar", "Morbi", "Surendranagar", "Mehsana", "Sabarkantha", "Banaskantha", "Kheda"
+    "Jamnagar", "Morbi", "Surendranagar", "Mehsana", "Sabarkantha", "Banaskantha", "Kheda", "Patan", "Anand", "Bharuch"
   ],
   "Andhra Pradesh": [
     "Guntur", "Krishna", "Kurnool", "Prakasam", "East Godavari", "West Godavari",
-    "Anantapur", "Kadapa", "Nellore", "Chittoor", "Visakhapatnam", "Vizianagaram"
+    "Anantapur", "Kadapa", "Nellore", "Chittoor", "Visakhapatnam", "Vizianagaram", "Srikakulam"
   ],
   "Telangana": [
     "Warangal", "Nizamabad", "Karimnagar", "Khammam", "Nalgonda",
-    "Mahabubnagar", "Medak", "Adilabad", "Rangareddy", "Suryapet"
+    "Mahabubnagar", "Medak", "Adilabad", "Rangareddy", "Suryapet", "Siddipet", "Jagtial"
   ],
   "Uttar Pradesh": [
     "Kanpur", "Varanasi", "Meerut", "Agra", "Prayagraj", "Bareilly", "Mathura",
-    "Aligarh", "Moradabad", "Saharanpur", "Gorakhpur", "Jhansi", "Ayodhya", "Muzaffarnagar"
+    "Aligarh", "Moradabad", "Saharanpur", "Gorakhpur", "Jhansi", "Ayodhya", "Muzaffarnagar", "Lakhimpur Kheri", "Badaun", "Barabanki"
   ],
   "Karnataka": [
     "Dharwad", "Belagavi", "Vijayapura", "Bagalkote", "Mysuru", "Haveri",
-    "Ballari", "Raichur", "Kalaburagi", "Shivamogga", "Davangere", "Tumakuru"
+    "Ballari", "Raichur", "Kalaburagi", "Shivamogga", "Davangere", "Tumakuru", "Mandya", "Hassan", "Chikkamagaluru"
   ],
   "Bihar": [
-    "Patna", "Muzaffarpur", "Gaya", "Bhagalpur", "Darbhanga", "Purnia", "Rohtas", "Samastipur", "Begusarai"
+    "Patna", "Muzaffarpur", "Gaya", "Bhagalpur", "Darbhanga", "Purnia", "Rohtas", "Samastipur", "Begusarai", "Nalanda", "Vaishali"
   ],
   "Chhattisgarh": [
-    "Raipur", "Durg", "Bilaspur", "Rajnandgaon", "Dhamtari", "Mahasamund", "Janjgir-Champa", "Bemetara"
+    "Raipur", "Durg", "Bilaspur", "Rajnandgaon", "Dhamtari", "Mahasamund", "Janjgir-Champa", "Bemetara", "Kabirdham", "Kanker"
   ],
+  "West Bengal": [
+    "Burdwan", "Hooghly", "Murshidabad", "Nadia", "Malda", "North 24 Parganas", "South 24 Parganas", "Bankura", "Birbhum", "Midnapore"
+  ],
+  "Tamil Nadu": [
+    "Coimbatore", "Thanjavur", "Madurai", "Salem", "Tiruchirappalli", "Tirunelveli", "Erode", "Dindigul", "Theni", "Vellore", "Cuddalore"
+  ],
+  "Kerala": [
+    "Idukki", "Wayanad", "Palakkad", "Kottayam", "Thrissur", "Alappuzha", "Ernakulam", "Kozhikode", "Kannur", "Malappuram"
+  ],
+  "Odisha": [
+    "Sambalpur", "Bhubaneswar", "Cuttack", "Balasore", "Ganjam", "Bargarh", "Bhadrak", "Khurda", "Mayurbhanj", "Jajpur"
+  ],
+  "Assam": [
+    "Kamrup", "Guwahati", "Jorhat", "Dibrugarh", "Nagaon", "Sonitpur", "Golaghat", "Cachar", "Barpeta", "Darrang"
+  ],
+  "Himachal Pradesh": [
+    "Shimla", "Kullu", "Kangra", "Mandi", "Solan", "Sirmaur", "Chamba", "Hamirpur", "Una", "Bilaspur"
+  ],
+  "Jammu & Kashmir": [
+    "Srinagar", "Jammu", "Anantnag", "Baramulla", "Pulwama", "Kulgam", "Budgam", "Kathua", "Udhampur"
+  ],
+  "Uttarakhand": [
+    "Dehradun", "Haridwar", "Udham Singh Nagar", "Nainital", "Tehri Garhwal", "Pauri Garhwal", "Almora"
+  ],
+  "Jharkhand": [
+    "Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh", "Deoghar", "Giridih", "Palamu"
+  ],
+  "Goa": [
+    "North Goa", "South Goa"
+  ],
+  "Tripura": [
+    "West Tripura", "South Tripura", "Dhalai", "Gomati"
+  ],
+  "Meghalaya": [
+    "East Khasi Hills", "West Garo Hills", "Ri-Bhoi", "Jaintia Hills"
+  ],
+  "Manipur": [
+    "Imphal East", "Imphal West", "Bishnupur", "Thoubal", "Churachandpur"
+  ],
+  "Nagaland": [
+    "Kohima", "Dimapur", "Mokokchung", "Wokha"
+  ],
+  "Mizoram": [
+    "Aizawl", "Lunglei", "Champhai", "Kolasib"
+  ],
+  "Sikkim": [
+    "East Sikkim", "West Sikkim", "South Sikkim", "North Sikkim"
+  ],
+  "Arunachal Pradesh": [
+    "Papum Pare", "Changlang", "West Kameng", "Lohit"
+  ],
+  "Delhi": [
+    "North Delhi", "South Delhi", "West Delhi", "Najafgarh", "Alipur"
+  ]
 };
 
-const CROPS_LIST = [
-  { id: "Soybean", nameEn: "Soybean", nameHi: "सोयाबीन", icon: "🌱", image: "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=400&q=80", varieties: ["JS-335", "JS-9560", "JS-2034", "NRC-37", "RVS-2001"] },
-  { id: "Cotton", nameEn: "Bt Cotton", nameHi: "कपास", icon: "☁️", image: "https://images.unsplash.com/photo-1606041008023-472dfb5e530f?auto=format&fit=crop&w=400&q=80", varieties: ["Bollgard II", "RCH-659", "Ajeet-155", "Mallika", "Kaveri"] },
-  { id: "Wheat", nameEn: "Wheat", nameHi: "गेहूं", icon: "🌾", image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=400&q=80", varieties: ["PBW-824", "HD-2967", "HD-3086", "Sharbati", "Lokwan", "DBW-187"] },
-  { id: "Mustard", nameEn: "Mustard", nameHi: "सरसों", icon: "🌼", image: "https://images.unsplash.com/photo-1533038590840-1cde6e668a91?auto=format&fit=crop&w=400&q=80", varieties: ["Pusa Bold", "Giriraj", "Pioneer 45S46", "RH-749", "NRCHB-101"] },
-  { id: "Tomato", nameEn: "Tomato", nameHi: "टमाटर", icon: "🍅", image: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=400&q=80", varieties: ["Abhinav Hybrid", "US-440", "Heemsohna", "Ayushman", "Saaho"] },
-  { id: "Gram", nameEn: "Gram / Chickpea", nameHi: "चना (देसी)", icon: "🥣", image: "https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=400&q=80", varieties: ["JG-11", "JG-16", "JAKI-9218", "RVG-202", "Dollar Chana"] },
-  { id: "Paddy", nameEn: "Paddy / Rice", nameHi: "धान / चावल", icon: "🌾", image: "https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=400&q=80", varieties: ["Pusa Basmati 1121", "Pusa 1509", "PR-126", "Samba Mahsuri", "Swarna"] },
-  { id: "Maize", nameEn: "Maize / Corn", nameHi: "मक्का", icon: "🌽", image: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=400&q=80", varieties: ["DKC-9108", "P-3396", "NK-6240", "Pioneer 3502"] },
+const DEFAULT_REGIONAL_CROPS: RegionalCropOption[] = [
+  { id: "Soybean", nameEn: "Soybean", nameHi: "सोयाबीन", category: "oilseed", icon: "🌱", image: "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=400&q=80", varieties: ["JS-335", "JS-9560", "JS-2034", "RVS-2001"], isMajorCrop: true },
+  { id: "Wheat", nameEn: "Wheat", nameHi: "गेहूं", category: "cereal", icon: "🌾", image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=400&q=80", varieties: ["PBW-824", "HD-2967", "HD-3086", "Sharbati", "Lokwan"], isMajorCrop: true },
+  { id: "Cotton", nameEn: "Bt Cotton", nameHi: "कपास", category: "cash_crop", icon: "☁️", image: "https://images.unsplash.com/photo-1606041008023-472dfb5e530f?auto=format&fit=crop&w=400&q=80", varieties: ["Bollgard II", "RCH-659", "Ajeet-155", "Mallika"], isMajorCrop: true },
+  { id: "Mustard", nameEn: "Mustard", nameHi: "सरसों", category: "oilseed", icon: "🌼", image: "https://images.unsplash.com/photo-1533038590840-1cde6e668a91?auto=format&fit=crop&w=400&q=80", varieties: ["Pusa Bold", "Giriraj", "Pioneer 45S46", "RH-749"], isMajorCrop: true },
+  { id: "Gram", nameEn: "Gram / Chickpea", nameHi: "चना (देसी)", category: "pulse", icon: "🥣", image: "https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=400&q=80", varieties: ["JG-11", "JG-16", "JAKI-9218", "Dollar Chana"], isMajorCrop: true },
+  { id: "Paddy", nameEn: "Paddy / Rice", nameHi: "धान / चावल", category: "cereal", icon: "🌾", image: "https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=400&q=80", varieties: ["Pusa Basmati 1121", "Pusa 1509", "PR-126", "Samba Mahsuri"], isMajorCrop: true },
+  { id: "Tomato", nameEn: "Tomato", nameHi: "टमाटर", category: "vegetable", icon: "🍅", image: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=400&q=80", varieties: ["Abhinav Hybrid", "US-440", "Heemsohna", "Saaho"], isMajorCrop: true },
+  { id: "Maize", nameEn: "Maize / Corn", nameHi: "मक्का", category: "cereal", icon: "🌽", image: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=400&q=80", varieties: ["DKC-9108", "P-3396", "NK-6240"], isMajorCrop: false },
 ];
 
 export default function SignupPage() {
@@ -178,6 +259,73 @@ export default function SignupPage() {
   const [previousCrop, setPreviousCrop] = useState<string>("Wheat (गेहूं)");
   const [waterSource, setWaterSource] = useState<string>("Tube Well / Borewell (नलकूप / बोरवेल)");
 
+  // ── Regional Agronomic & Soil Intelligence States ──────────
+  const [regionalCrops, setRegionalCrops] = useState<RegionalCropOption[]>(DEFAULT_REGIONAL_CROPS);
+  const [detectedSoil, setDetectedSoil] = useState<RegionalSoilInfo | null>(null);
+  const [soilOptionsList, setSoilOptionsList] = useState<string[]>([
+    "Medium to Deep Black Clay Soil (काली मिट्टी - Vertisol)",
+    "Medium Black Clay Loam (मध्यम काली दोमट)",
+    "Shallow Red-Brown Murrum Soil (उथली मुरुमी मिट्टी)",
+    "Alluvial Riverbank Loam (कछारी जलोढ़ दोमट)",
+  ]);
+  const [isLoadingIntelligence, setIsLoadingIntelligence] = useState<boolean>(false);
+  const [cropSearchQuery, setCropSearchQuery] = useState<string>("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
+  const [showCustomCropModal, setShowCustomCropModal] = useState<boolean>(false);
+  const [customCropName, setCustomCropName] = useState<string>("");
+  const [customCropCategory, setCustomCropCategory] = useState<string>("cereal");
+  const [customCropVariety, setCustomCropVariety] = useState<string>("");
+
+  // Fetch dynamic location intelligence (ICAR Soil + Regional Crops)
+  const fetchLocationIntelligence = async (dst: string, st: string, lat?: number, lon?: number) => {
+    if (!dst || !st) return;
+    setIsLoadingIntelligence(true);
+    try {
+      const res = await fetch(
+        `/api/crops/regional?district=${encodeURIComponent(dst)}&state=${encodeURIComponent(st)}&lat=${lat ?? ""}&lon=${lon ?? ""}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.crops && Array.isArray(data.crops) && data.crops.length > 0) {
+          setRegionalCrops(data.crops);
+
+          // If current crop is not in new list, pick the first
+          const currentMatch = data.crops.find(
+            (c: RegionalCropOption) =>
+              c.id.toLowerCase() === primaryCrop.toLowerCase() ||
+              c.nameEn.toLowerCase() === primaryCrop.toLowerCase()
+          );
+          if (!currentMatch) {
+            const firstCrop = data.crops[0];
+            setPrimaryCrop(firstCrop.id || firstCrop.nameEn);
+            if (firstCrop.varieties?.[0]) {
+              setCropVariety(firstCrop.varieties[0]);
+            }
+          }
+        }
+
+        if (data.soil) {
+          setDetectedSoil(data.soil);
+          if (Array.isArray(data.soil.soilOptions) && data.soil.soilOptions.length > 0) {
+            setSoilOptionsList(data.soil.soilOptions);
+          }
+          if (data.soil.detectedSoilType) {
+            setSoilType(data.soil.detectedSoilType);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Dynamic location intelligence fetch error:", err);
+    } finally {
+      setIsLoadingIntelligence(false);
+    }
+  };
+
+  // Initial fetch for default location
+  useEffect(() => {
+    fetchLocationIntelligence(selectedDistrict, selectedState, mapCenter.lat, mapCenter.lon);
+  }, []);
+
   // OTP Countdown
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -206,7 +354,7 @@ export default function SignupPage() {
     } catch {}
   }, []);
 
-  // Handle District update when State changes -> automatically centers map on that district!
+  // Handle District update when State changes -> automatically centers map and fetches regional intelligence!
   const handleStateChange = (st: string) => {
     setSelectedState(st);
     const districts = INDIAN_STATES_DISTRICTS[st] || ["Sehore"];
@@ -214,12 +362,14 @@ export default function SignupPage() {
     setSelectedDistrict(firstDist);
     const coords = getDistrictCoordinates(firstDist, st);
     setMapCenter(coords);
+    fetchLocationIntelligence(firstDist, st, coords.lat, coords.lon);
   };
 
   const handleDistrictChange = (dst: string) => {
     setSelectedDistrict(dst);
     const coords = getDistrictCoordinates(dst, selectedState);
     setMapCenter(coords);
+    fetchLocationIntelligence(dst, selectedState, coords.lat, coords.lon);
   };
 
   // Trigger Real SMS OTP Verification
@@ -513,6 +663,26 @@ export default function SignupPage() {
 
   // Convert points to SVG Polygon string
   const polygonPointsStr = boundaryPoints.map((p) => `${p.x * 6},${p.y * 3.5}`).join(" ");
+
+  // Filter regional crops by category and search keyword
+  const displayedCrops = regionalCrops.filter((c) => {
+    const matchesCat =
+      selectedCategoryFilter === "all" || c.category === selectedCategoryFilter;
+    const matchesQuery =
+      !cropSearchQuery.trim() ||
+      c.nameEn.toLowerCase().includes(cropSearchQuery.toLowerCase()) ||
+      c.nameHi.toLowerCase().includes(cropSearchQuery.toLowerCase()) ||
+      c.varieties?.some((v) =>
+        v.toLowerCase().includes(cropSearchQuery.toLowerCase())
+      );
+    return matchesCat && matchesQuery;
+  });
+
+  const currentCropObj = regionalCrops.find(
+    (c) =>
+      c.id.toLowerCase() === primaryCrop.toLowerCase() ||
+      c.nameEn.toLowerCase() === primaryCrop.toLowerCase()
+  );
 
   return (
     <div
@@ -933,33 +1103,70 @@ export default function SignupPage() {
               </div>
 
               {/* Soil & Irrigation */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Soil Type (मिट्टी की किस्म)</label>
-                  <select
-                    value={soilType}
-                    onChange={(e) => setSoilType(e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d]"
-                  >
-                    <option value="Black Cotton Soil (काली मिट्टी)">Black Cotton Soil (काली मिट्टी - Vertisol)</option>
-                    <option value="Alluvial Loam (जलोढ़ दोमट)">Alluvial Loam (जलोढ़ दोमट)</option>
-                    <option value="Red Sandy Loam (लाल रेतीली)">Red Sandy Loam (लाल रेतीली)</option>
-                    <option value="Clay Loam (चिकनी दोमट)">Clay Loam (चिकनी दोमट)</option>
-                  </select>
-                </div>
+              <div className="space-y-3">
+                {detectedSoil && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50/90 border border-emerald-200 text-emerald-900 text-xs shadow-2xs">
+                    <Sparkles className="h-4 w-4 text-emerald-600 shrink-0 animate-pulse" />
+                    <div className="flex-1 flex flex-wrap items-center gap-1.5">
+                      <span className="font-bold text-[11px] uppercase tracking-wider text-emerald-700">
+                        {isHindi ? "✨ AI द्वारा जांची गई मिट्टी:" : "✨ AI Soil Auto-Detected:"}
+                      </span>
+                      <span className="font-bold text-emerald-950">
+                        {detectedSoil.detectedSoilType}
+                      </span>
+                      {detectedSoil.typicalPh && (
+                        <span className="text-[10px] bg-emerald-100/90 text-emerald-800 px-2 py-0.5 rounded font-mono font-bold">
+                          pH {detectedSoil.typicalPh}
+                        </span>
+                      )}
+                      {detectedSoil.texture && (
+                        <span className="text-[10px] text-emerald-700">
+                          • {detectedSoil.texture}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Irrigation (सिंचाई साधन)</label>
-                  <select
-                    value={irrigationType}
-                    onChange={(e) => setIrrigationType(e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d]"
-                  >
-                    <option value="Borewell + Rainfed">Borewell + Rainfed (बोरवेल + वर्षा)</option>
-                    <option value="Canal Irrigation">Canal Irrigation (नहरी सिंचाई)</option>
-                    <option value="Drip Irrigation">Drip Irrigation (ड्रिप टपक सिंचाई)</option>
-                    <option value="Purely Rainfed">Purely Rainfed (केवल वर्षा आधारित)</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-700">Soil Type (मिट्टी की किस्म)</label>
+                      {isLoadingIntelligence && (
+                        <span className="text-[10px] text-[#533afd] font-mono animate-pulse">
+                          Detecting ICAR soil...
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={soilType}
+                      onChange={(e) => setSoilType(e.target.value)}
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] focus:border-[#533afd]"
+                    >
+                      {soilOptionsList.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                      {!soilOptionsList.includes(soilType) && (
+                        <option value={soilType}>{soilType}</option>
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">Irrigation (सिंचाई साधन)</label>
+                    <select
+                      value={irrigationType}
+                      onChange={(e) => setIrrigationType(e.target.value)}
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d]"
+                    >
+                      <option value="Borewell + Rainfed">Borewell + Rainfed (बोरवेल + वर्षा)</option>
+                      <option value="Canal Irrigation">Canal Irrigation (नहरी सिंचाई)</option>
+                      <option value="Drip Irrigation">Drip Irrigation (ड्रिप टपक सिंचाई)</option>
+                      <option value="Purely Rainfed">Purely Rainfed (केवल वर्षा आधारित)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -997,22 +1204,104 @@ export default function SignupPage() {
               </div>
 
               <div className="space-y-4">
+                {/* Regional Header & Custom Crop Button */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 bg-indigo-50/70 p-3 rounded-2xl border border-indigo-100">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-[#533afd] shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-[#0d253d]">
+                        {isHindi
+                          ? `${selectedDistrict}, ${selectedState} के लिए अनुशंसित क्षेत्रीय फसलें`
+                          : `Regional Crops for ${selectedDistrict}, ${selectedState}`}
+                      </span>
+                      <span className="block text-[10px] text-slate-500">
+                        {isHindi
+                          ? "ICAR कृषि-जलवायु क्षेत्र व स्थानीय बाजार मांग अनुसार"
+                          : "Curated from ICAR agro-climatic & market data"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isLoadingIntelligence && (
+                      <span className="text-[10px] font-mono text-[#533afd] animate-pulse bg-white px-2 py-0.5 rounded-full border border-indigo-200">
+                        Analyzing ICAR...
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomCropModal(true)}
+                      className="text-xs font-bold text-[#533afd] hover:text-[#432ec7] bg-white hover:bg-indigo-50/50 px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>{isHindi ? "अन्य फसल जोड़ें" : "Add Custom Crop"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search & Category Filter */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder={isHindi ? `${selectedDistrict} में उगाई जाने वाली फसल खोजें...` : `Filter crops in ${selectedDistrict}...`}
+                      value={cropSearchQuery}
+                      onChange={(e) => setCropSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-medium text-[#0d253d] focus:outline-none focus:border-[#533afd]"
+                    />
+                    {cropSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setCropSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                    {[
+                      { id: "all", label: isHindi ? "सभी" : "All" },
+                      { id: "cereal", label: isHindi ? "अनाज" : "Cereals" },
+                      { id: "cash_crop", label: isHindi ? "नकदी" : "Cash" },
+                      { id: "pulse", label: isHindi ? "दलहन" : "Pulses" },
+                      { id: "oilseed", label: isHindi ? "तिलहन" : "Oilseeds" },
+                      { id: "horticulture", label: isHindi ? "बागवानी" : "Horticulture" },
+                      { id: "spice", label: isHindi ? "मसाले" : "Spices" },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategoryFilter(cat.id)}
+                        className={`px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          selectedCategoryFilter === cat.id
+                            ? "bg-[#533afd] text-white shadow-2xs"
+                            : "bg-[#f6f9fc] text-slate-600 hover:bg-slate-200/60 border border-[#e3e8ee]"
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Crop Selection Grid */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700">
-                    <span>{isHindi ? "मुख्य बोई गई फसल चुनें *" : "Select Primary Sown Crop *"}</span>
-                  </label>
-
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {CROPS_LIST.map((c) => {
-                      const isSelected = primaryCrop === c.id;
+                    {displayedCrops.map((c) => {
+                      const isSelected =
+                        primaryCrop.toLowerCase() === c.id.toLowerCase() ||
+                        primaryCrop.toLowerCase() === c.nameEn.toLowerCase();
                       return (
                         <button
                           key={c.id}
                           type="button"
                           onClick={() => {
-                            setPrimaryCrop(c.id);
-                            setCropVariety(c.varieties[0]);
+                            setPrimaryCrop(c.nameEn || c.id);
+                            if (c.varieties && c.varieties.length > 0) {
+                              setCropVariety(c.varieties[0]);
+                            }
                           }}
                           className={`rounded-2xl border text-left overflow-hidden transition-all duration-200 cursor-pointer flex flex-col justify-between group ${
                             isSelected
@@ -1020,7 +1309,7 @@ export default function SignupPage() {
                               : "bg-white hover:border-slate-300 border-[#e3e8ee] text-slate-700"
                           }`}
                         >
-                          <div className="relative h-20 w-full overflow-hidden bg-slate-900">
+                          <div className="relative h-24 w-full overflow-hidden bg-slate-900">
                             <Image
                               src={c.image}
                               alt={c.nameEn}
@@ -1028,37 +1317,95 @@ export default function SignupPage() {
                               className="object-cover group-hover:scale-105 transition-transform duration-300"
                               sizes="(max-width: 768px) 50vw, 25vw"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-                            <span className="absolute top-1.5 right-1.5 text-xs bg-white/90 backdrop-blur-md rounded-md px-1.5 py-0.5 shadow-2xs">
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+                            <span className="absolute top-2 right-2 text-xs bg-white/95 backdrop-blur-md rounded-md px-1.5 py-0.5 shadow-2xs font-emoji">
                               {c.icon}
                             </span>
+                            <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wider bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-md">
+                              {c.category?.replace("_", " ")}
+                            </span>
                           </div>
-                          <div className="p-2.5 bg-slate-50/60">
-                            <span className="text-xs font-bold text-[#0d253d] block notranslate" translate="no">
-                              {isHindi ? c.nameHi : c.nameEn}
-                            </span>
-                            <span className="text-[10px] text-slate-500 block truncate mt-0.5">
-                              {c.varieties[0]}
-                            </span>
+                          <div className="p-3 bg-slate-50/70 flex flex-col justify-between flex-1">
+                            <div>
+                              <span className="text-xs font-bold text-[#0d253d] block notranslate line-clamp-1" translate="no">
+                                {isHindi ? c.nameHi : c.nameEn}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block truncate mt-0.5 font-medium">
+                                {c.varieties?.[0] ? `Var: ${c.varieties[0]}` : "High Yield"}
+                              </span>
+                            </div>
+                            {isSelected && (
+                              <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-[#533afd]">
+                                <CheckCircle2 className="h-3 w-3" />
+                                <span>Selected</span>
+                              </div>
+                            )}
                           </div>
                         </button>
                       );
                     })}
                   </div>
+
+                  {displayedCrops.length === 0 && (
+                    <div className="text-center py-8 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                      <Leaf className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-700 mb-1">
+                        {isHindi ? "कोई फसल नहीं मिली" : "No crops matching your search"}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mb-3">
+                        {isHindi ? "क्या आप अपनी फसल मैन्युअल रूप से जोड़ना चाहते हैं?" : "Would you like to add your specific crop manually?"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomCropName(cropSearchQuery);
+                          setShowCustomCropModal(true);
+                        }}
+                        className="px-4 py-2 rounded-xl text-white font-bold text-xs shadow-sm bg-[#533afd] hover:bg-[#432ec7] cursor-pointer"
+                      >
+                        + {isHindi ? `"${cropSearchQuery}" फसल जोड़ें` : `Add "${cropSearchQuery}" as Custom Crop`}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {/* Sowing Date & Variety */}
+                {/* Sowing Date & Variety with Local Cultivar Pills */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Crop Variety (फसल की किस्म)</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-700">Crop Variety (फसल की किस्म)</label>
+                      {currentCropObj?.varieties && currentCropObj.varieties.length > 0 && (
+                        <span className="text-[10px] text-[#533afd] font-bold">
+                          {currentCropObj.varieties.length} Local Cultivars
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="text"
-                      placeholder="e.g. JS-335 / JS-9560 / PBW-824"
+                      placeholder="e.g. JS-335 / PBW-824 / Bhima Super"
                       value={cropVariety}
                       onChange={(e) => setCropVariety(e.target.value)}
                       className="w-full px-3.5 py-3 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] text-xs font-bold text-[#0d253d] notranslate"
                       translate="no"
                     />
+                    {currentCropObj?.varieties && currentCropObj.varieties.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {currentCropObj.varieties.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => setCropVariety(v)}
+                            className={`text-[10px] px-2 py-0.5 rounded-md border font-mono transition-colors cursor-pointer ${
+                              cropVariety === v
+                                ? "bg-[#533afd] text-white border-[#533afd]"
+                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                            }`}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -1293,6 +1640,108 @@ export default function SignupPage() {
         <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
         <span>Encrypted with Syngenta Krishi Digital Vault • DPDP Act 2023 Compliant</span>
       </footer>
+
+      {/* ── Modal: Add Custom / Specialty Crop ────────────────────── */}
+      {showCustomCropModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Leaf className="h-5 w-5 text-[#533afd]" />
+                <h3 className="text-base font-bold text-[#0d253d]">
+                  {isHindi ? "कस्टम / विशिष्ट फसल जोड़ें" : "Add Custom / Specialty Crop"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCustomCropModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Crop Name (फसल का नाम) *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dragon Fruit, Chia Seeds, Mentha, Apple, Cardamom..."
+                  value={customCropName}
+                  onChange={(e) => setCustomCropName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] font-bold text-[#0d253d] focus:border-[#533afd] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Category (श्रेणी)</label>
+                <select
+                  value={customCropCategory}
+                  onChange={(e) => setCustomCropCategory(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] font-bold text-[#0d253d]"
+                >
+                  <option value="cereal">Cereal / Grain (अनाज)</option>
+                  <option value="cash_crop">Cash Crop (नकदी फसल)</option>
+                  <option value="pulse">Pulse (दलहन)</option>
+                  <option value="oilseed">Oilseed (तिलहन)</option>
+                  <option value="vegetable">Vegetable (सब्जी)</option>
+                  <option value="horticulture">Horticulture / Fruit (फल व बागवानी)</option>
+                  <option value="spice">Spice (मसाले)</option>
+                  <option value="plantation">Plantation (वृक्षारोपण)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Cultivar / Variety (किस्म / हाइब्रिड)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Red Flesh Hybrid / Local Desi"
+                  value={customCropVariety}
+                  onChange={(e) => setCustomCropVariety(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#f6f9fc] border border-[#e3e8ee] font-bold text-[#0d253d] focus:border-[#533afd] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCustomCropModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!customCropName.trim()}
+                onClick={() => {
+                  if (!customCropName.trim()) return;
+                  const cropId = customCropName.trim();
+                  const newCrop: RegionalCropOption = {
+                    id: cropId,
+                    nameEn: cropId,
+                    nameHi: cropId,
+                    category: customCropCategory as any,
+                    icon: "✨",
+                    image: "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=400&q=80",
+                    varieties: customCropVariety.trim() ? [customCropVariety.trim()] : ["Local Hybrid"],
+                    isMajorCrop: true,
+                  };
+                  setRegionalCrops((prev) => [newCrop, ...prev]);
+                  setPrimaryCrop(newCrop.nameEn);
+                  setCropVariety(newCrop.varieties[0]);
+                  setShowCustomCropModal(false);
+                  setCustomCropName("");
+                  setCustomCropVariety("");
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#533afd] hover:bg-[#4434d4] text-white font-bold text-xs disabled:opacity-50 shadow-md cursor-pointer transition-all"
+              >
+                {isHindi ? "फसल जोड़ें और चुनें" : "Add & Select Crop"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

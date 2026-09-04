@@ -39,25 +39,164 @@ let speechSynthesisTimer: any = null;
  * - Removes markdown syntax, emojis, URL brackets, complex JSON fragments
  * - Expands or cleans technical symbols so speech sounds natural
  */
-export function cleanTextForNaturalSpeech(rawText: string): string {
+export function cleanTextForNaturalSpeech(rawText: string, langKey: string = "hi"): string {
   if (!rawText) return "";
   let clean = rawText
     .replace(/^\s*\{\s*"reply"\s*:\s*"/i, "")
     .replace(/"\s*,\s*"why_recommendation"[\s\S]*$/i, "")
     .replace(/["{}]/g, "")
-    .replace(/[*_#`~🔴🟢🌾🌧️☀️🌤️⛅☁️🌫️🌦️⛈️❄️🌨️🌩️📌🎯💡⚡⚠️✅✕]/g, "")
+    .replace(/[*_#`~🔴🟢🌾🌧️☀️🌤️⛅☁️🌫️🌦️⛈️❄️🌨️🌩️📌🎯💡⚡⚠️✅✕🛡️🏛️📍💧💨🌡️]/g, " ")
     .replace(/\(.*?\)/g, "") // Remove parenthetical technical notes
-    .replace(/₹/g, "rupees ")
-    .replace(/@/g, "at ")
-    .replace(/\/acre/g, " per acre")
-    .replace(/\/ac/g, " per acre")
-    .replace(/\/ha/g, " per hectare")
-    .replace(/\bml\b/gi, "millilitres")
-    .replace(/\bq\b/gi, "quintals")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/https?:\/\/\S+/g, "");
 
-  return clean;
+  if (langKey === "mr") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 रुपये")
+      .replace(/₹/g, " रुपये ")
+      .replace(/\/acre|\/ac\b/gi, " प्रति एकर ")
+      .replace(/\/ha\b/gi, " प्रति हेक्टर ")
+      .replace(/\bml\b/gi, " मिलीलीटर ")
+      .replace(/\bkg\b/gi, " किलोग्राम ")
+      .replace(/\bq\b|\bquintal\b/gi, " क्विंटल ")
+      .replace(/°C|°c/g, " अंश सेल्सिअस ")
+      .replace(/km\/h|kmph/gi, " किलोमीटर प्रति तास ")
+      .replace(/%/g, " टक्के ");
+  } else if (langKey === "pa") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 ਰੁਪਏ")
+      .replace(/₹/g, " ਰੁਪਏ ")
+      .replace(/\/acre|\/ac\b/gi, " ਪ੍ਰਤੀ ਏਕੜ ")
+      .replace(/\/ha\b/gi, " ਪ੍ਰਤੀ ਹੈਕਟੇਅਰ ")
+      .replace(/\bml\b/gi, " ਮਿਲੀਲੀਟਰ ")
+      .replace(/\bkg\b/gi, " ਕਿਲੋਗ੍ਰਾਮ ")
+      .replace(/\bq\b|\bquintal\b/gi, " ਕੁਇੰਟਲ ")
+      .replace(/°C|°c/g, " ਡਿਗਰੀ ਸੈਲਸੀਅਸ ")
+      .replace(/km\/h|kmph/gi, " ਕਿਲੋਮੀਟਰ ਪ੍ਰਤੀ ਘੰਟਾ ")
+      .replace(/%/g, " ਪ੍ਰਤੀਸ਼ਤ ");
+  } else if (langKey === "gu") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 રૂપિયા")
+      .replace(/₹/g, " રૂપિયા ")
+      .replace(/\/acre|\/ac\b/gi, " પ્રતિ એકર ")
+      .replace(/\/ha\b/gi, " પ્રતિ હેક્ટર ")
+      .replace(/\bml\b/gi, " મિલીલીટર ")
+      .replace(/\bkg\b/gi, " કિલોગ્રામ ")
+      .replace(/\bq\b|\bquintal\b/gi, " ક્વિન્ટલ ")
+      .replace(/°C|°c/g, " ડિગ્રી સેલ્સિયસ ")
+      .replace(/km\/h|kmph/gi, " કિલોમીટર પ્રતિ કલાક ")
+      .replace(/%/g, " ટકા ");
+  } else if (langKey === "te") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 రూపాయలు")
+      .replace(/₹/g, " రూపాయలు ")
+      .replace(/\/acre|\/ac\b/gi, " ఎకరాకు ")
+      .replace(/\/ha\b/gi, " హెక్టారుకు ")
+      .replace(/\bml\b/gi, " మిల్లీలీటర్లు ")
+      .replace(/\bkg\b/gi, " కిలోగ్రాములు ")
+      .replace(/\bq\b|\bquintal\b/gi, " క్వింటాలు ")
+      .replace(/°C|°c/g, " డిగ్రీ సెల్సియస్ ")
+      .replace(/km\/h|kmph/gi, " కిలోమీటర్లు ప్రతి గంటకు ")
+      .replace(/%/g, " శాతం ");
+  } else if (langKey === "ta") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 ரூபாய்")
+      .replace(/₹/g, " ரூபாய் ")
+      .replace(/\/acre|\/ac\b/gi, " ஏக்கருக்கு ")
+      .replace(/\/ha\b/gi, " ஹெக்டேருக்கு ")
+      .replace(/\bml\b/gi, " மில்லிலிட்டர் ")
+      .replace(/\bkg\b/gi, " கிலோகிராம் ")
+      .replace(/\bq\b|\bquintal\b/gi, " குவிண்டால் ")
+      .replace(/°C|°c/g, " டிகிரி செல்சியஸ் ")
+      .replace(/km\/h|kmph/gi, " கிமீ / மணி ")
+      .replace(/%/g, " சதவீதம் ");
+  } else if (langKey === "kn") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 ರೂಪಾಯಿ")
+      .replace(/₹/g, " ರೂಪಾಯಿ ")
+      .replace(/\/acre|\/ac\b/gi, " ಎಕರೆಗೆ ")
+      .replace(/\/ha\b/gi, " ಹೆಕ್ಟೇರಿಗೆ ")
+      .replace(/\bml\b/gi, " ಮಿಲಿಲೀಟರ್ ")
+      .replace(/\bkg\b/gi, " ಕಿಲೋಗ್ರಾಂ ")
+      .replace(/\bq\b|\bquintal\b/gi, " ಕ್ವಿಂಟಾಲ್ ")
+      .replace(/°C|°c/g, " ಡಿಗ್ರಿ ಸೆಲ್ಸಿಯಸ್ ")
+      .replace(/km\/h|kmph/gi, " ಕಿಮೀ ಪ್ರತಿ ಗಂಟೆಗೆ ")
+      .replace(/%/g, " ಶೇಕಡಾ ");
+  } else if (langKey === "ml") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 രൂപ")
+      .replace(/₹/g, " രൂപ ")
+      .replace(/\/acre|\/ac\b/gi, " ഏക്കറിന് ")
+      .replace(/\/ha\b/gi, " ഹെക്ടറിന് ")
+      .replace(/\bml\b/gi, " മില്ലിലിറ്റർ ")
+      .replace(/\bkg\b/gi, " കിലോഗ്രാം ")
+      .replace(/\bq\b|\bquintal\b/gi, " ക്വിന്റൽ ")
+      .replace(/°C|°c/g, " ഡിഗ്രി സെൽഷ്യസ് ")
+      .replace(/km\/h|kmph/gi, " കിലോമീറ്റർ പ്രതി മണിക്കൂറിൽ ")
+      .replace(/%/g, " ശതമാനം ");
+  } else if (langKey === "bn") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 টাকা")
+      .replace(/₹/g, " টাকা ")
+      .replace(/\/acre|\/ac\b/gi, " প্রতি একর ")
+      .replace(/\/ha\b/gi, " প্রতি হেক্টর ")
+      .replace(/\bml\b/gi, " মিলিলিটার ")
+      .replace(/\bkg\b/gi, " কিলোগ্রাম ")
+      .replace(/\bq\b|\bquintal\b/gi, " কুইন্টাল ")
+      .replace(/°C|°c/g, " ডিগ্রি সেলসিয়াস ")
+      .replace(/km\/h|kmph/gi, " কিলোমিটার প্রতি ঘণ্টা ")
+      .replace(/%/g, " শতাংশ ");
+  } else if (langKey === "or") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 ଟଙ୍କା")
+      .replace(/₹/g, " ଟଙ୍କା ")
+      .replace(/\/acre|\/ac\b/gi, " ପ୍ରତି ଏକର ")
+      .replace(/\/ha\b/gi, " ପ୍ରତି ହେକ୍ଟର ")
+      .replace(/\bml\b/gi, " ମିଲିଲିଟର ")
+      .replace(/\bkg\b/gi, " କିଲୋଗ୍ରାମ ")
+      .replace(/\bq\b|\bquintal\b/gi, " କ୍ୱିଣ୍ଟାଲ ")
+      .replace(/°C|°c/g, " ଡିଗ୍ରୀ ସେଲସିୟସ ")
+      .replace(/km\/h|kmph/gi, " କିଲୋମିଟର ପ୍ରତି ଘଣ୍ଟା ")
+      .replace(/%/g, " ପ୍ରତିଶତ ");
+  } else if (langKey === "as") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 টকা")
+      .replace(/₹/g, " টকা ")
+      .replace(/\/acre|\/ac\b/gi, " প্ৰতি একৰ ")
+      .replace(/\/ha\b/gi, " প্ৰତି হেক্টৰ ")
+      .replace(/\bml\b/gi, " মিলিলিটাৰ ")
+      .replace(/\bkg\b/gi, " কিলোগ্ৰাম ")
+      .replace(/\bq\b|\bquintal\b/gi, " কুইণ্টল ")
+      .replace(/°C|°c/g, " ডিগ্ৰী চেলচিয়াছ ")
+      .replace(/km\/h|kmph/gi, " কিলোমিটাৰ প্ৰতি ঘণ্টা ")
+      .replace(/%/g, " শতাংশ ");
+  } else if (langKey === "hi") {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "$1 रुपये")
+      .replace(/₹/g, " रुपये ")
+      .replace(/\/acre|\/ac\b/gi, " प्रति एकड़ ")
+      .replace(/\/ha\b/gi, " प्रति हेक्टेयर ")
+      .replace(/\bml\b/gi, " मिलीलीटर ")
+      .replace(/\bkg\b/gi, " किलोग्राम ")
+      .replace(/\bq\b|\bquintal\b/gi, " क्विंटल ")
+      .replace(/°C|°c/g, " डिग्री सेल्सियस ")
+      .replace(/km\/h|kmph/gi, " किलोमीटर प्रति घंटा ")
+      .replace(/%/g, " प्रतिशत ");
+  } else {
+    clean = clean
+      .replace(/₹\s*([0-9,]+)/g, "rupees $1")
+      .replace(/₹/g, "rupees ")
+      .replace(/@\s*/g, "at ")
+      .replace(/\/acre|\/ac\b/gi, " per acre ")
+      .replace(/\/ha\b/gi, " per hectare ")
+      .replace(/\bml\b/gi, " millilitres ")
+      .replace(/\bkg\b/gi, " kilograms ")
+      .replace(/\bq\b|\bquintal\b/gi, " quintals ")
+      .replace(/°C|°c/g, " degrees Celsius ")
+      .replace(/km\/h|kmph/gi, " kilometers per hour ")
+      .replace(/%/g, " percent ");
+  }
+
+  return clean.replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -74,7 +213,7 @@ export async function playGoogleNeuralSpeech(
 ): Promise<boolean> {
   try {
     stopGoogleSpeech();
-    const spokenText = cleanTextForNaturalSpeech(text);
+    const spokenText = cleanTextForNaturalSpeech(text, langKey);
     if (!spokenText) {
       if (options?.onEnd) options.onEnd();
       return false;
@@ -107,7 +246,7 @@ export async function playGoogleNeuralSpeech(
   }
 
   // Fallback to browser synthesis if backend audio fetch fails
-  return speakBrowserSpeechFallback(cleanTextForNaturalSpeech(text), langKey, options);
+  return speakBrowserSpeechFallback(cleanTextForNaturalSpeech(text, langKey), langKey, options);
 }
 
 /**
@@ -132,7 +271,7 @@ export function speakBrowserSpeechFallback(
     if (speechSynthesisTimer) clearInterval(speechSynthesisTimer);
 
     const config = BCP47_MAP[langKey] || BCP47_MAP["hi"];
-    const cleanedText = cleanTextForNaturalSpeech(text);
+    const cleanedText = cleanTextForNaturalSpeech(text, langKey);
 
     if (!cleanedText) {
       if (options?.onEnd) options.onEnd();

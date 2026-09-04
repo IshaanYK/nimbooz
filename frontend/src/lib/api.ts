@@ -42,6 +42,9 @@ export async function sendChatMessage(
     wind_speed?: number | null;
     soil_moisture?: number | null;
     state?: string;
+    field_id?: string;
+    field_name?: string;
+    farmer_id?: string;
   }
 ) {
   try {
@@ -61,6 +64,9 @@ export async function sendChatMessage(
         wind_speed: extraTelemetry?.wind_speed ?? null,
         soil_moisture: extraTelemetry?.soil_moisture ?? null,
         state: extraTelemetry?.state ?? undefined,
+        field_id: extraTelemetry?.field_id ?? undefined,
+        field_name: extraTelemetry?.field_name ?? undefined,
+        farmer_id: extraTelemetry?.farmer_id ?? undefined,
         farmer_name,
         field_acres,
         crop_variety,

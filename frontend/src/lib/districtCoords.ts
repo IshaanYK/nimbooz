@@ -135,11 +135,84 @@ export const DISTRICT_COORDINATES: Record<string, DistrictCoord> = {
   guntur: { lat: 16.3067, lon: 80.4365, state: "Andhra Pradesh" },
   kurnool: { lat: 15.8281, lon: 78.0373, state: "Andhra Pradesh" },
   anantapur: { lat: 14.6819, lon: 77.6006, state: "Andhra Pradesh" },
+  krishna: { lat: 16.1875, lon: 81.1389, state: "Andhra Pradesh" },
+  prakasam: { lat: 15.5057, lon: 80.0499, state: "Andhra Pradesh" },
+  east_godavari: { lat: 16.9891, lon: 82.2475, state: "Andhra Pradesh" },
+  west_godavari: { lat: 16.7107, lon: 81.0952, state: "Andhra Pradesh" },
+  visakhapatnam: { lat: 17.6868, lon: 83.2185, state: "Andhra Pradesh" },
   warangal: { lat: 17.9689, lon: 79.5941, state: "Telangana" },
   nizamabad: { lat: 18.6725, lon: 78.0941, state: "Telangana" },
   karimnagar: { lat: 18.4386, lon: 79.1288, state: "Telangana" },
   khammam: { lat: 17.2473, lon: 80.1514, state: "Telangana" },
   nalgonda: { lat: 17.0577, lon: 79.2684, state: "Telangana" },
+  mahabubnagar: { lat: 16.7488, lon: 77.9942, state: "Telangana" },
+
+  // Kerala
+  idukki: { lat: 9.9189, lon: 77.1025, state: "Kerala" },
+  wayanad: { lat: 11.6854, lon: 76.1320, state: "Kerala" },
+  palakkad: { lat: 10.7867, lon: 76.6548, state: "Kerala" },
+  thiruvananthapuram: { lat: 8.5241, lon: 76.9366, state: "Kerala" },
+  ernakulam: { lat: 9.9816, lon: 76.2999, state: "Kerala" },
+  kottayam: { lat: 9.5916, lon: 76.5222, state: "Kerala" },
+  alappuzha: { lat: 9.4981, lon: 76.3388, state: "Kerala" },
+  thrissur: { lat: 10.5276, lon: 76.2144, state: "Kerala" },
+
+  // Tamil Nadu
+  coimbatore: { lat: 11.0168, lon: 76.9558, state: "Tamil Nadu" },
+  thanjavur: { lat: 10.7870, lon: 79.1378, state: "Tamil Nadu" },
+  madurai: { lat: 9.9252, lon: 78.1198, state: "Tamil Nadu" },
+  salem: { lat: 11.6643, lon: 78.1460, state: "Tamil Nadu" },
+  tiruchirappalli: { lat: 10.7905, lon: 78.7047, state: "Tamil Nadu" },
+  tirunelveli: { lat: 8.7139, lon: 77.7567, state: "Tamil Nadu" },
+  erode: { lat: 11.3410, lon: 77.7172, state: "Tamil Nadu" },
+
+  // West Bengal & Bihar
+  burdwan: { lat: 23.2324, lon: 87.8615, state: "West Bengal" },
+  purba_bardhaman: { lat: 23.2324, lon: 87.8615, state: "West Bengal" },
+  hooghly: { lat: 22.9030, lon: 88.3968, state: "West Bengal" },
+  murshidabad: { lat: 24.1759, lon: 88.2802, state: "West Bengal" },
+  darjeeling: { lat: 27.0410, lon: 88.2663, state: "West Bengal" },
+  malda: { lat: 25.0108, lon: 88.1411, state: "West Bengal" },
+  patna: { lat: 25.5941, lon: 85.1376, state: "Bihar" },
+  muzaffarpur: { lat: 26.1209, lon: 85.3647, state: "Bihar" },
+  gaya: { lat: 24.7914, lon: 85.0002, state: "Bihar" },
+  bhagalpur: { lat: 25.2425, lon: 86.9842, state: "Bihar" },
+  purnia: { lat: 25.7771, lon: 87.4753, state: "Bihar" },
+
+  // Odisha & Assam
+  sambalpur: { lat: 21.4669, lon: 83.9812, state: "Odisha" },
+  bhubaneswar: { lat: 20.2961, lon: 85.8245, state: "Odisha" },
+  cuttack: { lat: 20.4625, lon: 85.8828, state: "Odisha" },
+  balasore: { lat: 21.4934, lon: 86.9135, state: "Odisha" },
+  ganjam: { lat: 19.3820, lon: 85.0600, state: "Odisha" },
+  kamrup: { lat: 26.1158, lon: 91.7086, state: "Assam" },
+  guwahati: { lat: 26.1445, lon: 91.7362, state: "Assam" },
+  jorhat: { lat: 26.7509, lon: 94.2037, state: "Assam" },
+  dibrugarh: { lat: 27.4728, lon: 94.9120, state: "Assam" },
+
+  // Hill States: Himachal Pradesh, Jammu & Kashmir, Uttarakhand
+  shimla: { lat: 31.1048, lon: 77.1734, state: "Himachal Pradesh" },
+  kullu: { lat: 31.9579, lon: 77.1095, state: "Himachal Pradesh" },
+  kangra: { lat: 32.0998, lon: 76.2691, state: "Himachal Pradesh" },
+  mandi: { lat: 31.7087, lon: 76.9320, state: "Himachal Pradesh" },
+  solan: { lat: 30.9045, lon: 77.0967, state: "Himachal Pradesh" },
+  srinagar: { lat: 34.0837, lon: 74.7973, state: "Jammu & Kashmir" },
+  jammu: { lat: 32.7266, lon: 74.8570, state: "Jammu & Kashmir" },
+  anantnag: { lat: 33.7311, lon: 75.1487, state: "Jammu & Kashmir" },
+  baramulla: { lat: 34.2064, lon: 74.3436, state: "Jammu & Kashmir" },
+  dehradun: { lat: 30.3165, lon: 78.0322, state: "Uttarakhand" },
+  haridwar: { lat: 29.9457, lon: 78.1642, state: "Uttarakhand" },
+  nainital: { lat: 29.3919, lon: 79.4542, state: "Uttarakhand" },
+  udham_singh_nagar: { lat: 28.9800, lon: 79.4000, state: "Uttarakhand" },
+
+  // Jharkhand & Chhattisgarh
+  ranchi: { lat: 23.3441, lon: 85.3096, state: "Jharkhand" },
+  jamshedpur: { lat: 22.8046, lon: 86.2029, state: "Jharkhand" },
+  dhanbad: { lat: 23.7957, lon: 86.4304, state: "Jharkhand" },
+  raipur: { lat: 21.2514, lon: 81.6296, state: "Chhattisgarh" },
+  durg: { lat: 21.1904, lon: 81.2849, state: "Chhattisgarh" },
+  bilaspur: { lat: 22.0797, lon: 82.1391, state: "Chhattisgarh" },
+  rajnandgaon: { lat: 21.0974, lon: 81.0354, state: "Chhattisgarh" },
 };
 
 /**
@@ -147,7 +220,7 @@ export const DISTRICT_COORDINATES: Record<string, DistrictCoord> = {
  */
 export function getDistrictCoordinates(districtName: string, stateName?: string): { lat: number; lon: number } {
   if (!districtName) return { lat: 23.2030, lon: 77.0840 }; // Sehore default
-  const clean = districtName.trim().toLowerCase().replace(/[^a-z0-9 ]/g, "");
+  const clean = districtName.trim().toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, "_");
   
   if (DISTRICT_COORDINATES[clean]) {
     return { lat: DISTRICT_COORDINATES[clean].lat, lon: DISTRICT_COORDINATES[clean].lon };
@@ -160,7 +233,7 @@ export function getDistrictCoordinates(districtName: string, stateName?: string)
     }
   }
 
-  // Fallbacks by state
+  // Fallbacks by state across India
   if (stateName) {
     const s = stateName.toLowerCase();
     if (s.includes("maharashtra")) return { lat: 19.9975, lon: 73.7898 };
@@ -170,7 +243,28 @@ export function getDistrictCoordinates(districtName: string, stateName?: string)
     if (s.includes("gujarat")) return { lat: 22.3039, lon: 70.8022 };
     if (s.includes("uttar pradesh")) return { lat: 26.4499, lon: 80.3319 };
     if (s.includes("karnataka")) return { lat: 15.4589, lon: 75.0078 };
-    if (s.includes("andhra") || s.includes("telangana")) return { lat: 16.3067, lon: 80.4365 };
+    if (s.includes("andhra")) return { lat: 16.3067, lon: 80.4365 };
+    if (s.includes("telangana")) return { lat: 17.9689, lon: 79.5941 };
+    if (s.includes("kerala")) return { lat: 9.9189, lon: 76.9558 };
+    if (s.includes("tamil nadu")) return { lat: 11.0168, lon: 76.9558 };
+    if (s.includes("west bengal")) return { lat: 23.2324, lon: 87.8615 };
+    if (s.includes("bihar")) return { lat: 25.5941, lon: 85.1376 };
+    if (s.includes("odisha")) return { lat: 20.2961, lon: 85.8245 };
+    if (s.includes("assam")) return { lat: 26.1445, lon: 91.7362 };
+    if (s.includes("himachal")) return { lat: 31.1048, lon: 77.1734 };
+    if (s.includes("jammu") || s.includes("kashmir")) return { lat: 34.0837, lon: 74.7973 };
+    if (s.includes("uttarakhand")) return { lat: 30.3165, lon: 78.0322 };
+    if (s.includes("jharkhand")) return { lat: 23.3441, lon: 85.3096 };
+    if (s.includes("chhattisgarh")) return { lat: 21.2514, lon: 81.6296 };
+    if (s.includes("goa")) return { lat: 15.2993, lon: 74.1240 };
+    if (s.includes("sikkim")) return { lat: 27.3389, lon: 88.6065 };
+    if (s.includes("tripura")) return { lat: 23.8315, lon: 91.2868 };
+    if (s.includes("meghalaya")) return { lat: 25.5788, lon: 91.8933 };
+    if (s.includes("manipur")) return { lat: 24.8170, lon: 93.9368 };
+    if (s.includes("nagaland")) return { lat: 25.6751, lon: 94.1086 };
+    if (s.includes("mizoram")) return { lat: 23.7271, lon: 92.7176 };
+    if (s.includes("arunachal")) return { lat: 27.0844, lon: 93.6053 };
+    if (s.includes("delhi")) return { lat: 28.7041, lon: 77.1025 };
   }
 
   return { lat: 23.2030, lon: 77.0840 }; // MP default

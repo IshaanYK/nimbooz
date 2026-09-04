@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   Clock,
   FlaskConical,
+  Sprout,
 } from "lucide-react";
 import { addJournalEntry } from "@/lib/api";
 
@@ -46,6 +47,14 @@ interface FormattedAgriResponseProps {
     maxPrice?: number;
     formattedDate?: string;
     isToday?: boolean;
+  };
+  matchedField?: {
+    id: string;
+    name: string;
+    area_acres: number;
+    crop: string;
+    variety?: string;
+    soil_type?: string;
   };
   confidenceScore?: number;
   provider?: string;
@@ -144,6 +153,7 @@ export const FormattedAgriResponse: React.FC<FormattedAgriResponseProps> = ({
   onToggleSpeech,
   telemetryUsed,
   mandiRecord,
+  matchedField,
   confidenceScore = 98,
   provider = "Google Gemini 2.5 Flash",
   whyRecommendation,
@@ -194,35 +204,47 @@ export const FormattedAgriResponse: React.FC<FormattedAgriResponseProps> = ({
   return (
     <div className="space-y-3 font-sans">
       
-      {/* 1. Verified Telemetry Anchor Header */}
-      {telemetryUsed && (
+      {/* 1. Verified Telemetry & Plot Anchor Header */}
+      {(telemetryUsed || matchedField) && (
         <div className="flex items-center justify-between gap-2 flex-wrap bg-[#f6f9fc] border border-[#e3e8ee] px-3 py-1.5 rounded-xl text-[11px] font-mono shadow-2xs">
-          <div className="flex items-center gap-1.5 text-slate-600">
-            <MapPin className="h-3 w-3 text-[#533afd] shrink-0" />
-            <span className="font-bold text-[#0d253d]">{telemetryUsed.location || "Bhopal, MP"}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {matchedField && (
+              <span className="flex items-center gap-1 font-bold text-[#533afd] bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                <Sprout className="h-3 w-3 text-[#533afd] shrink-0" />
+                <span>{matchedField.name} ({matchedField.area_acres} ac {matchedField.crop})</span>
+              </span>
+            )}
+            {telemetryUsed && (
+              <div className="flex items-center gap-1 text-slate-600">
+                <MapPin className="h-3 w-3 text-[#533afd] shrink-0" />
+                <span className="font-bold text-[#0d253d]">{telemetryUsed.location || "Bhopal, MP"}</span>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2.5 text-slate-500">
-            <span className="flex items-center gap-1 font-bold text-[#533afd]">
-              <Thermometer className="h-3 w-3 text-[#533afd]" />
-              {telemetryUsed.temp}°C
-            </span>
-            <span className="flex items-center gap-1 font-bold text-emerald-700">
-              <Droplets className="h-3 w-3 text-emerald-600" />
-              {telemetryUsed.soil}% Soil
-            </span>
-            <span className="flex items-center gap-1 font-bold text-slate-700">
-              <Wind className="h-3 w-3 text-amber-600" />
-              {telemetryUsed.wind} km/h
-            </span>
-            <span className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${
-              telemetryUsed.isSpraySafe
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-amber-100 text-amber-800"
-            }`}>
-              {telemetryUsed.isSpraySafe ? "Safe Spray" : "Spray Caution"}
-            </span>
-          </div>
+          {telemetryUsed && (
+            <div className="flex items-center gap-2.5 text-slate-500">
+              <span className="flex items-center gap-1 font-bold text-[#533afd]">
+                <Thermometer className="h-3 w-3 text-[#533afd]" />
+                {telemetryUsed.temp}°C
+              </span>
+              <span className="flex items-center gap-1 font-bold text-emerald-700">
+                <Droplets className="h-3 w-3 text-emerald-600" />
+                {telemetryUsed.soil}% Soil
+              </span>
+              <span className="flex items-center gap-1 font-bold text-slate-700">
+                <Wind className="h-3 w-3 text-amber-600" />
+                {telemetryUsed.wind} km/h
+              </span>
+              <span className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${
+                telemetryUsed.isSpraySafe
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-amber-100 text-amber-800"
+              }`}>
+                {telemetryUsed.isSpraySafe ? "Safe Spray" : "Spray Caution"}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

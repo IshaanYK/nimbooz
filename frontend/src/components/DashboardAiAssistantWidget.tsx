@@ -93,10 +93,10 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
         language,
         `${effectiveDistrict}, ${weather.state || "Madhya Pradesh"}`,
         weather.nightTemperature || weather.temperature,
-        farmerName || "Farmer Friend",
+        farmerName || "Ishaan Sen",
         effectiveAcres,
-        "",
-        "Deep Black Loam",
+        activeFarm.cropVariety || "JS 20-34 Certified",
+        activeFarm.soilType || "Deep Black Loam",
         effectiveDistrict,
         "",
         undefined,
@@ -109,6 +109,9 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
           wind_speed: weather.windSpeed,
           soil_moisture: weather.soilMoistureEst,
           state: weather.state || "Madhya Pradesh",
+          field_id: activeFarm.id || "field_1",
+          field_name: activeFarm.name || "Main Acreage",
+          farmer_id: "farmer_1",
         }
       );
 
@@ -119,6 +122,8 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
           mandiRecord: res.mandi_record,
           whyRecommendation: res.why_recommendation,
           confidenceScore: res.confidence_score || 98,
+          matchedField: res.matched_field,
+          allRegisteredFields: res.all_registered_fields,
           telemetryUsed: {
             temp: weather.temperature,
             soil: weather.soilMoistureEst,
@@ -358,7 +363,7 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
       {/* Render Latest Grounded Response with FormattedAgriResponse */}
       {latestResponse && (
         <div className="bg-white border border-indigo-200/80 rounded-2xl p-5 space-y-3.5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-bold text-[#0d253d] font-display">
@@ -366,9 +371,17 @@ export const DashboardAiAssistantWidget: React.FC<DashboardAiAssistantWidgetProp
               </span>
             </div>
             
-            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
-              {latestResponse.telemetryUsed.location} · {latestResponse.telemetryUsed.temp}°C
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {latestResponse.matchedField && (
+                <span className="text-[10px] font-mono font-bold text-[#533afd] bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
+                  <Sprout className="h-3 w-3 text-[#533afd]" />
+                  {latestResponse.matchedField.name} ({latestResponse.matchedField.area_acres} ac {latestResponse.matchedField.crop})
+                </span>
+              )}
+              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
+                {latestResponse.telemetryUsed.location} · {latestResponse.telemetryUsed.temp}°C
+              </span>
+            </div>
           </div>
 
           <FormattedAgriResponse
