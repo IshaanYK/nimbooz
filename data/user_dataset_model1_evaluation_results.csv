@@ -1,73 +1,73 @@
 test_id,scenario,expected_class_id,expected_stress_name,predicted_class_id,predicted_stress_name,confidence_pct,is_correct_match,prob_optimal_pct,prob_heat_pct,prob_drought_pct,prob_compound_pct,prob_flooding_pct,prob_frost_pct,prob_salinity_pct,temp_max_forecast_7d,temp_night_min_7d,rh_avg_forecast_7d,vpd_kpa,soil_moisture_vol_pct,consecutive_hot_days,crop_gdd_accumulated
-OPT_01,Optimal,0,Optimal Growth,0,Optimal Growth,99.97,True,99.97,0.0,0.01,0.0,0.01,0.0,0.0,30.19,22.72,75.97,1.03,44.07,0,1763.43
-OPT_02,Optimal,0,Optimal Growth,0,Optimal Growth,99.98,True,99.98,0.0,0.01,0.0,0.0,0.0,0.0,30.09,18.7,84.65,0.65,40.86,0,856.2
-OPT_03,Optimal,0,Optimal Growth,0,Optimal Growth,99.98,True,99.98,0.0,0.01,0.0,0.0,0.0,0.0,31.41,22.53,81.1,0.87,40.76,0,1131.88
-OPT_04,Optimal,0,Optimal Growth,0,Optimal Growth,99.97,True,99.97,0.0,0.01,0.0,0.01,0.0,0.0,24.51,21.47,85.69,0.44,44.86,0,831.79
-OPT_05,Optimal,0,Optimal Growth,0,Optimal Growth,99.99,True,99.99,0.0,0.0,0.0,0.0,0.0,0.0,31.77,22.28,87.33,0.59,37.53,0,365.71
-OPT_06,Optimal,0,Optimal Growth,0,Optimal Growth,99.92,True,99.92,0.0,0.02,0.0,0.04,0.0,0.01,25.23,22.1,82.08,0.58,47.58,0,788.74
-OPT_07,Optimal,0,Optimal Growth,0,Optimal Growth,99.99,True,99.99,0.0,0.01,0.0,0.0,0.0,0.0,26.96,19.04,76.74,0.83,36.69,1,640.36
-OPT_08,Optimal,0,Optimal Growth,0,Optimal Growth,99.98,True,99.98,0.0,0.01,0.0,0.01,0.0,0.0,29.36,22.58,75.93,0.98,44.1,0,768.55
-OPT_09,Optimal,0,Optimal Growth,0,Optimal Growth,99.99,True,99.99,0.0,0.01,0.0,0.0,0.0,0.0,30.66,20.13,85.12,0.66,38.75,0,509.63
-OPT_10,Optimal,0,Optimal Growth,0,Optimal Growth,99.97,True,99.97,0.0,0.01,0.0,0.01,0.0,0.0,25.6,22.33,65.18,1.14,43.64,1,1357.75
-OPT_11,Optimal,0,Optimal Growth,0,Optimal Growth,99.99,True,99.99,0.0,0.01,0.0,0.0,0.0,0.0,30.25,21.13,76.47,1.01,36.82,0,1302.6
-OPT_12,Optimal,0,Optimal Growth,0,Optimal Growth,99.97,True,99.97,0.0,0.01,0.0,0.01,0.0,0.0,27.77,22.21,79.13,0.78,43.25,0,1130.37
-OPT_13,Optimal,0,Optimal Growth,0,Optimal Growth,99.98,True,99.98,0.0,0.01,0.0,0.0,0.0,0.0,28.47,18.17,72.6,1.06,40.68,1,912.79
-OPT_14,Optimal,0,Optimal Growth,0,Optimal Growth,99.99,True,99.99,0.0,0.01,0.0,0.0,0.0,0.0,30.83,18.32,70.85,1.3,38.66,0,740.39
-OPT_15,Optimal,0,Optimal Growth,0,Optimal Growth,99.97,True,99.97,0.0,0.01,0.0,0.01,0.0,0.0,29.3,22.31,78.93,0.86,43.64,0,1521.03
-OPT_16,Optimal,0,Optimal Growth,0,Optimal Growth,99.97,True,99.97,0.0,0.01,0.0,0.01,0.0,0.0,25.34,18.5,65.57,1.11,44.39,0,992.82
-HEAT_01,Heat,1,Heat Stress,1,Heat Stress,98.69,True,0.76,98.69,0.09,0.24,0.12,0.04,0.06,39.29,23.07,57.53,3.02,42.53,4,871.53
-HEAT_02,Heat,1,Heat Stress,1,Heat Stress,99.82,True,0.1,99.82,0.01,0.05,0.01,0.01,0.01,40.41,24.53,60.76,2.96,31.58,4,477.01
-HEAT_03,Heat,1,Heat Stress,1,Heat Stress,99.98,True,0.01,99.98,0.0,0.01,0.0,0.0,0.0,45.7,26.9,67.71,3.21,34.79,5,1468.13
-HEAT_04,Heat,1,Heat Stress,1,Heat Stress,98.62,True,0.77,98.62,0.1,0.32,0.06,0.05,0.09,43.74,23.91,56.23,3.93,31.74,6,1653.9
-HEAT_05,Heat,1,Heat Stress,1,Heat Stress,98.44,True,0.98,98.44,0.11,0.29,0.06,0.05,0.08,41.65,24.14,50.06,4.02,40.43,4,1584.92
-HEAT_06,Heat,1,Heat Stress,1,Heat Stress,99.82,True,0.13,99.82,0.01,0.03,0.01,0.0,0.01,44.07,25.02,62.99,3.38,41.29,2,1176.15
-HEAT_07,Heat,1,Heat Stress,1,Heat Stress,99.79,True,0.14,99.79,0.01,0.03,0.01,0.0,0.01,43.2,24.91,47.11,4.62,30.75,2,794.79
-HEAT_08,Heat,1,Heat Stress,1,Heat Stress,99.97,True,0.01,99.97,0.0,0.01,0.0,0.0,0.0,39.16,26.11,47.59,3.7,33.07,4,1687.68
-HEAT_09,Heat,1,Heat Stress,1,Heat Stress,99.89,True,0.07,99.89,0.01,0.02,0.0,0.0,0.0,42.65,26.14,53.67,3.93,30.41,2,1023.46
-HEAT_10,Heat,1,Heat Stress,1,Heat Stress,99.96,True,0.01,99.96,0.0,0.02,0.0,0.0,0.0,44.26,25.41,47.07,4.88,38.83,6,1706.74
-HEAT_11,Heat,1,Heat Stress,1,Heat Stress,98.56,True,0.91,98.56,0.09,0.27,0.05,0.04,0.08,42.57,23.87,56.84,3.65,35.97,4,958.37
-HEAT_12,Heat,1,Heat Stress,1,Heat Stress,99.99,True,0.0,99.99,0.0,0.0,0.0,0.0,0.0,38.17,28.27,65.66,2.3,32.52,4,1131.05
-HEAT_13,Heat,1,Heat Stress,1,Heat Stress,99.16,True,0.53,99.16,0.04,0.15,0.05,0.03,0.04,38.87,23.97,61.81,2.65,41.87,5,1452.97
-HEAT_14,Heat,1,Heat Stress,1,Heat Stress,99.35,True,0.39,99.35,0.03,0.12,0.03,0.02,0.04,38.86,23.61,67.9,2.23,30.67,5,1132.28
-HEAT_15,Heat,1,Heat Stress,1,Heat Stress,99.99,True,0.01,99.99,0.0,0.0,0.0,0.0,0.0,40.97,27.66,65.74,2.66,35.71,3,736.38
-HEAT_16,Heat,1,Heat Stress,1,Heat Stress,99.98,True,0.01,99.98,0.0,0.01,0.0,0.0,0.0,42.12,28.55,51.4,4.01,32.96,6,367.37
-DROUGHT_01,Drought,2,Drought Stress,2,Drought Stress,99.97,True,0.01,0.0,99.97,0.01,0.0,0.0,0.0,32.05,23.8,44.81,2.63,17.11,3,1640.17
-DROUGHT_02,Drought,2,Drought Stress,2,Drought Stress,99.99,True,0.01,0.0,99.99,0.0,0.0,0.0,0.0,32.63,23.02,27.9,3.55,16.29,3,860.49
-DROUGHT_03,Drought,2,Drought Stress,2,Drought Stress,99.97,True,0.01,0.0,99.97,0.01,0.0,0.0,0.0,29.66,19.71,38.67,2.55,18.9,3,484.14
-DROUGHT_04,Drought,2,Drought Stress,2,Drought Stress,100.0,True,0.0,0.0,100.0,0.0,0.0,0.0,0.0,34.82,19.17,23.83,4.24,15.69,0,1611.84
-DROUGHT_05,Drought,2,Drought Stress,2,Drought Stress,100.0,True,0.0,0.0,100.0,0.0,0.0,0.0,0.0,30.38,23.05,27.76,3.13,19.23,1,515.85
-DROUGHT_06,Drought,2,Drought Stress,2,Drought Stress,100.0,True,0.0,0.0,100.0,0.0,0.0,0.0,0.0,29.1,18.86,25.74,2.99,16.44,2,482.75
-DROUGHT_07,Drought,2,Drought Stress,2,Drought Stress,99.98,True,0.01,0.0,99.98,0.0,0.0,0.0,0.0,32.54,21.78,37.36,3.07,11.9,3,1373.11
-DROUGHT_08,Drought,2,Drought Stress,2,Drought Stress,99.99,True,0.0,0.0,99.99,0.0,0.0,0.0,0.0,34.17,18.8,23.28,4.12,18.81,3,896.37
-DROUGHT_09,Drought,2,Drought Stress,2,Drought Stress,100.0,True,0.0,0.0,100.0,0.0,0.0,0.0,0.0,31.11,22.31,32.21,3.06,19.08,2,1687.21
-DROUGHT_10,Drought,2,Drought Stress,2,Drought Stress,99.99,True,0.01,0.0,99.99,0.0,0.0,0.0,0.0,29.17,22.12,33.88,2.68,11.01,1,510.51
-DROUGHT_11,Drought,2,Drought Stress,2,Drought Stress,99.99,True,0.01,0.0,99.99,0.0,0.0,0.0,0.0,31.93,21.87,44.16,2.65,18.86,2,1001.07
-DROUGHT_12,Drought,2,Drought Stress,2,Drought Stress,99.98,True,0.01,0.0,99.98,0.0,0.0,0.0,0.0,34.49,18.71,20.45,4.35,17.88,3,1495.23
-DROUGHT_13,Drought,2,Drought Stress,2,Drought Stress,99.98,True,0.01,0.0,99.98,0.0,0.0,0.0,0.0,30.63,21.94,33.27,2.94,18.24,3,918.86
-DROUGHT_14,Drought,2,Drought Stress,2,Drought Stress,100.0,True,0.0,0.0,100.0,0.0,0.0,0.0,0.0,31.62,22.24,30.65,3.23,18.24,2,980.85
-DROUGHT_15,Drought,2,Drought Stress,2,Drought Stress,99.99,True,0.01,0.0,99.99,0.0,0.0,0.0,0.0,30.73,22.85,25.92,3.28,17.76,3,399.84
-DROUGHT_16,Drought,2,Drought Stress,2,Drought Stress,100.0,True,0.0,0.0,100.0,0.0,0.0,0.0,0.0,33.16,23.36,23.65,3.87,12.95,0,515.81
-COMPOUND_01,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.01,0.01,99.99,0.0,0.0,0.0,47.21,25.56,19.14,8.67,9.69,4,331.72
-COMPOUND_02,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.59,True,0.02,0.02,0.35,99.59,0.01,0.01,0.01,38.55,23.48,19.37,5.5,14.5,2,1321.07
-COMPOUND_03,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.0,0.0,99.99,0.0,0.0,0.0,41.94,27.54,22.95,6.3,17.63,6,365.21
-COMPOUND_04,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.01,0.01,99.99,0.0,0.0,0.0,39.81,25.24,20.92,5.78,14.28,7,924.39
-COMPOUND_05,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.98,True,0.0,0.0,0.02,99.98,0.0,0.0,0.0,38.49,27.71,24.34,5.15,9.12,2,377.94
-COMPOUND_06,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),100.0,True,0.0,0.0,0.0,100.0,0.0,0.0,0.0,47.25,30.59,17.48,8.87,17.93,7,1769.36
-COMPOUND_07,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.0,0.0,99.99,0.0,0.0,0.0,46.02,28.78,34.49,6.61,16.57,6,1104.1
-COMPOUND_08,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.98,True,0.0,0.0,0.01,99.98,0.0,0.0,0.0,43.14,27.17,36.44,5.53,12.24,2,1259.34
-COMPOUND_09,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.0,0.0,99.99,0.0,0.0,0.0,40.66,27.3,18.49,6.23,12.59,5,851.27
-COMPOUND_10,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.0,0.0,99.99,0.0,0.0,0.0,41.66,26.42,23.19,6.19,15.54,3,745.31
-COMPOUND_11,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.0,0.0,99.99,0.0,0.0,0.0,47.49,27.33,37.91,6.75,11.61,4,1572.84
-COMPOUND_12,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.0,0.0,99.99,0.0,0.0,0.0,44.53,27.79,35.11,6.07,14.96,5,732.23
-COMPOUND_13,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.0,0.0,99.99,0.0,0.0,0.0,45.35,29.25,20.06,7.8,17.47,7,1221.57
-COMPOUND_14,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.4,True,0.02,0.02,0.53,99.4,0.01,0.01,0.01,38.95,23.76,33.14,4.66,18.3,2,506.11
-COMPOUND_15,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.99,True,0.0,0.0,0.0,99.99,0.0,0.0,0.0,47.59,28.34,35.02,7.1,16.61,7,1719.04
-COMPOUND_16,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.65,True,0.01,0.02,0.3,99.65,0.01,0.01,0.01,40.53,23.86,29.75,5.33,14.78,6,556.94
-BOUND_01,Drought_boundary,2,Drought Stress,2,Drought Stress,95.42,True,4.57,0.0,95.42,0.0,0.0,0.0,0.0,35.0,24.0,50.0,2.81,20.0,0,1000.0
-BOUND_02,Drought_boundary,2,Drought Stress,2,Drought Stress,97.7,True,2.3,0.0,97.7,0.0,0.0,0.0,0.0,35.1,24.0,49.0,2.88,19.5,1,1000.0
-BOUND_03,Drought_boundary,2,Drought Stress,2,Drought Stress,99.99,True,0.0,0.0,99.99,0.0,0.0,0.0,0.0,35.0,24.0,49.0,2.87,19.4,1,1000.0
-BOUND_04,Heat_boundary,1,Heat Stress,0,Optimal Growth,89.73,False,89.73,9.95,0.11,0.09,0.04,0.03,0.06,38.0,24.0,55.0,2.98,25.0,2,1000.0
-BOUND_05,Heat_boundary,1,Heat Stress,1,Heat Stress,98.19,True,1.42,98.19,0.08,0.15,0.05,0.04,0.07,38.1,24.0,54.0,3.06,25.0,2,1000.0
-BOUND_06,Compound_boundary,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),99.73,True,0.01,0.01,0.23,99.73,0.01,0.0,0.01,42.0,24.0,40.0,4.92,18.5,3,1000.0
-BOUND_07,Drought_boundary,2,Drought Stress,2,Drought Stress,100.0,True,0.0,0.0,100.0,0.0,0.0,0.0,0.0,36.0,24.0,32.0,4.04,2.7,0,1000.0
-BOUND_08,Drought_boundary,2,Drought Stress,2,Drought Stress,100.0,True,0.0,0.0,100.0,0.0,0.0,0.0,0.0,36.0,24.0,32.0,4.04,19.0,0,1000.0
+OPT_01,Optimal,0,Optimal Growth,0,Optimal Growth,84.04,True,84.04,1.31,3.91,1.32,4.42,1.28,3.72,30.19,22.72,75.97,1.03,44.07,0,1763.43
+OPT_02,Optimal,0,Optimal Growth,0,Optimal Growth,85.12,True,85.12,1.33,3.85,1.3,3.62,1.31,3.47,30.09,18.7,84.65,0.65,40.86,0,856.2
+OPT_03,Optimal,0,Optimal Growth,0,Optimal Growth,85.03,True,85.03,1.36,3.84,1.29,3.74,1.27,3.47,31.41,22.53,81.1,0.87,40.76,0,1131.88
+OPT_04,Optimal,0,Optimal Growth,0,Optimal Growth,83.38,True,83.38,1.38,4.05,1.38,4.63,1.38,3.8,24.51,21.47,85.69,0.44,44.86,0,831.79
+OPT_05,Optimal,0,Optimal Growth,0,Optimal Growth,86.7,True,86.7,1.33,3.88,1.32,1.9,1.34,3.54,31.77,22.28,87.33,0.59,37.53,0,365.71
+OPT_06,Optimal,0,Optimal Growth,0,Optimal Growth,79.65,True,79.65,1.62,4.74,1.61,6.82,1.63,3.94,25.23,22.1,82.08,0.58,47.58,0,788.74
+OPT_07,Optimal,0,Optimal Growth,0,Optimal Growth,83.98,True,83.98,2.8,4.41,1.63,1.83,1.51,3.85,26.96,19.04,76.74,0.83,36.69,1,640.36
+OPT_08,Optimal,0,Optimal Growth,0,Optimal Growth,84.15,True,84.15,1.31,3.91,1.32,4.39,1.29,3.64,29.36,22.58,75.93,0.98,44.1,0,768.55
+OPT_09,Optimal,0,Optimal Growth,0,Optimal Growth,86.61,True,86.61,1.35,3.91,1.32,1.95,1.32,3.53,30.66,20.13,85.12,0.66,38.75,0,509.63
+OPT_10,Optimal,0,Optimal Growth,0,Optimal Growth,80.93,True,80.93,2.73,4.37,1.62,4.95,1.48,3.93,25.6,22.33,65.18,1.14,43.64,1,1357.75
+OPT_11,Optimal,0,Optimal Growth,0,Optimal Growth,86.97,True,86.97,1.31,3.93,1.32,1.62,1.29,3.55,30.25,21.13,76.47,1.01,36.82,0,1302.6
+OPT_12,Optimal,0,Optimal Growth,0,Optimal Growth,84.47,True,84.47,1.31,3.79,1.29,4.3,1.3,3.55,27.77,22.21,79.13,0.78,43.25,0,1130.37
+OPT_13,Optimal,0,Optimal Growth,0,Optimal Growth,82.53,True,82.53,2.75,4.33,1.6,3.57,1.43,3.78,28.47,18.17,72.6,1.06,40.68,1,912.79
+OPT_14,Optimal,0,Optimal Growth,0,Optimal Growth,86.78,True,86.78,1.31,3.92,1.32,1.84,1.28,3.54,30.83,18.32,70.85,1.3,38.66,0,740.39
+OPT_15,Optimal,0,Optimal Growth,0,Optimal Growth,84.0,True,84.0,1.32,3.91,1.32,4.46,1.33,3.67,29.3,22.31,78.93,0.86,43.64,0,1521.03
+OPT_16,Optimal,0,Optimal Growth,0,Optimal Growth,84.2,True,84.2,1.31,3.88,1.32,4.33,1.32,3.64,25.34,18.5,65.57,1.11,44.39,0,992.82
+HEAT_01,Heat,1,Heat Stress,1,Heat Stress,73.5,True,2.98,73.5,3.76,14.58,2.13,0.98,2.08,39.29,23.07,57.53,3.02,42.53,4,871.53
+HEAT_02,Heat,1,Heat Stress,1,Heat Stress,80.46,True,1.77,80.46,2.2,11.97,0.99,0.88,1.73,40.41,24.53,60.76,2.96,31.58,4,477.01
+HEAT_03,Heat,1,Heat Stress,1,Heat Stress,82.5,True,1.36,82.5,1.49,11.49,0.89,0.8,1.47,45.7,26.9,67.71,3.21,34.79,5,1468.13
+HEAT_04,Heat,1,Heat Stress,1,Heat Stress,71.41,True,1.78,71.41,2.51,20.63,0.98,0.95,1.74,43.74,23.91,56.23,3.93,31.74,6,1653.9
+HEAT_05,Heat,1,Heat Stress,1,Heat Stress,68.82,True,1.81,68.82,2.35,22.71,1.57,0.96,1.78,41.65,24.14,50.06,4.02,40.43,4,1584.92
+HEAT_06,Heat,1,Heat Stress,1,Heat Stress,75.8,True,2.07,75.8,2.17,15.47,1.82,0.92,1.75,44.07,25.02,62.99,3.38,41.29,2,1176.15
+HEAT_07,Heat,1,Heat Stress,1,Heat Stress,64.92,True,1.94,64.92,2.17,27.46,0.92,0.91,1.7,43.2,24.91,47.11,4.62,30.75,2,794.79
+HEAT_08,Heat,1,Heat Stress,1,Heat Stress,74.4,True,2.27,74.4,2.24,17.56,0.93,0.86,1.74,39.16,26.11,47.59,3.7,33.07,4,1687.68
+HEAT_09,Heat,1,Heat Stress,1,Heat Stress,70.32,True,2.05,70.32,2.23,21.64,0.99,0.95,1.83,42.65,26.14,53.67,3.93,30.41,2,1023.46
+HEAT_10,Heat,1,Heat Stress,1,Heat Stress,68.63,True,1.47,68.63,1.69,24.92,0.99,0.82,1.48,44.26,25.41,47.07,4.88,38.83,6,1706.74
+HEAT_11,Heat,1,Heat Stress,1,Heat Stress,73.5,True,1.93,73.5,2.65,18.0,1.08,1.0,1.84,42.57,23.87,56.84,3.65,35.97,4,958.37
+HEAT_12,Heat,1,Heat Stress,1,Heat Stress,90.55,True,2.44,90.55,1.27,2.48,0.89,0.78,1.59,38.17,28.27,65.66,2.3,32.52,4,1131.05
+HEAT_13,Heat,1,Heat Stress,1,Heat Stress,85.92,True,3.36,85.92,1.92,3.98,1.97,0.93,1.91,38.87,23.97,61.81,2.65,41.87,5,1452.97
+HEAT_14,Heat,1,Heat Stress,1,Heat Stress,87.66,True,3.55,87.66,1.92,2.94,1.08,0.94,1.92,38.86,23.61,67.9,2.23,30.67,5,1132.28
+HEAT_15,Heat,1,Heat Stress,1,Heat Stress,91.78,True,1.33,91.78,1.16,2.59,0.88,0.77,1.49,40.97,27.66,65.74,2.66,35.71,3,736.38
+HEAT_16,Heat,1,Heat Stress,1,Heat Stress,74.24,True,1.2,74.24,1.44,19.95,0.83,0.83,1.5,42.12,28.55,51.4,4.01,32.96,6,367.37
+DROUGHT_01,Drought,2,Drought Stress,2,Drought Stress,79.76,True,7.65,2.06,79.76,4.95,1.48,1.22,2.88,32.05,23.8,44.81,2.63,17.11,3,1640.17
+DROUGHT_02,Drought,2,Drought Stress,2,Drought Stress,84.47,True,4.37,2.07,84.47,4.2,1.27,1.09,2.52,32.63,23.02,27.9,3.55,16.29,3,860.49
+DROUGHT_03,Drought,2,Drought Stress,2,Drought Stress,71.76,True,15.69,2.35,71.76,4.74,1.41,1.23,2.83,29.66,19.71,38.67,2.55,18.9,3,484.14
+DROUGHT_04,Drought,2,Drought Stress,2,Drought Stress,89.16,True,3.11,2.61,89.16,1.98,0.67,0.68,1.79,34.82,19.17,23.83,4.24,15.69,0,1611.84
+DROUGHT_05,Drought,2,Drought Stress,2,Drought Stress,80.18,True,13.34,1.19,80.18,1.73,0.89,0.76,1.91,30.38,23.05,27.76,3.13,19.23,1,515.85
+DROUGHT_06,Drought,2,Drought Stress,2,Drought Stress,89.72,True,3.92,1.11,89.72,1.83,0.86,0.74,1.83,29.1,18.86,25.74,2.99,16.44,2,482.75
+DROUGHT_07,Drought,2,Drought Stress,2,Drought Stress,84.54,True,3.58,1.54,84.54,4.98,1.43,1.18,2.74,32.54,21.78,37.36,3.07,11.9,3,1373.11
+DROUGHT_08,Drought,2,Drought Stress,2,Drought Stress,73.37,True,9.5,6.76,73.37,5.78,1.06,1.07,2.47,34.17,18.8,23.28,4.12,18.81,3,896.37
+DROUGHT_09,Drought,2,Drought Stress,2,Drought Stress,81.31,True,11.57,1.31,81.31,1.94,1.0,0.81,2.05,31.11,22.31,32.21,3.06,19.08,2,1687.21
+DROUGHT_10,Drought,2,Drought Stress,2,Drought Stress,91.24,True,2.69,0.91,91.24,1.7,0.87,0.74,1.86,29.17,22.12,33.88,2.68,11.01,1,510.51
+DROUGHT_11,Drought,2,Drought Stress,2,Drought Stress,77.52,True,14.92,1.46,77.52,2.07,1.04,0.86,2.12,31.93,21.87,44.16,2.65,18.86,2,1001.07
+DROUGHT_12,Drought,2,Drought Stress,2,Drought Stress,75.05,True,7.45,6.19,75.05,6.75,1.05,1.06,2.46,34.49,18.71,20.45,4.35,17.88,3,1495.23
+DROUGHT_13,Drought,2,Drought Stress,2,Drought Stress,80.22,True,8.35,1.87,80.22,4.55,1.32,1.11,2.57,30.63,21.94,33.27,2.94,18.24,3,918.86
+DROUGHT_14,Drought,2,Drought Stress,2,Drought Stress,86.84,True,6.57,1.2,86.84,1.89,0.91,0.74,1.85,31.62,22.24,30.65,3.23,18.24,2,980.85
+DROUGHT_15,Drought,2,Drought Stress,2,Drought Stress,80.36,True,8.2,1.88,80.36,4.52,1.29,1.15,2.6,30.73,22.85,25.92,3.28,17.76,3,399.84
+DROUGHT_16,Drought,2,Drought Stress,2,Drought Stress,92.57,True,2.39,1.0,92.57,0.93,0.7,0.67,1.75,33.16,23.36,23.65,3.87,12.95,0,515.81
+COMPOUND_01,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),90.97,True,0.75,4.31,2.12,90.97,0.51,0.53,0.8,47.21,25.56,19.14,8.67,9.69,4,331.72
+COMPOUND_02,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),75.55,True,1.6,2.98,16.98,75.55,0.74,0.75,1.4,38.55,23.48,19.37,5.5,14.5,2,1321.07
+COMPOUND_03,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),87.03,True,0.82,7.94,2.16,87.03,0.57,0.59,0.89,41.94,27.54,22.95,6.3,17.63,6,365.21
+COMPOUND_04,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),90.58,True,0.93,2.61,3.95,90.58,0.53,0.54,0.87,39.81,25.24,20.92,5.78,14.28,7,924.39
+COMPOUND_05,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),75.76,True,1.4,2.82,17.37,75.76,0.67,0.69,1.28,38.49,27.71,24.34,5.15,9.12,2,377.94
+COMPOUND_06,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),90.2,True,0.61,6.59,0.98,90.2,0.45,0.46,0.69,47.25,30.59,17.48,8.87,17.93,7,1769.36
+COMPOUND_07,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),90.51,True,0.66,5.6,1.58,90.51,0.46,0.47,0.72,46.02,28.78,34.49,6.61,16.57,6,1104.1
+COMPOUND_08,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),92.35,True,0.71,2.15,2.83,92.35,0.53,0.54,0.87,43.14,27.17,36.44,5.53,12.24,2,1259.34
+COMPOUND_09,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),90.57,True,0.68,4.04,2.93,90.57,0.49,0.5,0.78,40.66,27.3,18.49,6.23,12.59,5,851.27
+COMPOUND_10,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),90.12,True,0.75,4.88,2.3,90.12,0.54,0.55,0.85,41.66,26.42,23.19,6.19,15.54,3,745.31
+COMPOUND_11,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),92.55,True,0.61,3.66,1.56,92.55,0.45,0.46,0.7,47.49,27.33,37.91,6.75,11.61,4,1572.84
+COMPOUND_12,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),91.38,True,0.68,4.41,1.75,91.38,0.5,0.5,0.77,44.53,27.79,35.11,6.07,14.96,5,732.23
+COMPOUND_13,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),90.54,True,0.68,5.9,1.17,90.54,0.48,0.49,0.74,45.35,29.25,20.06,7.8,17.47,7,1221.57
+COMPOUND_14,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),66.96,True,2.44,10.78,16.29,66.96,0.9,0.92,1.71,38.95,23.76,33.14,4.66,18.3,2,506.11
+COMPOUND_15,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),90.1,True,0.67,5.95,1.6,90.1,0.47,0.48,0.73,47.59,28.34,35.02,7.1,16.61,7,1719.04
+COMPOUND_16,Compound,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),88.58,True,1.03,2.85,5.14,88.58,0.66,0.67,1.06,40.53,23.86,29.75,5.33,14.78,6,556.94
+BOUND_01,Drought_boundary,2,Drought Stress,2,Drought Stress,67.38,True,25.14,3.05,67.38,1.03,0.82,0.7,1.88,35.0,24.0,50.0,2.81,20.0,0,1000.0
+BOUND_02,Drought_boundary,2,Drought Stress,2,Drought Stress,72.84,True,13.49,5.16,72.84,5.11,0.85,0.72,1.82,35.1,24.0,49.0,2.88,19.5,1,1000.0
+BOUND_03,Drought_boundary,2,Drought Stress,2,Drought Stress,74.92,True,13.88,4.68,74.92,3.03,0.88,0.74,1.87,35.0,24.0,49.0,2.87,19.4,1,1000.0
+BOUND_04,Heat_boundary,1,Heat Stress,1,Heat Stress,63.11,True,7.14,63.11,8.33,16.72,1.29,1.08,2.32,38.0,24.0,55.0,2.98,25.0,2,1000.0
+BOUND_05,Heat_boundary,1,Heat Stress,1,Heat Stress,62.5,True,6.52,62.5,8.17,18.18,1.28,1.07,2.28,38.1,24.0,54.0,3.06,25.0,2,1000.0
+BOUND_06,Compound_boundary,3,Compound Stress (Heat+Drought),3,Compound Stress (Heat+Drought),81.01,True,1.22,11.37,3.69,81.01,0.76,0.77,1.19,42.0,24.0,40.0,4.92,18.5,3,1000.0
+BOUND_07,Drought_boundary,2,Drought Stress,2,Drought Stress,78.3,True,2.24,2.02,78.3,14.37,0.65,0.67,1.75,36.0,24.0,32.0,4.04,2.7,0,1000.0
+BOUND_08,Drought_boundary,2,Drought Stress,2,Drought Stress,68.57,True,10.17,5.17,68.57,12.9,0.68,0.69,1.81,36.0,24.0,32.0,4.04,19.0,0,1000.0

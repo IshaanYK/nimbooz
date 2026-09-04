@@ -88,16 +88,18 @@ def train_and_optimize_precise_model1():
     
     sample_weights_train = compute_sample_weight('balanced', y_train)
     
-    # 3. Precision-Tuned XGBoost Multi-Class Architecture
-    print("\n[STEP 3] Training High-Precision XGBoost Classifier (400 trees, max_depth=6, lr=0.04)...")
+    # 3. Regularized, Calibrated XGBoost Multi-Class Architecture (Anti-Overfitting)
+    print("\n[STEP 3] Training Regularized & Calibrated XGBoost Classifier (120 trees, max_depth=4, L1/L2 penalties)...")
     champion_model = xgb.XGBClassifier(
-        n_estimators=400,
-        max_depth=6,
+        n_estimators=120,
+        max_depth=4,
         learning_rate=0.04,
-        subsample=0.85,
-        colsample_bytree=0.85,
-        min_child_weight=2,
-        gamma=0.05,
+        subsample=0.80,
+        colsample_bytree=0.80,
+        min_child_weight=6,
+        reg_alpha=0.5,
+        reg_lambda=2.5,
+        gamma=0.10,
         objective="multi:softprob",
         num_class=7,
         eval_metric="mlogloss",
@@ -124,13 +126,26 @@ def train_and_optimize_precise_model1():
     test_loss = log_loss(y_test, y_prob)
     roc_auc = roc_auc_score(y_test, y_prob, multi_class="ovr", average="macro")
     
+    confidences = np.max(y_prob, axis=1)
+    mean_conf = np.mean(confidences) * 100.0
+    median_conf = np.median(confidences) * 100.0
+    max_conf = np.max(confidences) * 100.0
+    min_conf = np.min(confidences) * 100.0
+    pct_over_99 = (confidences > 0.99).mean() * 100.0
+    
     print("=" * 90)
     print("HELD-OUT TEST SET METRICS:")
-    print(f"  • Macro Precision:   {macro_precision * 100:.2f}%")
-    print(f"  • Macro Recall:      {macro_recall * 100:.2f}%")
-    print(f"  • Macro F1-Score:    {macro_f1 * 100:.2f}%")
-    print(f"  • Multi-class AUC:   {roc_auc:.4f}")
-    print(f"  • Multi-class LogLoss: {test_loss:.4f}")
+    print(f"  • Macro Precision:       {macro_precision * 100:.2f}%")
+    print(f"  • Macro Recall:          {macro_recall * 100:.2f}%")
+    print(f"  • Macro F1-Score:        {macro_f1 * 100:.2f}%")
+    print(f"  • Multi-class AUC:       {roc_auc:.4f}")
+    print(f"  • Multi-class LogLoss:   {test_loss:.4f}")
+    print("------------------------------------------------------------------------------------------")
+    print("PROBABILITY CALIBRATION & CONFIDENCE DISTRIBUTION:")
+    print(f"  • Mean Confidence:       {mean_conf:.2f}% (Target: 70%–85%, uncalibrated was 99.99%)")
+    print(f"  • Median Confidence:     {median_conf:.2f}%")
+    print(f"  • Min / Max Confidence:  {min_conf:.2f}% / {max_conf:.2f}%")
+    print(f"  • Samples > 99.0% Conf:  {pct_over_99:.2f}% (Target: 0.00% saturated logits)")
     print("=" * 90)
     
     print("\nDetailed Per-Class Precision & Classification Report:")

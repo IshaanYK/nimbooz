@@ -124,13 +124,55 @@ def generate_full_50k_training_dataset(n_samples=50000, random_seed=42):
             crop_gdd = float(das * max(0.0, ((temp_max + temp_night_min)/2.0 - 10.0)))
             crop_gdd = float(np.clip(crop_gdd, 40.0, 2500.0))
             
-            # Biophysical Ground Truth Rule Engine (as certified in Manual PDF)
-            is_frost = (temp_night_min <= 3.5) or (temp_max <= 12.0 and temp_night_min <= 5.0)
-            is_flooding = (rainfall_3d >= 80.0 and soil_moisture >= 42.0) or (soil_moisture >= 48.0 and soil_clay >= 40.0)
-            is_salinity = (soil_ec >= 3.8) or (soil_ec >= 2.5 and soil_ph >= 8.3)
-            is_heat = (temp_max >= 38.0) or (temp_max >= 36.0 and temp_night_min >= 24.5 and consecutive_hot_days >= 3)
-            is_drought = (soil_moisture <= 19.5) or (soil_moisture <= 23.5 and vpd_kpa >= 2.8)
+            # Biological continuous transition curves (soft margins)
+            # 1. Thermal stress logistic response curve (T50 = 38.0 C, transition width = 0.8 C)
+            p_heat_raw = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (temp_max - 38.0) / 0.85))))
+            if temp_max >= 35.5 and temp_night_min >= 24.0 and consecutive_hot_days >= 3:
+                p_night_boost = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (temp_night_min - 24.0) / 1.0))))
+                p_heat_raw = max(p_heat_raw, 0.55 + 0.35 * p_night_boost)
             
+            # 2. Moisture deficit logistic response curve (SM50 = 19.5%, transition width = 1.4%)
+            p_drought_raw = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (19.5 - soil_moisture) / 1.4))))
+            if vpd_kpa >= 2.8:
+                p_vpd_boost = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (23.5 - soil_moisture) / 1.4))))
+                p_drought_raw = max(p_drought_raw, 0.50 * p_vpd_boost + 0.40 * (vpd_kpa / 5.0))
+                
+            # 3. Cold / Frost stress response curve (Tmin50 = 3.5 C)
+            p_frost_raw = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (3.5 - temp_night_min) / 0.8))))
+            if temp_max <= 12.0 and temp_night_min <= 5.0:
+                p_frost_raw = max(p_frost_raw, 0.75)
+                
+            # 4. Flooding / Waterlogging response curve
+            p_flooding_raw = 0.0
+            if rainfall_3d >= 60.0 and soil_moisture >= 38.0:
+                p_rain = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (rainfall_3d - 80.0) / 12.0))))
+                p_sm = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (soil_moisture - 42.0) / 2.5))))
+                p_flooding_raw = max(p_flooding_raw, p_rain * p_sm)
+            if soil_moisture >= 45.0 and soil_clay >= 38.0:
+                p_clay_sat = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (soil_moisture - 48.0) / 1.8))))
+                p_flooding_raw = max(p_flooding_raw, p_clay_sat)
+                
+            # 5. Salinity osmotic stress response curve (EC50 = 3.8 dS/m)
+            p_salinity_raw = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, (soil_ec - 3.8) / 0.6))))
+            if soil_ec >= 2.5 and soil_ph >= 8.3:
+                p_salinity_raw = max(p_salinity_raw, 0.70)
+                
+            # Sample stress flags according to biophysical probabilities (simulating crop varietal variance)
+            is_frost = np.random.rand() < p_frost_raw
+            is_flooding = np.random.rand() < p_flooding_raw
+            is_salinity = np.random.rand() < p_salinity_raw
+            is_heat = np.random.rand() < p_heat_raw
+            is_drought = np.random.rand() < p_drought_raw
+            
+            # 3% biological transition stochasticity (varietal resilience / microclimate buffering)
+            if np.random.rand() < 0.035:
+                # Occasional varietal tolerance attenuating stress or minor unmeasured factor inducing stress
+                if is_heat and np.random.rand() < 0.5:
+                    is_heat = False
+                if is_drought and np.random.rand() < 0.5:
+                    is_drought = False
+            
+            # Hierarchical stress classification
             if is_frost:
                 stress_class = 5
             elif is_flooding:
@@ -148,23 +190,35 @@ def generate_full_50k_training_dataset(n_samples=50000, random_seed=42):
             else:
                 stress_class = 0
                 
+            # Add realistic sensor telemetry measurement jitter (aleatoric telemetry noise)
+            s_temp_max = temp_max + float(np.random.normal(0, 0.25))
+            s_temp_min = temp_night_min + float(np.random.normal(0, 0.25))
+            s_rh = np.clip(rh_avg + float(np.random.normal(0, 1.2)), 5.0, 100.0)
+            s_sm = np.clip(soil_moisture + float(np.random.normal(0, 0.6)), 5.0, 60.0)
+            s_vpd = np.clip(vpd_kpa + float(np.random.normal(0, 0.05)), 0.1, 6.5)
+            s_rain = max(0.0, rainfall_3d + float(np.random.normal(0, 0.8)) if rainfall_3d > 0 else 0.0)
+            s_ec = max(0.1, soil_ec + float(np.random.normal(0, 0.08)))
+            s_ph = np.clip(soil_ph + float(np.random.normal(0, 0.04)), 4.5, 9.8)
+            s_clay = np.clip(soil_clay + float(np.random.normal(0, 0.5)), 8.0, 70.0)
+            s_gdd = max(10.0, crop_gdd + float(np.random.normal(0, 4.0)))
+                
             records.append({
                 "sample_id": f"AASRA-TRN-{sample_counter:06d}",
                 "region": reg["name"],
                 "state_country": reg["state"],
                 "season": season_names[season_id],
-                # 11 biophysical features:
-                "temp_max_forecast_7d": round(temp_max, 2),
-                "temp_night_min_7d": round(temp_night_min, 2),
-                "rh_avg_forecast_7d": round(rh_avg, 2),
-                "vpd_kpa": round(vpd_kpa, 2),
-                "soil_moisture_vol_pct": round(soil_moisture, 2),
+                # 11 biophysical features (with realistic sensor precision):
+                "temp_max_forecast_7d": round(s_temp_max, 2),
+                "temp_night_min_7d": round(s_temp_min, 2),
+                "rh_avg_forecast_7d": round(s_rh, 2),
+                "vpd_kpa": round(s_vpd, 2),
+                "soil_moisture_vol_pct": round(s_sm, 2),
                 "consecutive_hot_days": consecutive_hot_days,
-                "crop_gdd_accumulated": round(crop_gdd, 1),
-                "rainfall_3d_sum_mm": round(rainfall_3d, 2),
-                "soil_clay_pct": round(soil_clay, 1),
-                "soil_ec_ds_m": round(soil_ec, 2),
-                "soil_ph": round(soil_ph, 2),
+                "crop_gdd_accumulated": round(s_gdd, 1),
+                "rainfall_3d_sum_mm": round(s_rain, 2),
+                "soil_clay_pct": round(s_clay, 1),
+                "soil_ec_ds_m": round(s_ec, 2),
+                "soil_ph": round(s_ph, 2),
                 # targets:
                 "stress_class": stress_class,
                 "stress_label": stress_labels[stress_class]
