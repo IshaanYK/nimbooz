@@ -1,10 +1,10 @@
 """
-AASRA Machine Learning System — Model 2 Training Pipeline (Champion Edition)
+AASRA Machine Learning System — Model 2 Training Pipeline (Enterprise 2.5 Lakhs Edition)
 Model: Biological Intervention Readiness Engine (PS-02 Action Gate)
 Owner: Rishabh / Team 02
 
 This script:
-1. Synthesizes a realistic agronomic microclimate dataset (20,000 observations)
+1. Synthesizes a realistic agronomic microclimate dataset at enterprise scale (250,000 observations / 2.5 Lakhs)
    simulating field weather and stomatal biophysics across Indian agricultural regions.
 2. Ingests the 5 core features:
    - soil_moisture_pct (root zone 0-10cm)
@@ -12,8 +12,8 @@ This script:
    - wind_speed_kmh (10m surface wind speed)
    - rain_prob_next_48h (rainfastness precipitation probability)
    - crop_stage_sensitivity (0.2 Veg to 1.0 Flowering)
-3. Enforces leak-proof validation (Train / Test split with Stratification).
-4. Trains Champion Platt-Calibrated Ensemble (RandomForestClassifier + 5-Fold Sigmoid Scaling).
+3. Enforces leak-proof validation (Stratified 200,000 Train / 50,000 Test split).
+4. Trains Champion Platt-Calibrated Ensemble (RandomForestClassifier + Platt Sigmoid Scaling).
 5. Evaluates Brier Score Loss (< 0.08), LogLoss (< 0.25), and ROC-AUC (> 0.88).
 6. Wraps model with the Hard Biophysical Safety Gate Layer.
 7. Exports serialized artifact: model2_biological_readiness.joblib
@@ -29,9 +29,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score, classification_report, confusion_matrix
 
-def generate_microclimate_readiness_dataset(n_samples=20000, random_seed=42):
+def generate_microclimate_readiness_dataset(n_samples=250000, random_seed=42):
     """
-    Generates realistic field application microclimate data:
+    Generates realistic field application microclimate data (Enterprise Scale: > 1 Lakh):
     - Delta-T (Stull wet bulb depression): 0.5°C to 12.0°C
     - Soil Moisture: 15% to 75%
     - Wind Speed: 2 to 35 km/h
@@ -164,14 +164,14 @@ def train_and_evaluate_model2():
     print("Owner: Rishabh / Team 02 | Training Execution")
     print("=" * 75)
     
-    # 1. Generate Dataset
-    print("\n[STEP 1] Generating microclimate stomatal readiness dataset (20,000 samples)...")
-    df = generate_microclimate_readiness_dataset(n_samples=20000, random_seed=42)
+    # 1. Generate Dataset (250,000 observations / 2.5 Lakhs)
+    print("\n[STEP 1] Generating enterprise microclimate stomatal readiness dataset (250,000 samples / 2.5 Lakhs)...")
+    df = generate_microclimate_readiness_dataset(n_samples=250000, random_seed=42)
     
     # Save CSV datasets
     csv_paths = [
-        "data/model2_biological_readiness_training_dataset_20k.csv",
-        "ps02-engine/data/model2_biological_readiness_training_dataset_20k.csv"
+        "data/model2_biological_readiness_training_dataset_250k.csv",
+        "ps02-engine/data/model2_biological_readiness_training_dataset_250k.csv"
     ]
     for cp in csv_paths:
         os.makedirs(os.path.dirname(cp), exist_ok=True)
@@ -191,21 +191,21 @@ def train_and_evaluate_model2():
     
     pos_count = y.sum()
     neg_count = len(y) - pos_count
-    print(f"Target Distribution: Optimal Spray Days = {pos_count} ({pos_count/len(y)*100:.1f}%), Unsafe Days = {neg_count} ({neg_count/len(y)*100:.1f}%)")
+    print(f"Target Distribution: Optimal Spray Days = {pos_count:,d} ({pos_count/len(y)*100:.1f}%), Unsafe Days = {neg_count:,d} ({neg_count/len(y)*100:.1f}%)")
     
-    # 2. Split into Train (80%) and Locked Test (20%)
-    print("\n[STEP 2] Splitting into Train (80%) and Locked Test (20%)...")
+    # 2. Split into Train (80% = 200,000) and Locked Test (20% = 50,000)
+    print("\n[STEP 2] Splitting into Train (200,000 samples / 2 Lakhs) and Locked Test (50,000 samples)...")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42, stratify=y)
     print(f"Train shape: {X_train.shape}, Test shape: {X_test.shape}")
     
     # 3. Fit Base Estimator
-    print("\n[STEP 3] Fitting Base Estimator (RandomForestClassifier, depth=6)...")
-    base_rf = RandomForestClassifier(n_estimators=100, max_depth=6, random_state=42, n_jobs=-1)
+    print("\n[STEP 3] Fitting Base Estimator (RandomForestClassifier, n_estimators=80, depth=8)...")
+    base_rf = RandomForestClassifier(n_estimators=80, max_depth=8, min_samples_leaf=5, random_state=42, n_jobs=-1)
     base_rf.fit(X_train, y_train)
     
-    # 4. Train 5-Fold Platt Calibrated Classifier
-    print("\n[STEP 4] Training CalibratedClassifierCV (5-Fold Platt Sigmoid Scaling)...")
-    calibrated_model = CalibratedClassifierCV(estimator=base_rf, cv=5, method="sigmoid")
+    # 4. Train 3-Fold Platt Calibrated Classifier
+    print("\n[STEP 4] Training CalibratedClassifierCV (Platt Sigmoid Scaling across 200,000 samples)...")
+    calibrated_model = CalibratedClassifierCV(estimator=base_rf, cv=3, method="sigmoid")
     calibrated_model.fit(X_train, y_train)
     
     # 5. Evaluate on Locked Test Set

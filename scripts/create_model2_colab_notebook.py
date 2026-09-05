@@ -155,9 +155,9 @@ print("✓ Environment initialized successfully.")
     """)
 
     # CELL 5: Synthetic Dataset Generator Code
-    add_md("## 📊 4. Microclimate Dataset Synthesis (20,000 Field Observations)")
+    add_md("## 📊 4. Microclimate Dataset Synthesis (Enterprise Scale: 250,000 Field Observations / 2.5 Lakhs)")
     add_code("""
-def generate_microclimate_readiness_dataset(n_samples=20000, random_seed=42):
+def generate_microclimate_readiness_dataset(n_samples=250000, random_seed=42):
     np.random.seed(random_seed)
     
     # 1. Delta-T distribution (Gamma distribution: peaks around 3-6°C)
@@ -211,8 +211,8 @@ def generate_microclimate_readiness_dataset(n_samples=20000, random_seed=42):
     })
     return df
 
-df_readiness = generate_microclimate_readiness_dataset(20000, random_seed=42)
-print("Generated Dataset Shape:", df_readiness.shape)
+df_readiness = generate_microclimate_readiness_dataset(250000, random_seed=42)
+print("Generated Enterprise Dataset Shape (2.5 Lakhs):", df_readiness.shape)
 print("\\nTarget Class Distribution:")
 print(df_readiness["target_readiness"].value_counts(normalize=True) * 100)
 df_readiness.head(10)
@@ -277,21 +277,21 @@ X_train, X_test, y_train, y_test = train_test_split(
 print(f"Training Samples: {len(X_train):,d} | Held-out Test Samples: {len(X_test):,d}")
 
 # Step 1: Base Random Forest Classifier
-print("Training Base RandomForestClassifier (100 trees, max_depth=6)...")
+print("Training Base RandomForestClassifier (80 trees, max_depth=8, scaled for 2.5 Lakhs)...")
 base_rf = RandomForestClassifier(
-    n_estimators=100,
-    max_depth=6,
-    min_samples_leaf=10,
+    n_estimators=80,
+    max_depth=8,
+    min_samples_leaf=5,
     random_state=42,
     n_jobs=-1
 )
 base_rf.fit(X_train, y_train)
 
-# Step 2: 5-Fold Platt Sigmoid Calibration
-print("Fitting CalibratedClassifierCV (5-Fold Platt Sigmoid Calibration)...")
+# Step 2: 3-Fold Platt Sigmoid Calibration
+print("Fitting CalibratedClassifierCV (Platt Sigmoid Calibration across 200,000 samples)...")
 calibrated_model = CalibratedClassifierCV(
     estimator=base_rf,
-    cv=5,
+    cv=3,
     method="sigmoid"
 )
 calibrated_model.fit(X_train, y_train)
