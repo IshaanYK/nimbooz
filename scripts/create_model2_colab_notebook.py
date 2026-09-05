@@ -54,7 +54,7 @@ def generate_model2_notebook():
     # CELL 1: Header & Badge
     add_md("""
 # 🌾 AASRA Model 2: Biological Intervention Readiness Engine (PS-02 Action Gate)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/IshaanYK/nimbooz/blob/model2-pipeline/notebooks/AASRA_Model_2_Biological_Readiness.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/IshaanYK/nimbooz/blob/colab-pipeline/notebooks/AASRA_Model_2_Biological_Readiness.ipynb)
 
 ### **Enterprise Agronomic AI Platform — Team 02 (PS-02)**
 * **Architecture Role**: Microclimate Action Gate & Foliar Uptake Verifier
