@@ -168,6 +168,16 @@ def train_and_evaluate_model2():
     print("\n[STEP 1] Generating microclimate stomatal readiness dataset (20,000 samples)...")
     df = generate_microclimate_readiness_dataset(n_samples=20000, random_seed=42)
     
+    # Save CSV datasets
+    csv_paths = [
+        "data/model2_biological_readiness_training_dataset_20k.csv",
+        "ps02-engine/data/model2_biological_readiness_training_dataset_20k.csv"
+    ]
+    for cp in csv_paths:
+        os.makedirs(os.path.dirname(cp), exist_ok=True)
+        df.to_csv(cp, index=False)
+        print(f"  [SAVED] Dataset CSV exported to: {cp}")
+    
     feature_cols = [
         "soil_moisture_pct",
         "delta_t_celsius",
